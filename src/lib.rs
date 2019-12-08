@@ -1,9 +1,9 @@
 use piston::input::Key;
 
-pub const WINDOW_WIDTH : f64 = 800.;
-pub const WINDOW_HEIGHT : f64 = 800.;
-const BASE_SPEED : f64 = 0.25;
-const MAX_SPEED : i8 = 20;
+pub const WINDOW_WIDTH: f64 = 800.;
+pub const WINDOW_HEIGHT: f64 = 800.;
+const BASE_SPEED: f64 = 0.25;
+const MAX_SPEED: i8 = 20;
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum Direction {
@@ -33,6 +33,7 @@ impl Direction {
         }
     }
 }
+
 #[derive(Debug)]
 pub enum Color {
     Red,
@@ -43,9 +44,9 @@ pub enum Color {
 impl Color {
     pub fn rgba_array(&self) -> [f32; 4] {
         match self {
-            Color::Red=>[1.0, 0.0, 0.0, 1.0],
-            Color::Green=>[0.0, 1.0, 0.0, 1.0],
-            Color::Blue=>[0.0, 0.0, 1.0, 1.0],
+            Color::Red => [1.0, 0.0, 0.0, 1.0],
+            Color::Green => [0.0, 1.0, 0.0, 1.0],
+            Color::Blue => [0.0, 0.0, 1.0, 1.0],
         }
     }
 }

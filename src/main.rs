@@ -1,12 +1,12 @@
-extern crate piston_window;
 extern crate opengl_graphics;
+extern crate piston_window;
+
+use opengl_graphics::OpenGL;
+use piston::input::{Button, Event, Key, PressEvent, RenderArgs, RenderEvent, ResizeArgs, ResizeEvent, UpdateArgs, UpdateEvent};
+use piston::window::{Window, WindowSettings};
+use piston_window::*;
 
 use piston_start::*;
-use opengl_graphics::OpenGL;
-use piston::input::{RenderArgs, RenderEvent, UpdateArgs, UpdateEvent, Button, Key, PressEvent, ResizeEvent, ResizeArgs, Event};
-use piston::window::{WindowSettings, Window};
-
-use piston_window::*;
 
 pub struct App {
     window: PistonWindow,
@@ -15,7 +15,6 @@ pub struct App {
 }
 
 impl App {
-
     fn new(width: f64, height: f64) -> App {
         let opengl = OpenGL::V3_2;
         let window =
@@ -32,16 +31,12 @@ impl App {
     }
 
     fn render(&mut self, args: &RenderArgs, event: &Event) {
-
         let color = self.circle.color.rgba_array();
         let rect = self.circle.rounding_rect();
 
         self.window.draw_2d(event, |c, g, _device| {
             clear([1.0; 4], g);
-            ellipse(color,
-                    rect,
-                    c.transform,
-                    g);
+            ellipse(color, rect, c.transform, g);
         });
     }
 
@@ -55,7 +50,7 @@ impl App {
         match key {
             Key::Left | Key::Right | Key::Up | Key::Down | Key::Space => {
                 self.circle.translate(&direction);
-            },
+            }
             Key::T => self.outputs_log = !self.outputs_log,
             _ => (),
         };
