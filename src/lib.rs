@@ -1,8 +1,6 @@
 use piston::input::Key;
 
-pub const WINDOW_WIDTH: f64 = 800.;
-pub const WINDOW_HEIGHT: f64 = 800.;
-const BASE_SPEED: f64 = 0.25;
+const BASE_SPEED: f64 = 100.;
 const MAX_SPEED: i8 = 20;
 
 #[derive(Copy, Clone, PartialEq, Debug)]
@@ -128,13 +126,13 @@ impl Circle {
         }
     }
 
-    pub fn update(&mut self) -> &mut Circle {
+    pub fn update(&mut self, dt: f64) -> &mut Circle {
         let speed = self.speed as f64 * BASE_SPEED + BASE_SPEED;
         match self.direction {
-            Direction::Left => self.x = self.x - speed,
-            Direction::Right => self.x = self.x + speed,
-            Direction::Up => self.y = self.y - speed,
-            Direction::Down => self.y = self.y + speed,
+            Direction::Left => self.x = self.x - speed * dt,
+            Direction::Right => self.x = self.x + speed * dt,
+            Direction::Up => self.y = self.y - speed * dt,
+            Direction::Down => self.y = self.y + speed * dt,
             Direction::Hold => (),
         };
 

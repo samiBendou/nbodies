@@ -12,6 +12,7 @@ pub struct App {
     window: PistonWindow,
     circle: Circle,
     outputs_log: bool,
+    outputs_dt: bool,
 }
 
 impl App {
@@ -20,14 +21,15 @@ impl App {
         let window =
             WindowSettings::new("Circle Keeps Moving Like a Rollin' Stone!", [width, height])
                 .exit_on_esc(true)
-                .fullscreen(true)
+                .resizable(false)
                 .graphics_api(opengl)
                 .build()
                 .unwrap();
         let circle = Circle::new(width / 2., height / 2., 50., Color::Blue);
         let outputs_log = true;
+        let outputs_dt = false;
 
-        App { window, circle, outputs_log }
+        App { window, circle, outputs_log, outputs_dt }
     }
 
     fn render(&mut self, args: &RenderArgs, event: &Event) {
@@ -42,7 +44,7 @@ impl App {
 
     fn update(&mut self, args: &UpdateArgs) {
         let window_size = self.window.size();
-        self.circle.update().replace(window_size.width, window_size.height);
+        self.circle.update(args.dt).replace(window_size.width, window_size.height);
     }
 
     fn on_key(&mut self, key: Key) {
@@ -50,28 +52,20 @@ impl App {
         match key {
             Key::Left | Key::Right | Key::Up | Key::Down | Key::Space => {
                 self.circle.translate(&direction);
-            }
-            Key::T => self.outputs_log = !self.outputs_log,
+            },
+            Key::L => self.outputs_log = !self.outputs_log,
+            Key::T => self.outputs_dt = !self.outputs_dt,
             _ => (),
         };
     }
 
-    fn on_resize(&mut self, args: &ResizeArgs) {
-        let viewport = args.viewport();
-    }
 }
 
 
 fn main() {
-    let mut app = App::new(WINDOW_WIDTH, WINDOW_HEIGHT);
+    let mut app = App::new(640., 640.);
 
     while let Some(event) = app.window.next() {
-        if let Some(args) = event.resize_args() {
-            app.on_resize(&args);
-            if app.outputs_log {
-                println!("New window size {}x{}", args.window_size[0], args.window_size[1]);
-            }
-        }
 
         if let Some(Button::Mouse(button)) = event.press_args() {
             if app.outputs_log {
@@ -94,6 +88,10 @@ fn main() {
 
         if let Some(args) = event.update_args() {
             app.update(&args);
+            if app.outputs_dt {
+                println!("Time step dt: {:.2} sec.", args.dt);
+                println!("Framerate: {:.2} fps", 1. / args.dt);
+            }
         }
     }
 }
