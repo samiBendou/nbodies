@@ -8,3 +8,7 @@ edition = "2018"
 
 [dependencies]
 piston_window = "0.98.0"
+piston = ""
+piston2d-graphics = "0.35.0"
+pistoncore-glutin_window = "0.63.0"
+piston2d-opengl_graphics = "0.69.0"
