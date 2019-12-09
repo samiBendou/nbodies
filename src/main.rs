@@ -2,17 +2,22 @@ extern crate opengl_graphics;
 extern crate piston_window;
 
 use opengl_graphics::OpenGL;
-use piston::input::{Button, Event, Key, PressEvent, RenderArgs, RenderEvent, ResizeArgs, ResizeEvent, UpdateArgs, UpdateEvent};
+use piston::input::{Button, Event, Key, PressEvent, RenderArgs, RenderEvent, UpdateArgs, UpdateEvent};
 use piston::window::{Window, WindowSettings};
 use piston_window::*;
 
-use piston_start::*;
+use piston_start::common::*;
+use piston_start::shape::*;
 
 pub struct App {
     window: PistonWindow,
     circle: Circle,
+    direction: Direction,
     outputs_log: bool,
     outputs_dt: bool,
+    bounded: bool,
+    translate: bool,
+    reset: bool,
 }
 
 impl App {
@@ -25,14 +30,20 @@ impl App {
                 .graphics_api(opengl)
                 .build()
                 .unwrap();
-        let circle = Circle::new(width / 2., height / 2., 50., Color::Blue);
-        let outputs_log = true;
-        let outputs_dt = false;
 
-        App { window, circle, outputs_log, outputs_dt }
+        App {
+            window,
+            circle: Circle::new(width / 2., height / 2., 50., Color::Blue),
+            direction: Direction::Hold,
+            outputs_log: true,
+            outputs_dt: false,
+            bounded: true,
+            translate: false,
+            reset: false,
+        }
     }
 
-    fn render(&mut self, args: &RenderArgs, event: &Event) {
+    fn render(&mut self, _args: &RenderArgs, event: &Event) {
         let color = self.circle.color.rgba_array();
         let rect = self.circle.rounding_rect();
 
@@ -44,17 +55,30 @@ impl App {
 
     fn update(&mut self, args: &UpdateArgs) {
         let window_size = self.window.size();
-        self.circle.update(args.dt).replace(window_size.width, window_size.height);
+
+        if self.translate {
+            self.circle.translate(&self.direction);
+        } else {
+            self.circle.update(&self.direction, args.dt);
+        }
+        if self.bounded {
+            self.circle.replace(window_size.width, window_size.height);
+        }
+        if self.reset {
+            self.circle.reset(window_size.width / 2., window_size.height / 2.);
+            self.reset = false;
+        }
+        self.direction = Direction::Hold;
     }
 
     fn on_key(&mut self, key: Key) {
-        let direction = Direction::from(key);
+        self.direction = Direction::from(key);
         match key {
-            Key::Left | Key::Right | Key::Up | Key::Down | Key::Space => {
-                self.circle.translate(&direction);
-            },
             Key::L => self.outputs_log = !self.outputs_log,
             Key::T => self.outputs_dt = !self.outputs_dt,
+            Key::D => self.outputs_dt = !self.outputs_dt,
+            Key::B => self.bounded = !self.bounded,
+            Key::Space => self.reset = true,
             _ => (),
         };
     }
@@ -77,17 +101,21 @@ fn main() {
             app.on_key(key);
             if app.outputs_log {
                 println!("Pressed keyboard key: '{:?}'", key);
-                println!("Direction: {:?}", app.circle.direction);
-                println!("Speed: {:?}", app.circle.speed);
             }
         };
 
         if let Some(args) = event.render_args() {
             app.render(&args, &event);
+
+            if app.outputs_log {
+                println!("Direction: {:?}", app.circle.center);
+                println!("Speed: {:?}", app.circle.speed);
+            }
         }
 
         if let Some(args) = event.update_args() {
             app.update(&args);
+
             if app.outputs_dt {
                 println!("Time step dt: {:.2} sec.", args.dt);
                 println!("Framerate: {:.2} fps", 1. / args.dt);
