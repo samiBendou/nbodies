@@ -3,7 +3,7 @@ use crate::vector::Vector2;
 
 #[derive(Debug)]
 pub struct Circle {
-    pub center: Vector2,
+    pub position: Vector2,
     pub speed: Vector2,
 
     pub radius: f64,
@@ -14,43 +14,53 @@ impl Circle {
     pub fn new(x: f64, y: f64, radius: f64, color: Color) -> Circle {
         let center = Vector2::new(x, y);
         let speed = Vector2::zeros();
-        Circle { center, speed, radius, color }
+        Circle { position: center, speed, radius, color }
     }
 
-    pub fn diameter(&self) -> f64 {
-        2. * self.radius
+    pub fn centered(radius: f64, color: Color) -> Circle {
+        Circle::new(0., 0., radius, color)
     }
 
-    pub fn rounding_rect(&self) -> [f64; 4] {
-        let diameter = self.diameter();
-        [self.center.x - self.radius, self.center.y - self.radius, diameter, diameter]
+    pub fn rounding_rect(&self, width: f64, height: f64) -> [f64; 4] {
+        let diameter = 2. * self.radius;
+        let x = self.position.x - self.radius + width / 2.;
+        let y = -(self.position.y + self.radius - height / 2.);
+
+        [x, y, diameter, diameter]
     }
 
     pub fn replace(&mut self, width: f64, height: f64) -> &mut Circle {
-        if self.center.x < -self.radius {
-            self.center.x = width + self.radius;
-        } else if self.center.x > width + self.radius {
-            self.center.x = -self.radius;
+        let x_mid = width / 2.;
+        let x_left = -self.radius - x_mid;
+        let x_right = self.radius + x_mid;
+        let y_mid = height / 2.;
+        let y_up = self.radius + y_mid;
+        let y_down = -self.radius - y_mid;
+
+        if self.position.x < x_left {
+            self.position.x = x_right;
+        } else if self.position.x > x_right {
+            self.position.x = x_left;
         }
 
-        if self.center.y < -self.radius {
-            self.center.y = height + self.radius;
-        } else if self.center.y > height + self.radius {
-            self.center.y = -self.radius;
+        if self.position.y < y_down {
+            self.position.y = y_up;
+        } else if self.position.y > y_up {
+            self.position.y = y_down;
         }
 
         self
     }
 
     pub fn reset(&mut self, x: f64, y: f64) -> &mut Circle {
-        self.center = Vector2::new(x, y);
+        self.position = Vector2::new(x, y);
         self.speed = Vector2::zeros();
 
         self
     }
 
     pub fn translate(&mut self, direction: &Direction) -> &mut Circle {
-        self.center += direction.as_vector() * BASE_SPEED;
+        self.position += direction.as_vector() * BASE_SPEED;
 
         self
     }
@@ -60,7 +70,7 @@ impl Circle {
         let push = direction.as_vector() * BASE_ACCELERATION;
 
         self.speed += (push - resistance) * dt;
-        self.center += self.speed * dt;
+        self.position += self.speed * dt;
 
         self
     }
