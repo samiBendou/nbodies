@@ -37,8 +37,8 @@ impl Direction {
         match *self {
             Direction::Left => -Vector2::ex(),
             Direction::Right => Vector2::ex(),
-            Direction::Up => -Vector2::ey(),
-            Direction::Down => Vector2::ey(),
+            Direction::Up => Vector2::ey(),
+            Direction::Down => -Vector2::ey(),
             Direction::Hold => Vector2::zeros()
         }
     }
