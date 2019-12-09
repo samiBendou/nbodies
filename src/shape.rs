@@ -55,7 +55,7 @@ impl Circle {
         self
     }
 
-    pub fn update(&mut self, direction: &Direction, dt: f64) -> &mut Circle {
+    pub fn accelerate(&mut self, direction: &Direction, dt: f64) -> &mut Circle {
         let resistance = self.speed * (RESISTANCE * self.speed.magnitude());
         let push = direction.as_vector() * BASE_ACCELERATION;
 

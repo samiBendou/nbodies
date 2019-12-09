@@ -64,7 +64,11 @@ impl Vector2 {
 
 impl Debug for Vector2 {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
-        write!(f, "({:e}, {:e})", self.x, self.y)
+        if self.magnitude() > 1e6f64 {
+            write!(f, "({:e}, {:e})", self.x, self.y)
+        } else {
+            write!(f, "({:.3}, {:.3})", self.x, self.y)
+        }
     }
 }
 
