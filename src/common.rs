@@ -3,7 +3,7 @@ use piston::input::Key;
 use crate::vector::Vector2;
 
 pub const BASE_ACCELERATION: f64 = 20000.;
-pub const BASE_SPEED: f64 = 50.;
+pub const BASE_SPEED: f64 = 100.;
 pub const RESISTANCE: f64 = 0.01;
 
 #[derive(Copy, Clone, PartialEq, Debug)]
@@ -23,8 +23,8 @@ impl Direction {
         self_val == -other_val
     }
 
-    pub fn from(key: Key) -> Direction {
-        match key {
+    pub fn from(key: &Key) -> Direction {
+        match *key {
             Key::Left => Direction::Left,
             Key::Right => Direction::Right,
             Key::Up => Direction::Up,

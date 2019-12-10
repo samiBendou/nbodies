@@ -23,7 +23,7 @@ impl Circle {
         Circle::new(0., 0., radius, color)
     }
 
-    pub fn from_cursor(cursor: &[f64; 2], size: Size, radius: f64, color: Color) -> Circle {
+    pub fn at_cursor(cursor: &[f64; 2], size: Size, radius: f64, color: Color) -> Circle {
         let x_mid = size.width / 2.;
         let y_mid = size.height / 2.;
 
