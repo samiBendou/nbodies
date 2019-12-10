@@ -9,6 +9,7 @@ use ::piston_start::App;
 
 fn main() {
     let opengl = OpenGL::V3_2;
+    let mut cursor = [0., 0.];
     let mut app = App::default_circle();
 
     let mut window: PistonWindow =
@@ -19,13 +20,20 @@ fn main() {
             .build()
             .unwrap();
 
-
-
-
     while let Some(event) = window.next() {
+        if app.has_to_render() {
+            print!("{}[2J", 27 as char);
+        }
+
+        event.mouse_cursor(|pos| {
+            cursor = pos;
+        });
+
         if let Some(Button::Mouse(button)) = event.press_args() {
+            app.on_click(Button::from(button), &cursor);
             if app.config.display_log && app.has_to_render() {
                 println!("pressed mouse button: '{:?}'", button);
+                println!("mouse at: {:?} (px)", cursor);
             }
         }
 
@@ -39,8 +47,9 @@ fn main() {
         if let Some(_args) = event.render_args() {
             app.render(&mut window, &event);
             if app.config.display_log && app.config.display_circle && app.has_to_render() {
-                println!("position: {:?} (px)", app.circle.position);
-                println!("speed: {:?} (px/s)", app.circle.speed);
+                println!("current circle: {}", app.config.status.current_circle);
+                println!("position: {:?} (px)", app.circles[app.config.status.current_circle].position);
+                println!("speed: {:?} (px/s)", app.circles[app.config.status.current_circle].speed);
             }
         }
 

@@ -44,7 +44,7 @@ impl Direction {
     }
 }
 
-#[derive(Debug)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum Color {
     Red,
     Green,

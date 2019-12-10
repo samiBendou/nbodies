@@ -1,6 +1,6 @@
 use std::cmp::{max, min};
 
-use piston::input::{Event, Key, UpdateArgs};
+use piston::input::{Button, Event, Key, UpdateArgs};
 use piston::window::{Size, Window};
 use piston_window::clear;
 use piston_window::ellipse;
@@ -8,6 +8,7 @@ use piston_window::PistonWindow;
 
 use crate::common::*;
 use crate::shape::*;
+use crate::vector::Vector2;
 
 pub mod vector;
 pub mod common;
@@ -19,7 +20,13 @@ macro_rules! toggle {
     };
 }
 
-#[derive(Copy, Clone, Debug)]
+macro_rules! increase_with_overflow {
+    ($frame_count: expr) => {
+        $frame_count = ($frame_count + 1) % std::u32::MAX;
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct AppConfig {
     pub status: AppStatus,
     pub size: Size,
@@ -47,13 +54,13 @@ impl AppConfig {
         }
     }
 
-    pub fn from_size(width: f64, height: f64) -> AppConfig {
-        let status = AppStatus::default();
+    pub fn from_size(count_circle: usize, width: f64, height: f64) -> AppConfig {
+        let status = AppStatus::default(count_circle);
         let size = Size::from([width, height]);
         AppConfig {
             status,
             size,
-            frames_per_update: 2,
+            frames_per_update: 1,
             updates_per_frame: 1024,
             display_log: true,
             display_dt: false,
@@ -62,13 +69,15 @@ impl AppConfig {
         }
     }
 
-    pub fn default() -> AppConfig {
-        AppConfig::from_size(640., 640.)
+    pub fn default(count_circle: usize) -> AppConfig {
+        AppConfig::from_size(count_circle, 640., 640.)
     }
 
     pub fn update(&mut self, key: Key) {
-        self.status.direction = Direction::from(key);
+        let count = self.status.directions.len() as isize;
+        let current_circle = self.status.current_circle as isize;
 
+        self.status.directions[self.status.current_circle] = Direction::from(key);
         match key {
             Key::L => toggle!(self.display_log),
             Key::D => toggle!(self.display_dt),
@@ -80,6 +89,8 @@ impl AppConfig {
             Key::R => self.status.reset = true,
             Key::O => self.updates_per_frame = max(self.updates_per_frame >> 1, std::u32::MIN + 1),
             Key::P => self.updates_per_frame = min(self.updates_per_frame << 1, std::u32::MAX),
+            Key::Z => self.status.current_circle = max(current_circle - 1, 0) as usize,
+            Key::X => self.status.current_circle = min(current_circle + 1, max(count - 1, 0)) as usize,
             _ => (),
         };
     }
@@ -90,38 +101,39 @@ impl AppConfig {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub struct AppStatus {
-    pub direction: Direction,
+    pub directions: Vec<Direction>,
     pub bounded: bool,
     pub translate: bool,
     pub reset: bool,
     pub pause: bool,
+    pub current_circle: usize,
+    pub count_circle: usize,
 }
 
 impl AppStatus {
-    pub fn new(bounded: bool, translate: bool, reset: bool) -> AppStatus {
-        let direction = Direction::Hold;
-        AppStatus { direction, bounded, translate, reset, pause: true }
+    pub fn new(count_circle: usize, bounded: bool, translate: bool, reset: bool) -> AppStatus {
+        let directions = vec![Direction::Hold; count_circle];
+        AppStatus { directions, bounded, translate, reset, pause: true, current_circle: 0, count_circle }
     }
 
-    pub fn default() -> AppStatus {
-        let direction = Direction::Hold;
-        AppStatus { direction, bounded: true, translate: false, reset: false, pause: true }
+    pub fn default(count_circle: usize) -> AppStatus {
+        AppStatus::new(count_circle, true, false, false)
     }
 
     pub fn clear(&mut self) {
-        self.direction = Direction::Hold;
+        self.directions[self.current_circle] = Direction::Hold;
         self.reset = false;
     }
 }
 
 #[derive(Copy, Clone, Debug)]
 pub enum AppState {
-    Translate { direction: Direction },
-    Accelerate { direction: Direction, dt: f64 },
-    BoundTranslate { direction: Direction, size: Size },
-    BoundAccelerate { direction: Direction, dt: f64, size: Size },
+    Translate,
+    Accelerate { dt: f64 },
+    BoundTranslate { size: Size },
+    BoundAccelerate { dt: f64, size: Size },
     Reset { size: Size },
     Pause,
 }
@@ -131,7 +143,6 @@ impl AppState {
         use AppState::*;
 
         let size = config.size;
-        let direction = config.status.direction;
 
         if config.status.reset {
             return Reset { size };
@@ -143,22 +154,22 @@ impl AppState {
 
         if config.status.bounded {
             if config.status.translate {
-                BoundTranslate { direction, size }
+                BoundTranslate { size }
             } else {
-                BoundAccelerate { direction, dt, size }
+                BoundAccelerate { dt, size }
             }
         } else {
             if config.status.translate {
-                Translate { direction }
+                Translate
             } else {
-                Accelerate { direction, dt }
+                Accelerate { dt }
             }
         }
     }
 }
 
 pub struct App {
-    pub circle: Circle,
+    pub circles: Vec<Circle>,
     pub config: AppConfig,
     pub state: AppState,
     pub frame_count: u32,
@@ -166,17 +177,19 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(circle: Circle, config: AppConfig) -> App {
+    pub fn new(circles: Vec<Circle>, config: AppConfig) -> App {
         let state = AppState::Reset { size: config.size };
-        App { circle, config, state, frame_count: 0, frame_step: 0. }
+        App { circles, config, state, frame_count: 0, frame_step: 0. }
     }
 
-    pub fn from_size(circle: Circle, width: f64, height: f64) -> App {
-        App::new(circle, AppConfig::from_size(width, height))
+    pub fn from_size(circles: Vec<Circle>, width: f64, height: f64) -> App {
+        let config = AppConfig::from_size(circles.len(), width, height);
+
+        App::new(circles, config)
     }
 
     pub fn centered_circle(radius: f64, color: Color) -> App {
-        App::new(Circle::centered(radius, color), AppConfig::default())
+        App::new(vec![Circle::centered(radius, color)], AppConfig::default(1))
     }
 
     pub fn default_circle() -> App {
@@ -187,21 +200,27 @@ impl App {
         self.config.update(key);
     }
 
-    pub fn render(&mut self, window: &mut PistonWindow, event: &Event) {
-        let color = self.circle.color.rgba_array();
-        let rect = self.circle.rounding_rect(self.config.size.width, self.config.size.height);
+    pub fn on_click(&mut self, button: Button, cursor: &[f64; 2]) {
+        self.circles.push(Circle::from_cursor(cursor, self.config.size, 50., Color::Green));
+        self.config.status.directions.push(Direction::Hold);
+    }
 
+    pub fn render(&mut self, window: &mut PistonWindow, event: &Event) {
         window.draw_2d(
             event,
             |c, g, _device| {
                 clear([1.0; 4], g);
-                ellipse(color, rect, c.transform, g);
+                for circle in self.circles.iter() {
+                    let color = circle.color.rgba_array();
+                    let rect = circle.rounding_rect(self.config.size.width, self.config.size.height);
+                    ellipse(color, rect, c.transform, g);
+                }
             },
         );
     }
 
     pub fn has_to_render(&self) -> bool {
-        self.frame_count % self.config.frames_per_update == 0
+        self.frame_count > self.config.frames_per_update
     }
 
     pub fn update(&mut self, window: &mut PistonWindow, args: &UpdateArgs) {
@@ -209,33 +228,37 @@ impl App {
         self.state = AppState::from(self.frame_step / self.config.updates_per_frame as f64, &self.config);
 
         if !self.has_to_render() {
-            self.frame_count += 1;
+            increase_with_overflow!(self.frame_count);
             return;
         }
+        increase_with_overflow!(self.frame_count);
 
         for _ in 0..self.config.updates_per_frame {
-            match self.state {
-                AppState::Translate { direction } => self.circle
-                    .translate(&direction),
+            for index in 0..self.circles.len() {
+                match self.state {
+                    AppState::Translate => self.circles[index]
+                        .translate(&self.config.status.directions[index]),
 
-                AppState::Accelerate { direction, dt } => self.circle
-                    .accelerate(&direction, dt),
+                    AppState::Accelerate { dt } => self.circles[index]
+                        .accelerate(&self.config.status.directions[index], dt),
 
-                AppState::BoundTranslate { direction, size } => self.circle
-                    .translate(&direction).replace(size.width, size.height),
+                    AppState::BoundTranslate { size } => self.circles[index]
+                        .translate(&self.config.status.directions[index])
+                        .replace(size.width, size.height),
 
-                AppState::BoundAccelerate { direction, dt, size } => self.circle
-                    .accelerate(&direction, dt).replace(size.width, size.height),
+                    AppState::BoundAccelerate { dt, size } => self.circles[index]
+                        .accelerate(&self.config.status.directions[index], dt)
+                        .replace(size.width, size.height),
 
-                AppState::Reset { size } => self.circle
-                    .reset(size.width / 2., size.height / 2.),
+                    AppState::Reset { size } => self.circles[self.config.status.current_circle]
+                        .reset(0., 0.),
 
-                AppState::Pause => &mut self.circle,
-            };
+                    AppState::Pause => &mut self.circles[index],
+                };
+            }
         }
 
         self.config.clear(window.size());
-        self.frame_count += 1;
         self.frame_step = 0.;
     }
 }
