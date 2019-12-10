@@ -1,7 +1,7 @@
 use std::cmp::{max, min};
 
 use piston::input::{Event, Key, MouseButton, UpdateArgs};
-use piston::window::{Size, Window};
+use piston::window::Size;
 use piston_window::clear;
 use piston_window::ellipse;
 use piston_window::PistonWindow;
@@ -17,12 +17,6 @@ macro_rules! toggle {
     ($boolean: expr) => {
     $boolean = !$boolean;
     };
-}
-
-macro_rules! increase_with_overflow {
-    ($frame_count: expr) => {
-        $frame_count = ($frame_count + 1) % std::u32::MAX;
-    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -82,7 +76,7 @@ impl AppState {
 
         *self = match self {
             AppState::Reset => AppState::Move,
-            AppState::Add { cursor } => AppState::Move,
+            AppState::Add { cursor: _ } => AppState::Move,
             _ => *self,
         };
     }
@@ -183,21 +177,35 @@ impl AppStatus {
     }
 }
 
+pub struct AppStep {
+    pub count: u32,
+    pub total: f64,
+    pub frame: f64,
+}
+
+impl AppStep {
+    pub fn new() -> AppStep {
+        AppStep { count: 0, total: 0., frame: 0. }
+    }
+
+    pub fn update(&mut self, dt: f64) {
+        self.frame = dt;
+        self.total += dt;
+        self.count = (self.count + 1) % std::u32::MAX;
+    }
+}
+
 
 pub struct App {
     pub circles: Vec<Circle>,
     pub config: AppConfig,
     pub status: AppStatus,
-    pub frame_count: u32,
-    pub frame_step: f64,
+    pub step: AppStep,
 }
 
 impl App {
     fn new(circles: Vec<Circle>, status: AppStatus, config: AppConfig) -> App {
-        let state = AppState::Reset;
-        let state_log = LogState::Default;
-
-        App { circles, config, status, frame_count: 0, frame_step: 0. }
+        App { circles, config, status, step: AppStep::new() }
     }
 
     pub fn centered_circle(radius: f64, color: Color) -> App {
@@ -235,28 +243,25 @@ impl App {
     }
 
     pub fn has_to_render(&self) -> bool {
-        self.frame_count > self.config.frames_per_update
+        self.step.count > self.config.frames_per_update
     }
 
-    pub fn update(&mut self, window: &mut PistonWindow, args: &UpdateArgs) {
-        self.frame_step += args.dt;
-
+    pub fn update(&mut self, _window: &mut PistonWindow, args: &UpdateArgs) {
+        self.step.update(args.dt);
         if !self.has_to_render() {
-            increase_with_overflow!(self.frame_count);
             self.status.clear(&self.circles);
             return;
         }
-        increase_with_overflow!(self.frame_count);
 
         match self.status.state {
-            AppState::Move => self.do_move(self.frame_step / self.config.updates_per_frame as f64),
+            AppState::Move => self.do_move(self.step.total / self.config.updates_per_frame as f64),
             AppState::Reset => self.do_reset(),
             AppState::Add { cursor } => self.do_add(&cursor)
         };
 
         self.status.update(&Option::None, &Option::None, &[0., 0.]);
         self.status.clear(&self.circles);
-        self.frame_step = 0.;
+        self.step.total = 0.;
     }
 
     fn do_move(&mut self, dt: f64) {
@@ -294,7 +299,7 @@ impl App {
 
     pub fn log(&self, button: MouseButton, key: Key, cursor: [f64; 2]) {
         match self.status.state_log {
-            LogState::Hide => print!("{}[2J", 27 as char),
+            LogState::Hide => (),
             LogState::Default => {
                 print!("{}[2J", 27 as char);
                 println!("state: {:?}", self.status.state);
@@ -309,10 +314,9 @@ impl App {
                 println!("speed: {:?} (px/s)", self.circles[self.status.current_circle].speed);
             },
             LogState::Timing => {
-                let dt = self.frame_step;
                 print!("{}[2J", 27 as char);
-                println!("dt: {:.4} (ms)", dt * 1e3);
-                println!("framerate: {:.2} (fps)", 1. / dt);
+                println!("dt: {:.4} (ms)", self.step.frame * 1e3);
+                println!("framerate: {:.2} (fps)", 1. / self.step.frame);
                 println!("frames per updates: {}", self.config.frames_per_update);
                 println!("updates per frame: {}", self.config.updates_per_frame);
             },

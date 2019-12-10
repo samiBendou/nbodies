@@ -6,7 +6,6 @@ use piston::input::*;
 use piston_window::{PistonWindow, WindowSettings};
 
 use ::piston_start::App;
-use piston_start::LogState;
 
 fn main() {
     let opengl = OpenGL::V3_2;
