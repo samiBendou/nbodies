@@ -1,8 +1,25 @@
 use std::fmt::{Debug, Error, Formatter};
 
 use piston::input::Key;
+use piston::window::Size;
 
 use crate::vector::Vector2;
+
+pub fn to_centered(position: [f64; 2], size: &Size) -> [f64; 2] {
+    [position[0] - size.width / 2., size.height / 2. - position[1]]
+}
+
+pub fn to_left_up(position: [f64; 2], size: &Size) -> [f64; 2] {
+    [position[0] + size.width / 2., size.height / 2. - position[1]]
+}
+
+pub fn offset_or_position(position: [f64; 2], size: &Option<Size>) -> [f64; 2] {
+    match size {
+        Some(size) => to_left_up(position, size),
+        None => position
+    }
+}
+
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum Direction {

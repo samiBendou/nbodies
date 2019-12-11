@@ -1,5 +1,14 @@
 use std::fmt::{Debug, Error, Formatter};
-use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Not, Rem, Sub, SubAssign};
+use std::ops::{
+    Add, AddAssign,
+    Div, DivAssign,
+    Index, IndexMut,
+    Mul,
+    MulAssign,
+    Neg,
+    Not, Rem,
+    Sub, SubAssign,
+};
 
 macro_rules! vec2 {
     ($x: expr, $y: expr) => {
@@ -194,9 +203,31 @@ impl Mul<Vector2> for Vector2 {
     }
 }
 
-impl From<&[f64; 2]> for Vector2 {
-    fn from(array: &[f64; 2]) -> Self {
+impl From<[f64; 2]> for Vector2 {
+    fn from(array: [f64; 2]) -> Self {
         Vector2::new(array[0], array[1])
+    }
+}
+
+impl Index<usize> for Vector2 {
+    type Output = f64;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        if index == 0 {
+            &self.x
+        } else {
+            &self.y
+        }
+    }
+}
+
+impl IndexMut<usize> for Vector2 {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        if index == 0 {
+            &mut self.x
+        } else {
+            &mut self.y
+        }
     }
 }
 

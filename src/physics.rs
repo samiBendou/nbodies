@@ -2,27 +2,13 @@ use std::fmt::{Debug, Error, Formatter};
 
 use piston::window::Size;
 
+use crate::common::offset_or_position;
 use crate::vector::Vector2;
 
-const BASE_ACCELERATION: f64 = 20000.;
-const BASE_TRANSLATION: f64 = 50.;
-const RESISTANCE: f64 = 0.01;
+const BASE_ACCELERATION: f64 = 2000.;
+const RESISTANCE: f64 = 0.001;
+const PX_PER_METER: f64 = 10.;
 pub(crate) const TRAJECTORY_SIZE: usize = 256;
-
-pub fn to_centered(position: [f64; 2], size: &Size) -> [f64; 2] {
-    [position[0] - size.width / 2., size.height / 2. - position[1]]
-}
-
-pub fn to_left_up(position: [f64; 2], size: &Size) -> [f64; 2] {
-    [position[0] + size.width / 2., size.height / 2. - position[1]]
-}
-
-fn offset_or_position(position: [f64; 2], size: &Option<Size>) -> [f64; 2] {
-    match size {
-        Some(size) => to_left_up(position, size),
-        None => position
-    }
-}
 
 #[derive(Copy, Clone)]
 pub struct Point {
@@ -36,7 +22,7 @@ pub struct Point {
 
 impl Point {
     pub fn new(position: Vector2, speed: Vector2, acceleration: Vector2, size: &Option<Size>) -> Point {
-        let position_offset = Vector2::from(&offset_or_position(position.as_array(), size));
+        let position_offset = Vector2::from(offset_or_position(position.as_array(), size));
 
         Point {
             position,
@@ -68,13 +54,13 @@ impl Point {
     }
 
     pub fn translate(&mut self, direction: &Vector2) -> &mut Point {
-        self.position += *direction * BASE_TRANSLATION;
+        self.position += *direction * PX_PER_METER;
 
         self
     }
 
     pub fn accelerate(&mut self, dt: f64) -> &mut Point {
-        self.speed += self.acceleration * dt;
+        self.speed += self.acceleration * dt * PX_PER_METER;
         self.position += self.speed * dt;
 
         self
@@ -87,15 +73,15 @@ impl Point {
     }
 
     pub fn update_trajectory(&mut self, size: &Option<Size>) {
-        let position_offset = &offset_or_position(self.position.as_array(), size);
-        self.trajectory[self.index].set_array(position_offset);
+        let position_offset = offset_or_position(self.position.as_array(), size);
+        self.trajectory[self.index].set_array(&position_offset);
         self.index = (self.index + 1) % TRAJECTORY_SIZE;
     }
 
     pub fn clear_trajectory(&mut self, size: &Option<Size>) {
-        let position_offset = &offset_or_position(self.position.as_array(), size);
+        let position_offset = offset_or_position(self.position.as_array(), size);
         for position in self.trajectory.iter_mut() {
-            position.set_array(position_offset);
+            position.set_array(&position_offset);
         }
     }
 }

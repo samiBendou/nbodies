@@ -2,8 +2,8 @@ use std::fmt::{Debug, Error, Formatter};
 
 use piston::window::Size;
 
-use crate::common::Color;
-use crate::physics::{Point, to_centered, to_left_up};
+use crate::common::{Color, to_centered, to_left_up};
+use crate::physics::Point;
 use crate::vector::Vector2;
 
 #[derive(Copy, Clone)]
@@ -27,7 +27,7 @@ impl Circle {
     }
 
     pub fn at_cursor(cursor: &[f64; 2], radius: f64, color: Color, size: &Size) -> Circle {
-        let position = Vector2::from(&to_centered(*cursor, size));
+        let position = Vector2::from(to_centered(*cursor, size));
         let center = Point::at_position(position, &Some(*size));
 
         Circle::new(center, radius, color)
