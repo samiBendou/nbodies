@@ -44,7 +44,6 @@ fn main() {
         if let Some(args) = event.update_args() {
             app.update(&mut window, &args, &cursor);
         }
-
         app.log(clicked_button, pressed_key, cursor);
     }
 }

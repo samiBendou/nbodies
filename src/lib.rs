@@ -227,6 +227,43 @@ impl App {
         self.status.update(&Option::None, &Some(button));
     }
 
+    pub fn log(&self, button: MouseButton, key: Key, cursor: [f64; 2]) {
+        use LogState::*;
+
+        if self.bodies.is_empty() {
+            return;
+        }
+
+        match self.status.state_log {
+            Hide => (),
+            Default => {
+                print!("{}[2J", 27 as char);
+                println!("state: {:?}", self.status.state);
+                println!("pressed mouse button: '{:?}'", button);
+                println!("mouse at: {:?} (px)", cursor);
+                println!("pressed keyboard key: '{:?}'", key);
+            },
+            Timing => {
+                print!("{}[2J", 27 as char);
+                println!("{:?}", self.step);
+                println!("frames per updates: {}", self.config.frames_per_update);
+                println!("updates per frame: {}", self.config.updates_per_frame);
+            },
+            Cinematic => {
+                print!("{}[2J", 27 as char);
+                println!("{:?}", self.bodies.current().shape);
+            },
+            Physics => {
+                print!("{}[2J", 27 as char);
+                println!("{:?}", self.bodies.current());
+            },
+            Bodies => {
+                print!("{}[2J", 27 as char);
+                println!("{:?}", self.bodies);
+            }
+        };
+    }
+
     pub fn render(&mut self, window: &mut PistonWindow, event: &Event) {
         let count = self.bodies.count();
 
@@ -279,43 +316,6 @@ impl App {
             CancelDrop => self.do_cancel_drop()
         };
         self.status.update(&Option::None, &Option::None);
-    }
-
-    pub fn log(&self, button: MouseButton, key: Key, cursor: [f64; 2]) {
-        use LogState::*;
-
-        if self.bodies.is_empty() {
-            return;
-        }
-
-        match self.status.state_log {
-            Hide => (),
-            Default => {
-                print!("{}[2J", 27 as char);
-                println!("state: {:?}", self.status.state);
-                println!("pressed mouse button: '{:?}'", button);
-                println!("mouse at: {:?} (px)", cursor);
-                println!("pressed keyboard key: '{:?}'", key);
-            },
-            Timing => {
-                print!("{}[2J", 27 as char);
-                println!("{:?}", self.step);
-                println!("frames per updates: {}", self.config.frames_per_update);
-                println!("updates per frame: {}", self.config.updates_per_frame);
-            },
-            Cinematic => {
-                print!("{}[2J", 27 as char);
-                println!("{:?}", self.bodies.current().shape);
-            },
-            Physics => {
-                print!("{}[2J", 27 as char);
-                println!("{:?}", self.bodies.current());
-            },
-            Bodies => {
-                print!("{}[2J", 27 as char);
-                println!("{:?}", self.bodies);
-            }
-        };
     }
 
     fn do_move(&mut self, dt: f64) {
