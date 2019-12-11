@@ -1,6 +1,12 @@
 use std::fmt::{Debug, Error, Formatter};
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Not, Rem, Sub, SubAssign};
 
+macro_rules! vec2 {
+    ($x: expr, $y: expr) => {
+        Vector2::new($x, $y)
+    };
+}
+
 #[derive(Copy, Clone)]
 pub struct Vector2 {
     pub x: f64,
@@ -30,6 +36,17 @@ impl Vector2 {
 
         self.x = self.x * c - self.y * s;
         self.y = self.x * s + self.y * c;
+
+        self
+    }
+
+    pub fn as_array(&self) -> [f64; 2] {
+        [self.x, self.y]
+    }
+
+    pub fn set_array(&mut self, array: &[f64; 2]) -> &mut Vector2 {
+        self.x = array[0];
+        self.y = array[1];
 
         self
     }
@@ -177,6 +194,11 @@ impl Mul<Vector2> for Vector2 {
     }
 }
 
+impl From<&[f64; 2]> for Vector2 {
+    fn from(array: &[f64; 2]) -> Self {
+        Vector2::new(array[0], array[1])
+    }
+}
 
 #[cfg(test)]
 mod tests {
