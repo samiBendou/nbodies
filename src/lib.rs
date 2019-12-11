@@ -177,35 +177,16 @@ impl AppStatus {
     }
 }
 
-pub struct AppStep {
-    pub count: u32,
-    pub total: f64,
-    pub frame: f64,
-}
-
-impl AppStep {
-    pub fn new() -> AppStep {
-        AppStep { count: 0, total: 0., frame: 0. }
-    }
-
-    pub fn update(&mut self, dt: f64) {
-        self.frame = dt;
-        self.total += dt;
-        self.count = (self.count + 1) % std::u32::MAX;
-    }
-}
-
-
 pub struct App {
     pub circles: Vec<Circle>,
     pub config: AppConfig,
     pub status: AppStatus,
-    pub step: AppStep,
+    pub step: Step,
 }
 
 impl App {
     fn new(circles: Vec<Circle>, status: AppStatus, config: AppConfig) -> App {
-        App { circles, config, status, step: AppStep::new() }
+        App { circles, config, status, step: Step::new() }
     }
 
     pub fn centered_circle(radius: f64, color: Color) -> App {
@@ -310,13 +291,11 @@ impl App {
             LogState::Cinematic => {
                 print!("{}[2J", 27 as char);
                 println!("current circle: {}", self.status.current_circle);
-                println!("position: {:?} (px)", self.circles[self.status.current_circle].position);
-                println!("speed: {:?} (px/s)", self.circles[self.status.current_circle].speed);
+                println!("{:?}", self.circles[self.status.current_circle]);
             },
             LogState::Timing => {
                 print!("{}[2J", 27 as char);
-                println!("dt: {:.4} (ms)", self.step.frame * 1e3);
-                println!("framerate: {:.2} (fps)", 1. / self.step.frame);
+                println!("{:?}", self.step);
                 println!("frames per updates: {}", self.config.frames_per_update);
                 println!("updates per frame: {}", self.config.updates_per_frame);
             },

@@ -1,9 +1,11 @@
+use std::fmt::{Debug, Error, Formatter};
+
 use piston::window::Size;
 
 use crate::common::{BASE_ACCELERATION, BASE_SPEED, Color, Direction, RESISTANCE};
 use crate::vector::Vector2;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone)]
 pub struct Circle {
     pub position: Vector2,
     pub speed: Vector2,
@@ -87,5 +89,11 @@ impl Circle {
     pub fn set_pos_from_cursor(&mut self, cursor: &[f64; 2], size: Size) {
         self.position.x = cursor[0] + size.width / 2.;
         self.position.y = size.height / 2. - cursor[1];
+    }
+}
+
+impl Debug for Circle {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
+        write!(f, "position: {:?} (px)\nspeed: {:?} (px/s)", self.position, self.speed)
     }
 }

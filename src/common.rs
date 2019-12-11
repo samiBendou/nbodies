@@ -1,3 +1,5 @@
+use std::fmt::{Debug, Error, Formatter};
+
 use piston::input::Key;
 
 use crate::vector::Vector2;
@@ -60,3 +62,31 @@ impl Color {
         }
     }
 }
+
+#[derive(Copy, Clone)]
+pub struct Step {
+    pub count: u32,
+    pub total: f64,
+    pub frame: f64,
+}
+
+impl Step {
+    pub fn new() -> Step {
+        Step { count: 0, total: 0., frame: 0. }
+    }
+
+    pub fn update(&mut self, dt: f64) {
+        self.frame = dt;
+        self.total += dt;
+        self.count = (self.count + 1) % std::u32::MAX;
+    }
+}
+
+impl Debug for Step {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
+        let dt = self.frame * 1e3;
+        let framerate = 1. / self.frame;
+        write!(f, "dt: {:.4} (ms) framerate: {:.2} (fps) total dt: {:.4} (ms)", dt, framerate, total_dt)
+    }
+}
+
