@@ -29,12 +29,12 @@ fn main() {
 
         if let Some(Button::Mouse(button)) = event.press_args() {
             clicked_button = button;
-            app.on_click(clicked_button, &cursor);
+            app.on_click(clicked_button);
         }
 
         if let Some(Button::Keyboard(key)) = event.press_args() {
             pressed_key = key;
-            app.on_key(key, &cursor);
+            app.on_key(key);
         };
 
         if let Some(_args) = event.render_args() {
@@ -42,7 +42,7 @@ fn main() {
         }
 
         if let Some(args) = event.update_args() {
-            app.update(&mut window, &args);
+            app.update(&mut window, &args, &cursor);
         }
 
         app.log(clicked_button, pressed_key, cursor);

@@ -16,9 +16,9 @@ pub struct Circle {
 
 impl Circle {
     pub fn new(x: f64, y: f64, radius: f64, color: Color) -> Circle {
-        let center = Vector2::new(x, y);
+        let position = Vector2::new(x, y);
         let speed = Vector2::zeros();
-        Circle { position: center, speed, radius, color }
+        Circle { position, speed, radius, color }
     }
 
     pub fn centered(radius: f64, color: Color) -> Circle {
@@ -26,10 +26,9 @@ impl Circle {
     }
 
     pub fn at_cursor(cursor: &[f64; 2], size: Size, radius: f64, color: Color) -> Circle {
-        let x_mid = size.width / 2.;
-        let y_mid = size.height / 2.;
+        let mut circle = Circle::new(0., 0., radius, color);
 
-        Circle::new(cursor[0] - x_mid, y_mid - cursor[1], radius, color)
+        *circle.set_pos_from_cursor(cursor, size)
     }
 
     pub fn rounding_rect(&self, width: f64, height: f64) -> [f64; 4] {
@@ -86,9 +85,13 @@ impl Circle {
         self
     }
 
-    pub fn set_pos_from_cursor(&mut self, cursor: &[f64; 2], size: Size) {
-        self.position.x = cursor[0] + size.width / 2.;
-        self.position.y = size.height / 2. - cursor[1];
+    pub fn set_pos_from_cursor(&mut self, cursor: &[f64; 2], size: Size) -> &mut Circle {
+        let x_mid = size.width / 2.;
+        let y_mid = size.height / 2.;
+        self.position.x = cursor[0] - x_mid;
+        self.position.y = y_mid - cursor[1];
+
+        self
     }
 }
 

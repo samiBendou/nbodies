@@ -86,7 +86,7 @@ impl Debug for Step {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
         let dt = self.frame * 1e3;
         let framerate = 1. / self.frame;
-        write!(f, "dt: {:.4} (ms) framerate: {:.2} (fps) total dt: {:.4} (ms)", dt, framerate, total_dt)
+        write!(f, "dt: {:.4} (ms) framerate: {:.2} (fps)", dt, framerate)
     }
 }
 

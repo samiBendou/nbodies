@@ -48,22 +48,14 @@ impl LogState {
 #[derive(Copy, Clone, Debug)]
 pub enum AppState {
     Move,
-    Add { cursor: [f64; 2] },
+    Add,
+    WaitDrop,
+    CancelDrop,
     Reset,
 }
 
 impl AppState {
-    pub fn next(&mut self, key: &Option<Key>, button: &Option<MouseButton>, cursor: &[f64; 2]) {
-        if let Some(button) = button {
-            match button {
-                MouseButton::Left => {
-                    *self = AppState::Add { cursor: *cursor };
-                    return;
-                },
-                _ => (),
-            }
-        }
-
+    pub fn next(&mut self, key: &Option<Key>, button: &Option<MouseButton>) {
         if let Some(key) = key {
             match key {
                 Key::Backspace => {
@@ -76,8 +68,29 @@ impl AppState {
 
         *self = match self {
             AppState::Reset => AppState::Move,
-            AppState::Add { cursor: _ } => AppState::Move,
-            _ => *self,
+            AppState::Add => AppState::WaitDrop,
+            AppState::CancelDrop => AppState::Move,
+            AppState::Move => {
+                if let Some(button) = button {
+                    match button {
+                        MouseButton::Left => AppState::Add,
+                        _ => *self,
+                    }
+                } else {
+                    *self
+                }
+            },
+            AppState::WaitDrop => {
+                if let Some(button) = button {
+                    match button {
+                        MouseButton::Left => AppState::Move,
+                        MouseButton::Right => AppState::CancelDrop,
+                        _ => AppState::WaitDrop,
+                    }
+                } else {
+                    *self
+                }
+            }
         };
     }
 }
@@ -157,7 +170,7 @@ impl AppStatus {
         self.count_circle = circles.len();
     }
 
-    pub fn update(&mut self, key: &Option<Key>, button: &Option<MouseButton>, cursor: &[f64; 2]) {
+    pub fn update(&mut self, key: &Option<Key>, button: &Option<MouseButton>) {
         let current_circle = self.current_circle as isize;
         let count = self.count_circle as isize;
 
@@ -172,7 +185,7 @@ impl AppStatus {
             }
             self.direction = Direction::from(key);
         }
-        self.state.next(key, button, cursor);
+        self.state.next(key, button);
         self.state_log.next(key);
     }
 }
@@ -200,13 +213,13 @@ impl App {
         App::centered_circle(50., Color::Blue)
     }
 
-    pub fn on_key(&mut self, key: Key, cursor: &[f64; 2]) {
+    pub fn on_key(&mut self, key: Key) {
         self.config.update(&key);
-        self.status.update(&Some(key), &Option::None, cursor);
+        self.status.update(&Some(key), &Option::None);
     }
 
-    pub fn on_click(&mut self, button: MouseButton, cursor: &[f64; 2]) {
-        self.status.update(&Option::None, &Some(button), cursor);
+    pub fn on_click(&mut self, button: MouseButton) {
+        self.status.update(&Option::None, &Some(button));
     }
 
     pub fn render(&mut self, window: &mut PistonWindow, event: &Event) {
@@ -227,22 +240,49 @@ impl App {
         self.step.count > self.config.frames_per_update
     }
 
-    pub fn update(&mut self, _window: &mut PistonWindow, args: &UpdateArgs) {
+    pub fn update(&mut self, _window: &mut PistonWindow, args: &UpdateArgs, cursor: &[f64; 2]) {
         self.step.update(args.dt);
         if !self.has_to_render() {
             self.status.clear(&self.circles);
             return;
         }
 
+        let dt = self.step.total / self.config.updates_per_frame as f64;
         match self.status.state {
-            AppState::Move => self.do_move(self.step.total / self.config.updates_per_frame as f64),
+            AppState::Move => self.do_move(dt),
             AppState::Reset => self.do_reset(),
-            AppState::Add { cursor } => self.do_add(&cursor)
+            AppState::Add => self.do_add(cursor),
+            AppState::WaitDrop => self.do_wait_drop(cursor),
+            AppState::CancelDrop => self.do_cancel_add()
         };
 
-        self.status.update(&Option::None, &Option::None, &[0., 0.]);
+        self.status.update(&Option::None, &Option::None);
         self.status.clear(&self.circles);
         self.step.total = 0.;
+    }
+
+    pub fn log(&self, button: MouseButton, key: Key, cursor: [f64; 2]) {
+        match self.status.state_log {
+            LogState::Hide => (),
+            LogState::Default => {
+                print!("{}[2J", 27 as char);
+                println!("state: {:?}", self.status.state);
+                println!("pressed mouse button: '{:?}'", button);
+                println!("mouse at: {:?} (px)", cursor);
+                println!("pressed keyboard key: '{:?}'", key);
+            },
+            LogState::Cinematic => {
+                print!("{}[2J", 27 as char);
+                println!("current circle: {}", self.status.current_circle);
+                println!("{:?}", self.circles[self.status.current_circle]);
+            },
+            LogState::Timing => {
+                print!("{}[2J", 27 as char);
+                println!("{:?}", self.step);
+                println!("frames per updates: {}", self.config.frames_per_update);
+                println!("updates per frame: {}", self.config.updates_per_frame);
+            },
+        };
     }
 
     fn do_move(&mut self, dt: f64) {
@@ -275,30 +315,17 @@ impl App {
     }
 
     fn do_add(&mut self, cursor: &[f64; 2]) {
-        self.circles.push(Circle::at_cursor(cursor, self.config.size, 50., Color::Green));
+        let circle = Circle::at_cursor(cursor, self.config.size, 50., Color::Green);
+        self.circles.push(circle);
+        self.status.current_circle = self.status.count_circle;
     }
 
-    pub fn log(&self, button: MouseButton, key: Key, cursor: [f64; 2]) {
-        match self.status.state_log {
-            LogState::Hide => (),
-            LogState::Default => {
-                print!("{}[2J", 27 as char);
-                println!("state: {:?}", self.status.state);
-                println!("pressed mouse button: '{:?}'", button);
-                println!("mouse at: {:?} (px)", cursor);
-                println!("pressed keyboard key: '{:?}'", key);
-            },
-            LogState::Cinematic => {
-                print!("{}[2J", 27 as char);
-                println!("current circle: {}", self.status.current_circle);
-                println!("{:?}", self.circles[self.status.current_circle]);
-            },
-            LogState::Timing => {
-                print!("{}[2J", 27 as char);
-                println!("{:?}", self.step);
-                println!("frames per updates: {}", self.config.frames_per_update);
-                println!("updates per frame: {}", self.config.updates_per_frame);
-            },
-        };
+    fn do_wait_drop(&mut self, cursor: &[f64; 2]) {
+        self.circles.last_mut().unwrap().set_pos_from_cursor(cursor, self.config.size);
+    }
+
+    fn do_cancel_add(&mut self) {
+        self.circles.pop();
+        self.status.current_circle = 0;
     }
 }
