@@ -12,10 +12,10 @@ fn main() {
     let mut cursor = [0., 0.];
     let mut pressed_key: Key = Key::Unknown;
     let mut clicked_button: MouseButton = MouseButton::Unknown;
-    let mut app = App::default_circle();
+    let mut app = App::default();
 
     let mut window: PistonWindow =
-        WindowSettings::new("Circle Keeps Moving Like a Rollin' Stone!", app.config.size)
+        WindowSettings::new("Bodies Keeps Moving Like a Rollin' Stone!", app.config.size)
             .exit_on_esc(true)
             .resizable(false)
             .graphics_api(opengl)

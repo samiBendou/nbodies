@@ -22,13 +22,13 @@ impl Circle {
         }
     }
 
-    pub fn zeros(radius: f64, color: Color, size: &Size) -> Circle {
+    pub fn centered(radius: f64, color: Color, size: &Size) -> Circle {
         Circle::new(Point::zeros(&Some(*size)), radius, color)
     }
 
     pub fn at_cursor(cursor: &[f64; 2], radius: f64, color: Color, size: &Size) -> Circle {
         let position = Vector2::from(to_centered(*cursor, size));
-        let center = Point::at_position(position, &Some(*size));
+        let center = Point::stationary(position, &Some(*size));
 
         Circle::new(center, radius, color)
     }
@@ -40,7 +40,7 @@ impl Circle {
         [position[0] - self.radius, position[1] - self.radius, diameter, diameter]
     }
 
-    pub fn replace(&mut self, size: Size) -> &mut Circle {
+    pub fn bound(&mut self, size: Size) -> &mut Circle {
         let x_mid = size.width / 2.;
         let x_left = -self.radius - x_mid;
         let x_right = self.radius + x_mid;

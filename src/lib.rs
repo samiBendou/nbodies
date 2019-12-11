@@ -2,13 +2,11 @@ use std::cmp::{max, min};
 
 use piston::input::{Event, Key, MouseButton, UpdateArgs};
 use piston::window::Size;
-use piston_window::clear;
-use piston_window::ellipse;
-use piston_window::line_from_to;
+use piston_window;
 use piston_window::PistonWindow;
 
 use crate::common::*;
-use crate::physics::TRAJECTORY_SIZE;
+use crate::physics::{Body, PX_PER_METER, TRAJECTORY_SIZE, VecBody};
 use crate::shape::*;
 use crate::vector::Vector2;
 
@@ -29,18 +27,24 @@ pub enum LogState {
     Default,
     Timing,
     Cinematic,
+    Physics,
+    Bodies,
 }
 
 impl LogState {
     pub fn next(&mut self, key: &Option<Key>) {
+        use LogState::*;
+
         if let Some(key) = key {
             *self = match key {
                 Key::L => {
                     match self {
-                        LogState::Hide => LogState::Default,
-                        LogState::Default => LogState::Timing,
-                        LogState::Timing => LogState::Cinematic,
-                        LogState::Cinematic => LogState::Hide,
+                        Hide => Default,
+                        Default => Timing,
+                        Timing => Cinematic,
+                        Cinematic => Physics,
+                        Physics => Bodies,
+                        Bodies => Hide,
                     }
                 },
                 _ => *self
@@ -60,10 +64,12 @@ pub enum AppState {
 
 impl AppState {
     pub fn next(&mut self, key: &Option<Key>, button: &Option<MouseButton>) {
+        use AppState::*;
+
         if let Some(key) = key {
             match key {
                 Key::Backspace => {
-                    *self = AppState::Reset;
+                    *self = Reset;
                     return;
                 },
                 _ => *self,
@@ -71,25 +77,25 @@ impl AppState {
         }
 
         *self = match self {
-            AppState::Reset => AppState::Move,
-            AppState::Add => AppState::WaitDrop,
-            AppState::CancelDrop => AppState::Move,
-            AppState::Move => {
+            Reset => Move,
+            Add => WaitDrop,
+            CancelDrop => Move,
+            Move => {
                 if let Some(button) = button {
                     match button {
-                        MouseButton::Left => AppState::Add,
+                        MouseButton::Left => Add,
                         _ => *self,
                     }
                 } else {
                     *self
                 }
             },
-            AppState::WaitDrop => {
+            WaitDrop => {
                 if let Some(button) = button {
                     match button {
-                        MouseButton::Left => AppState::Move,
-                        MouseButton::Right => AppState::CancelDrop,
-                        _ => AppState::WaitDrop,
+                        MouseButton::Left => Move,
+                        MouseButton::Right => CancelDrop,
+                        _ => WaitDrop,
                     }
                 } else {
                     *self
@@ -143,14 +149,12 @@ pub struct AppStatus {
     pub translate: bool,
     pub trajectory: bool,
     pub pause: bool,
-    pub current_circle: usize,
-    pub count_circle: usize,
     pub state: AppState,
     pub state_log: LogState,
 }
 
 impl AppStatus {
-    pub fn new(bounded: bool, translate: bool, count_circle: usize) -> AppStatus {
+    pub fn new(bounded: bool, translate: bool) -> AppStatus {
         let direction = Direction::Hold;
         let state = AppState::Reset;
         let state_log = LogState::Default;
@@ -160,30 +164,18 @@ impl AppStatus {
             translate,
             trajectory: true,
             pause: true,
-            current_circle: 0,
-            count_circle,
             state,
             state_log,
         }
     }
 
-    pub fn default(count_circle: usize) -> AppStatus {
-        AppStatus::new(true, false, count_circle)
-    }
-
-    pub fn clear(&mut self, circles: &Vec<Circle>) {
-        self.direction = Direction::Hold;
-        self.count_circle = circles.len();
+    pub fn default() -> AppStatus {
+        AppStatus::new(true, false)
     }
 
     pub fn update(&mut self, key: &Option<Key>, button: &Option<MouseButton>) {
-        let current_circle = self.current_circle as isize;
-        let count = self.count_circle as isize;
-
         if let Some(key) = key {
             match *key {
-                Key::Z => self.current_circle = max(current_circle - 1, 0) as usize,
-                Key::X => self.current_circle = min(current_circle + 1, max(count - 1, 0)) as usize,
                 Key::B => toggle!(self.bounded),
                 Key::T => toggle!(self.translate),
                 Key::R => toggle!(self.trajectory),
@@ -191,6 +183,8 @@ impl AppStatus {
                 _ => ()
             }
             self.direction = Direction::from(key);
+        } else {
+            self.direction = Direction::Hold;
         }
         self.state.next(key, button);
         self.state_log.next(key);
@@ -198,32 +192,35 @@ impl AppStatus {
 }
 
 pub struct App {
-    pub circles: Vec<Circle>,
+    pub bodies: VecBody,
     pub config: AppConfig,
     pub status: AppStatus,
     pub step: Step,
 }
 
 impl App {
-    fn new(circles: Vec<Circle>, status: AppStatus, config: AppConfig) -> App {
-        App { circles, config, status, step: Step::new() }
+    pub fn new(bodies: VecBody, status: AppStatus, config: AppConfig) -> App {
+        App {
+            bodies,
+            config,
+            status,
+            step: Step::new(),
+        }
     }
 
-    pub fn centered_circle(radius: f64, color: Color) -> App {
-        let config = AppConfig::default();
-        App::new(
-            vec![Circle::zeros(radius, color, &config.size)],
-            AppStatus::default(1),
-            config)
-    }
-
-    pub fn default_circle() -> App {
-        App::centered_circle(30., Color::Blue)
+    pub fn default() -> App {
+        App {
+            bodies: VecBody::empty(),
+            config: AppConfig::default(),
+            status: AppStatus::default(),
+            step: Step::new(),
+        }
     }
 
     pub fn on_key(&mut self, key: Key) {
         self.config.update(&key);
         self.status.update(&Some(key), &Option::None);
+        self.bodies.update_current(&key);
     }
 
     pub fn on_click(&mut self, button: MouseButton) {
@@ -231,25 +228,37 @@ impl App {
     }
 
     pub fn render(&mut self, window: &mut PistonWindow, event: &Event) {
+        let count = self.bodies.count();
+
         window.draw_2d(
             event,
             |c, g, _device| {
-                clear([1.0; 4], g);
+                let mut color: [f32; 4];
+                let mut rect: [f64; 4];
+
+                piston_window::clear([1.0; 4], g);
+
+                if count == 0 {
+                    return;
+                }
                 if self.status.trajectory {
-                    for circle in self.circles.iter() {
-                        let color = circle.color.rgba_array();
+                    let mut from: [f64; 2];
+                    let mut to: [f64; 2];
+
+                    for i in 0..count {
+                        color = self.bodies[i].shape.color.rgba_array();
                         for k in 1..TRAJECTORY_SIZE - 1 {
-                            let from = circle.center.position(k - 1).as_array();
-                            let to = circle.center.position(k).as_array();
-                            line_from_to(color, 2.5, from, to, c.transform, g);
+                            color[3] = k as f32 / (TRAJECTORY_SIZE as f32 - 1.);
+                            from = self.bodies[i].shape.center.position(k - 1).as_array();
+                            to = self.bodies[i].shape.center.position(k).as_array();
+                            piston_window::line_from_to(color, 2.5, from, to, c.transform, g);
                         }
                     }
                 }
-
-                for circle in self.circles.iter() {
-                    let color = circle.color.rgba_array();
-                    let rect = circle.rounding_rect(&self.config.size);
-                    ellipse(color, rect, c.transform, g);
+                for i in 0..count {
+                    color = self.bodies[i].shape.color.rgba_array();
+                    rect = self.bodies[i].shape.rounding_rect(&self.config.size);
+                    piston_window::ellipse(color, rect, c.transform, g);
                 }
             },
         );
@@ -260,98 +269,113 @@ impl App {
     }
 
     pub fn update(&mut self, _window: &mut PistonWindow, args: &UpdateArgs, cursor: &[f64; 2]) {
+        use AppState::*;
         self.step.update(args.dt);
-        if !self.has_to_render() {
-            self.status.clear(&self.circles);
-            return;
-        }
-
-        let dt = self.step.total / self.config.updates_per_frame as f64;
         match self.status.state {
-            AppState::Move => self.do_move(dt),
-            AppState::Reset => self.do_reset(),
-            AppState::Add => self.do_add(cursor),
-            AppState::WaitDrop => self.do_wait_drop(cursor),
-            AppState::CancelDrop => self.do_cancel_add()
+            Move => self.do_move(self.step.frame / self.config.updates_per_frame as f64),
+            Reset => self.do_reset(),
+            Add => self.do_add(cursor),
+            WaitDrop => self.do_wait_drop(cursor),
+            CancelDrop => self.do_cancel_drop()
         };
-
         self.status.update(&Option::None, &Option::None);
-        self.status.clear(&self.circles);
-        self.step.total = 0.;
     }
 
     pub fn log(&self, button: MouseButton, key: Key, cursor: [f64; 2]) {
+        use LogState::*;
+
+        if self.bodies.is_empty() {
+            return;
+        }
+
         match self.status.state_log {
-            LogState::Hide => (),
-            LogState::Default => {
+            Hide => (),
+            Default => {
                 print!("{}[2J", 27 as char);
                 println!("state: {:?}", self.status.state);
                 println!("pressed mouse button: '{:?}'", button);
                 println!("mouse at: {:?} (px)", cursor);
                 println!("pressed keyboard key: '{:?}'", key);
             },
-            LogState::Cinematic => {
-                print!("{}[2J", 27 as char);
-                println!("{:?}", self.circles[self.status.current_circle]);
-                println!("current circle: {}", self.status.current_circle);
-            },
-            LogState::Timing => {
+            Timing => {
                 print!("{}[2J", 27 as char);
                 println!("{:?}", self.step);
                 println!("frames per updates: {}", self.config.frames_per_update);
                 println!("updates per frame: {}", self.config.updates_per_frame);
             },
+            Cinematic => {
+                print!("{}[2J", 27 as char);
+                println!("{:?}", self.bodies.current().shape);
+            },
+            Physics => {
+                print!("{}[2J", 27 as char);
+                println!("{:?}", self.bodies.current());
+            },
+            Bodies => {
+                print!("{}[2J", 27 as char);
+                println!("{:?}", self.bodies);
+            }
         };
     }
 
     fn do_move(&mut self, dt: f64) {
-        use physics::forces::push;
-        use physics::forces::nav_stokes;
-
-        if self.status.pause {
+        let size = &Some(self.config.size);
+        if self.status.pause || self.bodies.is_empty() {
             return;
         }
-
-        let len = self.circles.len();
         if self.status.translate {
-            self.circles[self.status.current_circle].center.translate(&self.status.direction.as_vector());
-        } else {
-            let mut directions = vec![Direction::Hold; self.status.count_circle];
-
-            directions[self.status.current_circle] = self.status.direction;
-            for _ in 0..self.config.updates_per_frame {
-                for index in 0..len {
-                    self.circles[index].center.acceleration = push(&directions[index]) + nav_stokes(&self.circles[index].center.speed);
-                    self.circles[index].center.accelerate(dt);
-                }
-            }
-        }
-        for index in 0..len {
+            self.bodies.translate_current(&self.status.direction.as_vector());
             if self.status.bounded {
-                self.circles[index].replace(self.config.size);
+                self.bodies.bound_current(&self.config.size);
             }
-            self.circles[index].center.update_trajectory(&Some(self.config.size));
+            self.bodies.update_current_trajectory(size);
+            return;
+        }
+        self.do_accelerate(dt);
+
+        if self.status.bounded {
+            self.bodies.bound(&self.config.size);
+        }
+        self.bodies.update_trajectory(size);
+    }
+
+    fn do_accelerate(&mut self, dt: f64) {
+        use physics::forces;
+        let count = self.bodies.count();
+        let mut directions = vec![Direction::Hold; count];
+        let mut force: Vector2;
+
+        directions[self.bodies.current_index()] = self.status.direction;
+        for _ in 0..self.config.updates_per_frame {
+            for i in 0..count {
+                force = forces::push(&directions[i]);
+                force += forces::nav_stokes(&self.bodies[i].shape.center.speed);
+                self.bodies[i].shape.center.acceleration = force * (PX_PER_METER / self.bodies[i].mass);
+            }
+            self.bodies.accelerate(dt);
         }
     }
 
     fn do_reset(&mut self) {
-        self.circles[self.status.current_circle].center.reset(Vector2::zeros());
-        self.circles[self.status.current_circle].center.clear_trajectory(&Some(self.config.size));
+        if !self.bodies.is_empty() {
+            self.bodies.reset_current();
+            self.bodies.clear_current_trajectory(&Some(self.config.size));
+        }
     }
 
     fn do_add(&mut self, cursor: &[f64; 2]) {
+        let name = format!("body {}", self.bodies.current_index());
         let circle = Circle::at_cursor(cursor, 30., Color::Green, &self.config.size);
-        self.circles.push(circle);
-        self.status.current_circle = self.status.count_circle;
+        let body = Body::new(1., name, circle);
+        self.bodies.push(body);
     }
 
     fn do_wait_drop(&mut self, cursor: &[f64; 2]) {
-        self.circles.last_mut().unwrap().set_cursor_pos(cursor, &self.config.size);
-        self.circles.last_mut().unwrap().center.clear_trajectory(&Some(self.config.size));
+        self.bodies.wait_drop(cursor, &self.config.size);
+        self.bodies.clear_current_trajectory(&Some(self.config.size));
     }
 
-    fn do_cancel_add(&mut self) {
-        self.circles.pop();
-        self.status.current_circle = 0;
+    fn do_cancel_drop(&mut self) {
+        self.bodies.pop();
     }
 }

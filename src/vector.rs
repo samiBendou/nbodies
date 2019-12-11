@@ -10,12 +10,6 @@ use std::ops::{
     Sub, SubAssign,
 };
 
-macro_rules! vec2 {
-    ($x: expr, $y: expr) => {
-        Vector2::new($x, $y)
-    };
-}
-
 #[derive(Copy, Clone)]
 pub struct Vector2 {
     pub x: f64,
