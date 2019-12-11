@@ -34,16 +34,16 @@ pub enum LogState {
 impl LogState {
     pub fn next(&mut self, key: &Option<Key>) {
         if let Some(key) = key {
-            match key {
+            *self = match key {
                 Key::L => {
                     match self {
-                        LogState::Hide => *self = LogState::Default,
-                        LogState::Default => *self = LogState::Timing,
-                        LogState::Timing => *self = LogState::Cinematic,
-                        LogState::Cinematic => *self = LogState::Hide,
+                        LogState::Hide => LogState::Default,
+                        LogState::Default => LogState::Timing,
+                        LogState::Timing => LogState::Cinematic,
+                        LogState::Cinematic => LogState::Hide,
                     }
                 },
-                _ => ()
+                _ => *self
             };
         }
     }
@@ -66,7 +66,7 @@ impl AppState {
                     *self = AppState::Reset;
                     return;
                 },
-                _ => (),
+                _ => *self,
             };
         }
 
