@@ -25,21 +25,19 @@ impl Vector2 {
         (self.y).atan2(self.x)
     }
 
-    pub fn normalize(&mut self) -> &mut Vector2 {
+    pub fn normalize(&mut self) -> &mut Self {
         let norm = self.magnitude();
         self.x /= norm;
         self.y /= norm;
-
         self
     }
 
-    pub fn rotation(&mut self, angle: f64) -> &mut Vector2 {
+    pub fn rotation(&mut self, angle: f64) -> &mut Self {
         let c = angle.cos();
         let s = angle.sin();
 
         self.x = self.x * c - self.y * s;
         self.y = self.x * s + self.y * c;
-
         self
     }
 
@@ -47,10 +45,15 @@ impl Vector2 {
         [self.x, self.y]
     }
 
-    pub fn set_array(&mut self, array: &[f64; 2]) -> &mut Vector2 {
+    pub fn set_array(&mut self, array: &[f64; 2]) -> &mut Self {
         self.x = array[0];
         self.y = array[1];
+        self
+    }
 
+    pub fn reset0(&mut self) -> &mut Self {
+        self.x = 0.;
+        self.y = 0.;
         self
     }
 
@@ -61,7 +64,6 @@ impl Vector2 {
     pub fn radial(mag: f64, ang: f64) -> Vector2 {
         let x = mag * ang.cos();
         let y = mag * ang.sin();
-
         Vector2 { x, y }
     }
 
@@ -79,6 +81,17 @@ impl Vector2 {
 
     pub fn ey() -> Vector2 {
         Vector2::new(0., 1.)
+    }
+
+    pub fn barycenter(vectors: &Vec<Vector2>, scalars: &Vec<f64>) -> Vector2 {
+        let mut barycenter = Vector2::zeros();
+        let len = scalars.len();
+
+        assert_eq!(vectors.len(), len, "Scalars and vectors must have the same length");
+        for i in 0..len {
+            barycenter += vectors[i] * scalars[i];
+        }
+        barycenter
     }
 }
 

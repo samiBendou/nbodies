@@ -220,7 +220,7 @@ impl App {
     pub fn on_key(&mut self, key: Key) {
         self.config.update(&key);
         self.status.update(&Some(key), &Option::None);
-        self.bodies.update_current(&key);
+        self.bodies.update_current_index(&key);
     }
 
     pub fn on_click(&mut self, button: MouseButton) {
@@ -229,10 +229,6 @@ impl App {
 
     pub fn log(&self, button: MouseButton, key: Key, cursor: [f64; 2]) {
         use LogState::*;
-
-        if self.bodies.is_empty() {
-            return;
-        }
 
         match self.status.state_log {
             Hide => (),
@@ -251,10 +247,16 @@ impl App {
             },
             Cinematic => {
                 print!("{}[2J", 27 as char);
+                if self.bodies.is_empty() {
+                    return;
+                }
                 println!("{:?}", self.bodies.current().shape);
             },
             Physics => {
                 print!("{}[2J", 27 as char);
+                if self.bodies.is_empty() {
+                    return;
+                }
                 println!("{:?}", self.bodies.current());
             },
             Bodies => {
@@ -264,13 +266,18 @@ impl App {
         };
     }
 
-    pub fn render(&mut self, window: &mut PistonWindow, event: &Event) {
+    pub fn render(&self, window: &mut PistonWindow, event: &Event) {
         let count = self.bodies.count();
 
         window.draw_2d(
             event,
             |c, g, _device| {
+                let x_offset = self.config.size.height - 50.;
+                let y_offset = self.config.size.height - 50.;
                 let mut color: [f32; 4];
+                let mut from: [f64; 2];
+                let mut to: [f64; 2];
+                let barycenter_rect = to_left_up(self.bodies.barycenter().as_array(), &self.config.size);
                 let mut rect: [f64; 4];
 
                 piston_window::clear([1.0; 4], g);
@@ -279,9 +286,6 @@ impl App {
                     return;
                 }
                 if self.status.trajectory {
-                    let mut from: [f64; 2];
-                    let mut to: [f64; 2];
-
                     for i in 0..count {
                         color = self.bodies[i].shape.color.rgba_array();
                         for k in 1..TRAJECTORY_SIZE - 1 {
@@ -297,6 +301,11 @@ impl App {
                     rect = self.bodies[i].shape.rounding_rect(&self.config.size);
                     piston_window::ellipse(color, rect, c.transform, g);
                 }
+                rect = [barycenter_rect[0] - 5., barycenter_rect[1] - 5., 10., 10.];
+                from = [x_offset - 10. * PX_PER_METER, y_offset];
+                to = [x_offset, y_offset];
+                piston_window::rectangle([255., 0., 0., 1.], rect, c.transform, g);
+                piston_window::line_from_to([0., 0., 0., 1.], 3., from, to, c.transform, g);
             },
         );
     }
@@ -337,6 +346,7 @@ impl App {
             self.bodies.bound(&self.config.size);
         }
         self.bodies.update_trajectory(size);
+        self.bodies.update_barycenter();
     }
 
     fn do_accelerate(&mut self, dt: f64) {
@@ -360,6 +370,7 @@ impl App {
         if !self.bodies.is_empty() {
             self.bodies.reset_current();
             self.bodies.clear_current_trajectory(&Some(self.config.size));
+            self.bodies.update_barycenter();
         }
     }
 

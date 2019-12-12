@@ -130,6 +130,7 @@ position: {:?} (m)\nspeed: {:?} (m/s)\nacceleration: {:?} (m/s2)\
 
 pub struct VecBody {
     bodies: Vec<Body>,
+    barycenter: Vector2,
     current: usize,
 }
 
@@ -149,15 +150,19 @@ impl IndexMut<usize> for VecBody {
 
 impl VecBody {
     pub fn new(bodies: Vec<Body>) -> Self {
-        VecBody { bodies, current: 0 }
+        VecBody { bodies, barycenter: Vector2::zeros(), current: 0 }
     }
 
     pub fn empty() -> Self {
-        VecBody { bodies: vec![], current: 0 }
+        VecBody { bodies: vec![], barycenter: Vector2::zeros(), current: 0 }
     }
 
     pub fn is_empty(&self) -> bool {
         self.bodies.len() == 0
+    }
+
+    pub fn barycenter(&self) -> &Vector2 {
+        &self.barycenter
     }
 
     pub fn current(&self) -> &Body {
@@ -219,6 +224,14 @@ impl VecBody {
         self
     }
 
+    pub fn update_current_index(&mut self, key: &Key) -> &mut Self {
+        match key {
+            Key::Z => self.increase_current(),
+            Key::X => self.decrease_current(),
+            _ => self
+        }
+    }
+
     pub fn accelerate(&mut self, dt: f64) -> &mut Self {
         for body in self.bodies.iter_mut() {
             body.shape.center.accelerate(dt);
@@ -230,6 +243,17 @@ impl VecBody {
         for body in self.bodies.iter_mut() {
             body.shape.bound(*size);
         }
+        self
+    }
+
+    pub fn update_barycenter(&mut self) -> &mut Self {
+        let mut total_mass = 0.;
+        self.barycenter.reset0();
+        for body in self.bodies.iter() {
+            self.barycenter += body.shape.center.position * body.mass;
+            total_mass += body.mass;
+        }
+        self.barycenter /= total_mass;
         self
     }
 
@@ -245,14 +269,6 @@ impl VecBody {
             body.shape.center.clear_trajectory(size);
         }
         self
-    }
-
-    pub fn update_current(&mut self, key: &Key) -> &mut Self {
-        match key {
-            Key::Z => self.increase_current(),
-            Key::X => self.decrease_current(),
-            _ => self
-        }
     }
 
     pub fn push(&mut self, body: Body) -> &mut Self {
