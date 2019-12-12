@@ -1,18 +1,18 @@
+extern crate find_folder;
 extern crate opengl_graphics;
 extern crate piston_window;
 
 use opengl_graphics::OpenGL;
-use piston::input::*;
+use piston::input::{Button, Key, MouseButton, MouseCursorEvent, PressEvent, RenderEvent, UpdateEvent};
 use piston_window::{PistonWindow, WindowSettings};
 
-use ::piston_start::App;
+use piston_start::App;
+use piston_start::common::Input;
 
 fn main() {
     let opengl = OpenGL::V3_2;
-    let mut cursor = [0., 0.];
-    let mut pressed_key: Key = Key::Unknown;
-    let mut clicked_button: MouseButton = MouseButton::Unknown;
-    let mut app = App::default();
+    let mut app: App = App::default();
+    let mut input = Input::new();
 
     let mut window: PistonWindow =
         WindowSettings::new("Bodies Keeps Moving Like a Rollin' Stone!", app.config.size)
@@ -26,27 +26,26 @@ fn main() {
 
     while let Some(event) = window.next() {
         event.mouse_cursor(|pos| {
-            cursor = pos;
+            input.cursor = pos;
         });
 
         if let Some(Button::Mouse(button)) = event.press_args() {
-            clicked_button = button;
-            app.on_click(clicked_button);
+            input.button = Some(button);
+            app.on_click(&button);
         }
 
         if let Some(Button::Keyboard(key)) = event.press_args() {
-            pressed_key = key;
-            app.on_key(key);
-        };
+            input.key = Some(key);
+            app.on_key(&key);
+        }
 
         if let Some(_args) = event.render_args() {
             app.render(&mut window, &event, &mut glyphs);
+            app.log(&input);
         }
 
         if let Some(args) = event.update_args() {
-            app.update(&mut window, &args, &cursor);
+            app.update(&mut window, &args, &input.cursor);
         }
-
-        app.log(clicked_button, pressed_key, cursor);
     }
 }

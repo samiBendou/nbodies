@@ -1,8 +1,8 @@
-use std::fmt::{Debug, Error, Formatter};
+use std::fmt::Debug;
 
-use piston::input::Key;
+use piston::input::{Key, MouseButton};
 
-use crate::vector::Vector2;
+use crate::physics::vector::Vector2;
 
 #[macro_use]
 #[macro_export]
@@ -34,6 +34,24 @@ macro_rules! offset_or_position {
         }
     };
 }
+
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub struct Input {
+    pub key: Option<Key>,
+    pub button: Option<MouseButton>,
+    pub cursor: [f64; 2],
+}
+
+impl Input {
+    pub fn new() -> Input {
+        Input {
+            key: Option::None,
+            button: Option::None,
+            cursor: [0., 0.],
+        }
+    }
+}
+
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum Direction {
@@ -90,63 +108,5 @@ impl Color {
     }
 }
 
-#[derive(Copy, Clone)]
-pub struct Step {
-    pub count: u32,
-    pub total: f64,
-    pub frame: f64,
-}
-
-impl Step {
-    pub fn new() -> Step {
-        Step { count: 0, total: 0., frame: 0. }
-    }
-
-    pub fn update(&mut self, dt: f64) {
-        self.frame = dt;
-        self.total += dt;
-        self.count = (self.count + 1) % std::u32::MAX;
-    }
-}
-
-impl Debug for Step {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
-        let dt = self.frame * 1e3;
-        let framerate = 1. / self.frame;
-        write!(f, "dt: {:.4} (ms)\nframerate: {:.2} (fps)\ntotal time: {:.2} (s)", dt, framerate, self.total)
-    }
-}
-
-#[derive(Copy, Clone, Debug)]
-pub struct Scale {
-    pub time: f64,
-    pub distance: f64,
-}
-
-impl Scale {
-    pub fn new(time: f64, distance: f64) -> Scale {
-        assert!(time > 0. && distance > 0.);
-        Scale { time, distance }
-    }
-
-    pub fn unit() -> Scale {
-        Scale { time: 1., distance: 1. }
-    }
-
-    pub fn increase_time(&mut self) {
-        self.time *= 1.10;
-    }
-
-    pub fn decrease_time(&mut self) {
-        self.time /= 1.10;
-    }
-
-    pub fn increase_distance(&mut self) {
-        self.distance *= 1.10;
-    }
-    pub fn decrease_distance(&mut self) {
-        self.distance /= 1.10;
-    }
-}
 
 

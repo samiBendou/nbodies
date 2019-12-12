@@ -1,7 +1,3 @@
-extern crate find_folder;
-
-use std::cmp::{max, min};
-
 use piston::input::{Event, Key, MouseButton, UpdateArgs};
 use piston::window::Size;
 use piston_window;
@@ -9,277 +5,65 @@ use piston_window::{G2d, Glyphs, PistonWindow};
 use piston_window::*;
 
 use crate::common::*;
-use crate::physics::{Body, PX_PER_METER, TRAJECTORY_SIZE, VecBody};
+use crate::core::{Config, Status, Step};
+use crate::log::Logger;
+use crate::physics::dynamics::{Body, VecBody};
 use crate::shape::*;
-use crate::vector::Vector2;
 
-pub mod vector;
 pub mod common;
 pub mod shape;
 pub mod physics;
-
-
-
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub enum LogState {
-    Hide,
-    Default,
-    Timing,
-    Cinematic,
-    Physics,
-    Bodies,
-}
-
-impl LogState {
-    pub fn next(&mut self, key: &Option<Key>) {
-        use LogState::*;
-
-        if let Some(key) = key {
-            *self = match key {
-                Key::L => {
-                    match self {
-                        Hide => Default,
-                        Default => Timing,
-                        Timing => Cinematic,
-                        Cinematic => Physics,
-                        Physics => Bodies,
-                        Bodies => Hide,
-                    }
-                },
-                _ => *self
-            };
-        }
-    }
-}
-
-#[derive(Copy, Clone, Debug)]
-pub enum AppState {
-    Move,
-    Add,
-    WaitDrop,
-    CancelDrop,
-    Reset,
-}
-
-impl AppState {
-    pub fn next(&mut self, key: &Option<Key>, button: &Option<MouseButton>) {
-        use AppState::*;
-
-        if let Some(key) = key {
-            match key {
-                Key::Backspace => {
-                    *self = Reset;
-                    return;
-                },
-                _ => *self,
-            };
-        }
-
-        *self = match self {
-            Reset => Move,
-            Add => WaitDrop,
-            CancelDrop => Move,
-            Move => {
-                if let Some(button) = button {
-                    match button {
-                        MouseButton::Left => Add,
-                        _ => *self,
-                    }
-                } else {
-                    *self
-                }
-            },
-            WaitDrop => {
-                if let Some(button) = button {
-                    match button {
-                        MouseButton::Left => Move,
-                        MouseButton::Right => CancelDrop,
-                        _ => WaitDrop,
-                    }
-                } else {
-                    *self
-                }
-            }
-        };
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct AppConfig {
-    pub size: Size,
-    pub scale: Scale,
-    pub frames_per_update: u32,
-    pub updates_per_frame: u32,
-}
-
-impl AppConfig {
-    pub fn new(size: Size, scale: Scale, frames_per_update: u32, updates_per_frame: u32) -> AppConfig {
-        AppConfig {
-            size,
-            scale,
-            frames_per_update,
-            updates_per_frame,
-        }
-    }
-
-    pub fn default() -> AppConfig {
-        AppConfig {
-            size: Size::from([640., 640.]),
-            scale: Scale::unit(),
-            frames_per_update: 1,
-            updates_per_frame: 1024,
-        }
-    }
-
-    pub fn update(&mut self, key: &Key) {
-        match *key {
-            Key::P => self.increase_updates_per_frame(),
-            Key::O => self.decrease_updates_per_frame(),
-            Key::I => self.scale.increase_distance(),
-            Key::U => self.scale.decrease_distance(),
-            _ => (),
-        };
-    }
-
-    fn increase_updates_per_frame(&mut self) {
-        self.updates_per_frame = min(self.updates_per_frame << 1, std::u32::MAX);
-    }
-
-    fn decrease_updates_per_frame(&mut self) {
-        self.updates_per_frame = max(self.updates_per_frame >> 1, std::u32::MIN + 1);
-    }
-
-    fn clear(&mut self, size: Size) {
-        self.size = size;
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
-pub struct AppStatus {
-    pub direction: Direction,
-    pub bounded: bool,
-    pub translate: bool,
-    pub trajectory: bool,
-    pub pause: bool,
-    pub state: AppState,
-    pub state_log: LogState,
-}
-
-impl AppStatus {
-    pub fn new(bounded: bool, translate: bool) -> AppStatus {
-        let direction = Direction::Hold;
-        let state = AppState::Reset;
-        let state_log = LogState::Default;
-        AppStatus {
-            direction,
-            bounded,
-            translate,
-            trajectory: true,
-            pause: true,
-            state,
-            state_log,
-        }
-    }
-
-    pub fn default() -> AppStatus {
-        AppStatus::new(true, false)
-    }
-
-    pub fn update(&mut self, key: &Option<Key>, button: &Option<MouseButton>) {
-        if let Some(key) = key {
-            match *key {
-                Key::B => toggle!(self.bounded),
-                Key::T => toggle!(self.translate),
-                Key::R => toggle!(self.trajectory),
-                Key::Space => toggle!(self.pause),
-                _ => ()
-            }
-            self.direction = Direction::from(key);
-        } else {
-            self.direction = Direction::Hold;
-        }
-        self.state.next(key, button);
-        self.state_log.next(key);
-    }
-}
+pub mod core;
+pub mod log;
 
 pub struct App {
     pub bodies: VecBody,
-    pub config: AppConfig,
-    pub status: AppStatus,
+    pub config: Config,
+    pub status: Status,
     pub step: Step,
+    pub logger: Logger,
 }
 
 impl App {
-    pub fn new(bodies: VecBody, status: AppStatus, config: AppConfig) -> App {
+    pub fn new(bodies: VecBody, status: Status, config: Config) -> App {
         App {
             bodies,
             config,
             status,
             step: Step::new(),
+            logger: Logger::new(),
         }
     }
 
     pub fn default() -> App {
         App {
             bodies: VecBody::empty(),
-            config: AppConfig::default(),
-            status: AppStatus::default(),
+            config: Config::default(),
+            status: Status::default(),
             step: Step::new(),
+            logger: Logger::new(),
         }
     }
 
-    pub fn on_key(&mut self, key: Key) {
-        self.config.update(&key);
-        self.status.update(&Some(key), &Option::None);
-        self.bodies.update_current_index(&key);
+    pub fn on_key(&mut self, key: &Key) {
+        let option_key = Some(*key);
+        self.config.update(key);
+        self.status.update(&option_key, &Option::None);
+        if *key == Key::Z {
+            self.bodies.update_current_index(true);
+        } else if *key == Key::X {
+            self.bodies.update_current_index(false);
+        }
+        self.logger.update(&option_key);
     }
 
-    pub fn on_click(&mut self, button: MouseButton) {
-        self.status.update(&Option::None, &Some(button));
+    pub fn on_click(&mut self, button: &MouseButton) {
+        self.status.update(&Option::None, &Some(*button));
     }
 
-    pub fn log(&self, button: MouseButton, key: Key, cursor: [f64; 2]) {
-        use LogState::*;
-
-        match self.status.state_log {
-            Hide => (),
-            Default => {
-                print!("{}[2J", 27 as char);
-                println!("state: {:?}", self.status.state);
-                println!("pressed mouse button: '{:?}'", button);
-                println!("mouse at: {:?} (px)", cursor);
-                println!("pressed keyboard key: '{:?}'", key);
-            },
-            Timing => {
-                print!("{}[2J", 27 as char);
-                println!("{:?}", self.step);
-                println!("frames per updates: {}", self.config.frames_per_update);
-                println!("updates per frame: {}", self.config.updates_per_frame)
-            },
-            Cinematic => {
-                print!("{}[2J", 27 as char);
-                if self.bodies.is_empty() {
-                    return;
-                }
-                println!("{:?}", self.bodies.current().shape);
-                println!("distance scale: {:.4} ()", self.config.scale.distance * PX_PER_METER);
-            },
-            Physics => {
-                print!("{}[2J", 27 as char);
-                if self.bodies.is_empty() {
-                    return;
-                }
-                println!("{:?}", self.bodies.current());
-            },
-            Bodies => {
-                print!("{}[2J", 27 as char);
-                println!("{:?}", self.bodies);
-            }
-        };
-    }
-
-    pub fn render(&self, window: &mut PistonWindow, event: &Event, glyphs: &mut Glyphs) {
+    pub fn render(&mut self, window: &mut PistonWindow, event: &Event, glyphs: &mut Glyphs) {
+        self.logger.print(true);
+        self.logger.clear();
         window.draw_2d(
             event,
             |c, g, device| {
@@ -299,7 +83,8 @@ impl App {
     }
 
     pub fn update(&mut self, _window: &mut PistonWindow, args: &UpdateArgs, cursor: &[f64; 2]) {
-        use AppState::*;
+        use crate::core::State::*;
+
         self.step.update(args.dt);
         match self.status.state {
             Move => self.do_move(self.step.frame / self.config.updates_per_frame as f64),
@@ -311,7 +96,12 @@ impl App {
         self.status.update(&Option::None, &Option::None);
     }
 
+    pub fn log(&mut self, input: &common::Input) {
+        self.logger.log(&self.bodies, &self.status, &self.config, &self.step, input);
+    }
+
     fn do_move(&mut self, dt: f64) {
+        use crate::physics::units::PX_PER_METER;
         let width = self.config.size.width / (self.config.scale.distance * PX_PER_METER);
         let height = self.config.size.height / (self.config.scale.distance * PX_PER_METER);
         let scaled_size = Size::from([width, height]);
@@ -336,6 +126,7 @@ impl App {
     }
 
     fn do_accelerate(&mut self, dt: f64) {
+        use crate::physics::vector::Vector2;
         use physics::forces;
         let count = self.bodies.count();
         let mut directions = vec![Direction::Hold; count];
@@ -378,6 +169,8 @@ impl App {
     }
 
     fn draw_trajectory(&self, c: &Context, g: &mut G2d) {
+        use crate::physics::vector::Vector2;
+        use crate::physics::dynamics::TRAJECTORY_SIZE;
         let middle: Vector2 = Vector2::new(self.config.size.width, self.config.size.height) / 2.;
         let scale = self.config.scale.distance;
 
@@ -417,6 +210,7 @@ impl App {
     }
 
     fn draw_static(&self, c: &Context, g: &mut G2d, glyphs: &mut Glyphs) {
+        use crate::physics::units::PX_PER_METER;
         let size = self.config.size;
         let scale = self.config.scale.distance;
         let x_offset = size.width - 160.;

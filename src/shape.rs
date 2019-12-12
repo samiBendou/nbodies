@@ -3,20 +3,20 @@ use std::fmt::{Debug, Error, Formatter};
 use piston::window::Size;
 use rand::Rng;
 
-use crate::physics::Point;
+use crate::physics::dynamics;
+use crate::physics::vector::Vector2;
 use crate::to_centered;
 use crate::to_left_up;
-use crate::vector::Vector2;
 
 #[derive(Copy, Clone)]
 pub struct Circle {
-    pub center: Point,
+    pub center: dynamics::Point,
     pub color: [f32; 4],
     pub radius: f64,
 }
 
 impl Circle {
-    pub fn new(center: Point, radius: f64, color: [f32; 4]) -> Circle {
+    pub fn new(center: dynamics::Point, radius: f64, color: [f32; 4]) -> Circle {
         Circle {
             center,
             color,
@@ -25,12 +25,12 @@ impl Circle {
     }
 
     pub fn centered(radius: f64, color: [f32; 4], size: &Size) -> Circle {
-        Circle::new(Point::zeros(&Some(*size)), radius, color)
+        Circle::new(dynamics::Point::zeros(&Some(*size)), radius, color)
     }
 
     pub fn at_cursor(cursor: &[f64; 2], radius: f64, color: [f32; 4], size: &Size) -> Circle {
         let position = Vector2::from(*cursor);
-        let mut center = Point::stationary(position, &Some(*size));
+        let mut center = dynamics::Point::stationary(position, &Some(*size));
 
         to_centered!(center.position, size);
         Circle::new(center, radius, color)
@@ -87,6 +87,6 @@ impl Circle {
 
 impl Debug for Circle {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
-        write!(f, "***center***\n{:?}", self.center)
+        write!(f, "{:?}", self.center)
     }
 }
