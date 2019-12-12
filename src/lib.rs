@@ -287,7 +287,7 @@ impl App {
                 }
                 if self.status.trajectory {
                     for i in 0..count {
-                        color = self.bodies[i].shape.color.rgba_array();
+                        color = self.bodies[i].shape.color;
                         for k in 1..TRAJECTORY_SIZE - 1 {
                             color[3] = k as f32 / (TRAJECTORY_SIZE as f32 - 1.);
                             from = self.bodies[i].shape.center.position(k - 1).as_array();
@@ -297,9 +297,8 @@ impl App {
                     }
                 }
                 for i in 0..count {
-                    color = self.bodies[i].shape.color.rgba_array();
                     rect = self.bodies[i].shape.rounding_rect(&self.config.size);
-                    piston_window::ellipse(color, rect, c.transform, g);
+                    piston_window::ellipse(self.bodies[i].shape.color, rect, c.transform, g);
                 }
                 rect = [barycenter_rect[0] - 5., barycenter_rect[1] - 5., 10., 10.];
                 from = [x_offset - 10. * PX_PER_METER, y_offset];
@@ -375,10 +374,10 @@ impl App {
     }
 
     fn do_add(&mut self, cursor: &[f64; 2]) {
-        let name = format!("body {}", self.bodies.current_index());
-        let circle = Circle::at_cursor(cursor, 30., Color::Green, &self.config.size);
-        let body = Body::new(1., name, circle);
+        let circle = Circle::at_cursor_random(cursor, &self.config.size);
+        let body = Body::new(circle.radius / 5., format!(""), circle);
         self.bodies.push(body);
+        self.bodies.current_mut().name = format!("body {}", self.bodies.current_index() + 1);
     }
 
     fn do_wait_drop(&mut self, cursor: &[f64; 2]) {

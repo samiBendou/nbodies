@@ -1,6 +1,7 @@
 use std::fmt::{Debug, Error, Formatter};
 
 use piston::window::Size;
+use rand::Rng;
 
 use crate::common::{Color, to_centered, to_left_up};
 use crate::physics::Point;
@@ -9,12 +10,12 @@ use crate::vector::Vector2;
 #[derive(Copy, Clone)]
 pub struct Circle {
     pub center: Point,
-    pub color: Color,
+    pub color: [f32; 4],
     pub radius: f64,
 }
 
 impl Circle {
-    pub fn new(center: Point, radius: f64, color: Color) -> Circle {
+    pub fn new(center: Point, radius: f64, color: [f32; 4]) -> Circle {
         Circle {
             center,
             color,
@@ -22,15 +23,25 @@ impl Circle {
         }
     }
 
-    pub fn centered(radius: f64, color: Color, size: &Size) -> Circle {
+    pub fn centered(radius: f64, color: [f32; 4], size: &Size) -> Circle {
         Circle::new(Point::zeros(&Some(*size)), radius, color)
     }
 
-    pub fn at_cursor(cursor: &[f64; 2], radius: f64, color: Color, size: &Size) -> Circle {
+    pub fn at_cursor(cursor: &[f64; 2], radius: f64, color: [f32; 4], size: &Size) -> Circle {
         let position = Vector2::from(to_centered(*cursor, size));
         let center = Point::stationary(position, &Some(*size));
 
         Circle::new(center, radius, color)
+    }
+
+    pub fn at_cursor_random(cursor: &[f64; 2], size: &Size) -> Circle {
+        let mut rng = rand::thread_rng();
+        let radius: f64 = rng.gen();
+        let red: f32 = rng.gen();
+        let green: f32 = rng.gen();
+        let blue: f32 = rng.gen();
+        let color: [f32; 4] = [red, green, blue, 1.];
+        Circle::at_cursor(cursor, 40. * radius + 20., color, size)
     }
 
     pub fn rounding_rect(&self, size: &Size) -> [f64; 4] {
