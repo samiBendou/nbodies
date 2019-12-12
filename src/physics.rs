@@ -5,13 +5,13 @@ use std::ops::{Index, IndexMut};
 use piston::input::Key;
 use piston::window::Size;
 
-use crate::common::offset_or_position;
+use crate::offset_or_position;
 use crate::shape::Circle;
 use crate::vector::Vector2;
 
 const BASE_ACCELERATION: f64 = 500.;
 const RESISTANCE: f64 = 0.001;
-pub const PX_PER_METER: f64 = 10.;
+pub const PX_PER_METER: f64 = 20.;
 pub(crate) const TRAJECTORY_SIZE: usize = 256;
 
 #[derive(Copy, Clone)]
@@ -26,8 +26,9 @@ pub struct Point {
 
 impl Point {
     pub fn new(position: Vector2, speed: Vector2, acceleration: Vector2, size: &Option<Size>) -> Point {
-        let position_offset = Vector2::from(offset_or_position(position.as_array(), size));
+        let mut position_offset = position.clone();
 
+        offset_or_position!(position_offset, size);
         Point {
             position,
             speed,
@@ -74,15 +75,16 @@ impl Point {
     }
 
     pub fn update_trajectory(&mut self, size: &Option<Size>) {
-        let position_offset = offset_or_position(self.position.as_array(), size);
-        self.trajectory[self.index].set_array(&position_offset);
+        self.trajectory[self.index] = self.position;
+        offset_or_position!(self.trajectory[self.index], size);
         self.index = (self.index + 1) % TRAJECTORY_SIZE;
     }
 
     pub fn clear_trajectory(&mut self, size: &Option<Size>) {
-        let position_offset = offset_or_position(self.position.as_array(), size);
-        for position in self.trajectory.iter_mut() {
-            position.set_array(&position_offset);
+        let mut position_offset = self.position;
+        offset_or_position!(position_offset, size);
+        for mut position in self.trajectory.iter_mut() {
+            position = &mut position_offset;
         }
     }
 }
@@ -284,8 +286,9 @@ impl VecBody {
         self.bodies.pop()
     }
 
-    pub fn wait_drop(&mut self, cursor: &[f64; 2], size: &Size) -> &mut Self {
+    pub fn wait_drop(&mut self, cursor: &[f64; 2], size: &Size, scale: f64) -> &mut Self {
         self.bodies[self.current].shape.set_cursor_pos(cursor, size);
+        self.bodies[self.current].shape.center.position /= scale;
         self.bodies[self.current].shape.center.clear_trajectory(&Some(*size));
         self
     }
@@ -293,7 +296,7 @@ impl VecBody {
 
 impl Debug for VecBody {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
-        let mut str = String::from("***body system***");
+        let mut str = String::from("*** body system ***");
         for body in self.bodies.iter() {
             str.push_str(format!("\n{:?}", body).as_str());
         }

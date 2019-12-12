@@ -21,6 +21,8 @@ fn main() {
             .graphics_api(opengl)
             .build()
             .unwrap();
+    let assets = find_folder::Search::ParentsThenKids(3, 3).for_folder("assets").unwrap();
+    let mut glyphs = window.load_font(assets.join("FiraSans-Regular.ttf")).unwrap();
 
     while let Some(event) = window.next() {
         event.mouse_cursor(|pos| {
@@ -38,7 +40,7 @@ fn main() {
         };
 
         if let Some(_args) = event.render_args() {
-            app.render(&mut window, &event);
+            app.render(&mut window, &event, &mut glyphs);
         }
 
         if let Some(args) = event.update_args() {

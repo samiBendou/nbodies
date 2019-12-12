@@ -1,25 +1,39 @@
 use std::fmt::{Debug, Error, Formatter};
 
 use piston::input::Key;
-use piston::window::Size;
 
 use crate::vector::Vector2;
 
-pub fn to_centered(position: [f64; 2], size: &Size) -> [f64; 2] {
-    [position[0] - size.width / 2., size.height / 2. - position[1]]
+#[macro_use]
+#[macro_export]
+macro_rules! toggle {
+    ($boolean: expr) => {
+    $boolean = !$boolean;
+    };
 }
-
-pub fn to_left_up(position: [f64; 2], size: &Size) -> [f64; 2] {
-    [position[0] + size.width / 2., size.height / 2. - position[1]]
+#[macro_export]
+macro_rules! to_centered {
+    ($position: expr, $size: path) => {
+    $position[0] = $position[0] - $size.width / 2.;
+    $position[1] = $size.height / 2. - $position[1];
+    };
 }
-
-pub fn offset_or_position(position: [f64; 2], size: &Option<Size>) -> [f64; 2] {
-    match size {
-        Some(size) => to_left_up(position, size),
-        None => position
-    }
+#[macro_export]
+#[macro_use]
+macro_rules! to_left_up {
+    ($position: expr, $size: path) => {
+    $position[0] = $position[0] + $size.width / 2.;
+    $position[1] = $size.height / 2. - $position[1];
+    };
 }
-
+#[macro_export]
+macro_rules! offset_or_position {
+    ($position: expr, $size: path) => {
+        if let Some(size) = $size {
+            crate::to_left_up!($position, size);
+        }
+    };
+}
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum Direction {
@@ -102,4 +116,37 @@ impl Debug for Step {
         write!(f, "dt: {:.4} (ms)\nframerate: {:.2} (fps)\ntotal time: {:.2} (s)", dt, framerate, self.total)
     }
 }
+
+#[derive(Copy, Clone, Debug)]
+pub struct Scale {
+    pub time: f64,
+    pub distance: f64,
+}
+
+impl Scale {
+    pub fn new(time: f64, distance: f64) -> Scale {
+        assert!(time > 0. && distance > 0.);
+        Scale { time, distance }
+    }
+
+    pub fn unit() -> Scale {
+        Scale { time: 1., distance: 1. }
+    }
+
+    pub fn increase_time(&mut self) {
+        self.time *= 1.10;
+    }
+
+    pub fn decrease_time(&mut self) {
+        self.time /= 1.10;
+    }
+
+    pub fn increase_distance(&mut self) {
+        self.distance *= 1.10;
+    }
+    pub fn decrease_distance(&mut self) {
+        self.distance /= 1.10;
+    }
+}
+
 

@@ -3,8 +3,9 @@ use std::fmt::{Debug, Error, Formatter};
 use piston::window::Size;
 use rand::Rng;
 
-use crate::common::{Color, to_centered, to_left_up};
 use crate::physics::Point;
+use crate::to_centered;
+use crate::to_left_up;
 use crate::vector::Vector2;
 
 #[derive(Copy, Clone)]
@@ -28,9 +29,10 @@ impl Circle {
     }
 
     pub fn at_cursor(cursor: &[f64; 2], radius: f64, color: [f32; 4], size: &Size) -> Circle {
-        let position = Vector2::from(to_centered(*cursor, size));
-        let center = Point::stationary(position, &Some(*size));
+        let position = Vector2::from(*cursor);
+        let mut center = Point::stationary(position, &Some(*size));
 
+        to_centered!(center.position, size);
         Circle::new(center, radius, color)
     }
 
@@ -44,11 +46,12 @@ impl Circle {
         Circle::at_cursor(cursor, 40. * radius + 20., color, size)
     }
 
-    pub fn rounding_rect(&self, size: &Size) -> [f64; 4] {
+    pub fn rounding_rect(&self, size: &Size, scale: f64) -> [f64; 4] {
         let diameter = 2. * self.radius;
-        let position = to_left_up(self.center.position.as_array(), &size);
+        let mut position_scaled = self.center.position * scale;
+        to_left_up!(position_scaled, size);
 
-        [position[0] - self.radius, position[1] - self.radius, diameter, diameter]
+        [position_scaled[0] - self.radius, position_scaled[1] - self.radius, diameter, diameter]
     }
 
     pub fn bound(&mut self, size: Size) -> &mut Circle {
@@ -75,7 +78,8 @@ impl Circle {
     }
 
     pub fn set_cursor_pos(&mut self, cursor: &[f64; 2], size: &Size) -> &mut Circle {
-        self.center.position.set_array(&to_centered(*cursor, size));
+        self.center.position.set_array(&cursor);
+        to_centered!(self.center.position, size);
 
         self
     }
