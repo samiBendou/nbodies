@@ -10,28 +10,6 @@ macro_rules! toggle {
     $boolean = !$boolean;
     };
 }
-#[macro_export]
-macro_rules! to_centered {
-    ($position: expr, $size: path) => {
-    $position[0] = $position[0] - $size.width / 2.;
-    $position[1] = $size.height / 2. - $position[1];
-    };
-}
-#[macro_export]
-macro_rules! to_left_up {
-    ($position: expr, $size: path) => {
-    $position[0] = $position[0] + $size.width / 2.;
-    $position[1] = $size.height / 2. - $position[1];
-    };
-}
-#[macro_export]
-macro_rules! offset_or_position {
-    ($position: expr, $size: path) => {
-        if let Some(size) = $size {
-            crate::to_left_up!($position, size);
-        }
-    };
-}
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub struct Input {

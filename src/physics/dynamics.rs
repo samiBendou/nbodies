@@ -1,10 +1,7 @@
 use std::cmp::{max, min};
 use std::fmt::{Debug, Error, Formatter};
-use std::ops::{Index, IndexMut};
+use std::ops::{AddAssign, DivAssign, Index, IndexMut, Mul, MulAssign, Rem, SubAssign};
 
-use piston::window::Size;
-
-use crate::offset_or_position;
 use crate::physics::vector::Vector2;
 use crate::shapes::ellipse::Circle;
 
@@ -21,35 +18,39 @@ pub struct Point {
 }
 
 impl Point {
-    pub fn new(position: Vector2, speed: Vector2, acceleration: Vector2, size: &Option<Size>) -> Point {
-        let mut position_offset = position.clone();
-
-        offset_or_position!(position_offset, size);
+    pub fn new(position: Vector2, speed: Vector2, acceleration: Vector2) -> Point {
         Point {
             position,
             speed,
             acceleration,
-            trajectory: [position_offset; TRAJECTORY_SIZE],
+            trajectory: [position.clone(); TRAJECTORY_SIZE],
             index: 0,
         }
     }
 
-    pub fn inertial(position: Vector2, speed: Vector2, size: &Option<Size>) -> Point {
-        Point::new(position, speed, Vector2::zeros(), size)
+    pub fn inertial(position: Vector2, speed: Vector2) -> Point {
+        Point::new(position, speed, Vector2::zeros())
     }
 
-    pub fn stationary(position: Vector2, size: &Option<Size>) -> Point {
-        Point::new(position, Vector2::zeros(), Vector2::zeros(), size)
+    pub fn stationary(position: Vector2) -> Point {
+        Point::new(position, Vector2::zeros(), Vector2::zeros())
     }
 
-    pub fn zeros(size: &Option<Size>) -> Point {
-        Point::new(Vector2::zeros(), Vector2::zeros(), Vector2::zeros(), size)
+    pub fn zeros() -> Point {
+        Point::new(Vector2::zeros(), Vector2::zeros(), Vector2::zeros())
     }
 
-    pub fn reset(&mut self, position: Vector2) -> &mut Point {
+    pub fn reset0(&mut self) -> &mut Self {
+        self.position.reset0();
+        self.speed.reset0();
+        self.acceleration.reset0();
+        self
+    }
+
+    pub fn reset(&mut self, position: Vector2) -> &mut Self {
         self.position = position;
-        self.speed = Vector2::zeros();
-        self.acceleration = Vector2::zeros();
+        self.speed.reset0();
+        self.acceleration.reset0();
         self
     }
 
@@ -58,12 +59,12 @@ impl Point {
         self
     }
 
-    pub fn translate(&mut self, direction: &Vector2) -> &mut Point {
+    pub fn translate(&mut self, direction: &Vector2) -> &mut Self {
         self.position += *direction;
         self
     }
 
-    pub fn accelerate(&mut self, dt: f64) -> &mut Point {
+    pub fn accelerate(&mut self, dt: f64) -> &mut Self {
         self.speed += self.acceleration * dt;
         self.position += self.speed * dt;
         self
@@ -75,18 +76,24 @@ impl Point {
         &self.trajectory[index]
     }
 
-    pub fn update_trajectory(&mut self, size: &Option<Size>) {
+    pub fn update_trajectory(&mut self) {
         self.trajectory[self.index] = self.position;
-        offset_or_position!(self.trajectory[self.index], size);
         self.index = (self.index + 1) % TRAJECTORY_SIZE;
     }
 
-    pub fn clear_trajectory(&mut self, size: &Option<Size>) {
-        let mut position_offset = self.position;
-        offset_or_position!(position_offset, size);
+    pub fn clear_trajectory(&mut self) {
         for position in self.trajectory.iter_mut() {
-            *position = position_offset;
+            *position = self.position;
         }
+    }
+
+    pub fn set_origin(&mut self, origin: &Point, old_origin: &Option<Point>) -> &mut Self {
+        let mut translation = *origin;
+        if let Some(old_origin) = old_origin {
+            translation -= *old_origin
+        }
+        *self -= translation;
+        self
     }
 }
 
@@ -109,6 +116,74 @@ impl Debug for Point {
     }
 }
 
+impl PartialEq for Point {
+    fn eq(&self, other: &Self) -> bool {
+        self.position == other.position && self.speed == other.speed
+    }
+
+    fn ne(&self, other: &Self) -> bool {
+        self.position != other.position || self.speed != other.speed
+    }
+}
+
+impl AddAssign<Point> for Point {
+    fn add_assign(&mut self, rhs: Point) {
+        self.position += rhs.position;
+        self.speed += rhs.speed;
+        for k in 0..TRAJECTORY_SIZE {
+            self.trajectory[k] += rhs.trajectory[k];
+        }
+    }
+}
+
+impl SubAssign<Point> for Point {
+    fn sub_assign(&mut self, rhs: Point) {
+        self.position -= rhs.position;
+        self.speed -= rhs.speed;
+        for k in 0..TRAJECTORY_SIZE {
+            self.trajectory[k] -= rhs.trajectory[k];
+        }
+    }
+}
+
+impl Mul<f64> for Point {
+    type Output = Point;
+
+    fn mul(self, rhs: f64) -> Self::Output {
+        let mut output = self;
+        output *= rhs;
+        output
+    }
+}
+
+impl MulAssign<f64> for Point {
+    fn mul_assign(&mut self, rhs: f64) {
+        self.position *= rhs;
+        self.speed *= rhs;
+        for k in 0..TRAJECTORY_SIZE {
+            self.trajectory[k] *= rhs;
+        }
+    }
+}
+
+impl DivAssign<f64> for Point {
+    fn div_assign(&mut self, rhs: f64) {
+        self.position /= rhs;
+        self.speed /= rhs;
+        for k in 0..TRAJECTORY_SIZE {
+            self.trajectory[k] /= rhs;
+        }
+    }
+}
+
+impl Rem<Point> for Point {
+    type Output = f64;
+
+    fn rem(self, rhs: Point) -> Self::Output {
+        self.position % rhs.position
+    }
+}
+
 pub struct Body {
     pub mass: f64,
     pub name: String,
@@ -116,8 +191,8 @@ pub struct Body {
 }
 
 impl Body {
-    pub fn new(mass: f64, name: String, shape: Circle) -> Body {
-        Body { mass, name, shape }
+    pub fn new(mass: f64, name: &str, shape: Circle) -> Body {
+        Body { mass, name: String::from(name), shape }
     }
 }
 
@@ -134,7 +209,8 @@ impl Debug for Body {
 
 pub struct VecBody {
     bodies: Vec<Body>,
-    barycenter: Vector2,
+    barycenter: Body,
+    origin: Option<Point>,
     current: usize,
 }
 
@@ -154,19 +230,56 @@ impl IndexMut<usize> for VecBody {
 
 impl VecBody {
     pub fn new(bodies: Vec<Body>) -> Self {
-        VecBody { bodies, barycenter: Vector2::zeros(), current: 0 }
+        let shape = Circle::new(Point::zeros(), 0., [1., 0., 0., 0.]);
+        let barycenter = Body::new(0., "barycenter", shape);
+        VecBody { bodies, barycenter, origin: None, current: 0 }
     }
 
     pub fn empty() -> Self {
-        VecBody { bodies: vec![], barycenter: Vector2::zeros(), current: 0 }
+        let shape = Circle::new(Point::zeros(), 0., [1., 0., 0., 0.]);
+        let barycenter = Body::new(0., "barycenter", shape);
+        VecBody { bodies: vec![], barycenter, origin: None, current: 0 }
     }
 
     pub fn is_empty(&self) -> bool {
         self.bodies.len() == 0
     }
 
-    pub fn barycenter(&self) -> &Vector2 {
+    pub fn count(&self) -> usize {
+        self.bodies.len()
+    }
+
+    pub fn barycenter(&self) -> &Body {
         &self.barycenter
+    }
+
+    pub fn origin(&self) -> Point {
+        match self.origin {
+            Some(origin) => origin,
+            None => Point::zeros()
+        }
+    }
+
+    pub fn update_origin(&mut self, origin: &Point) -> &mut Self {
+        if self.is_empty() {
+            return self;
+        }
+        for body in self.bodies.iter_mut() {
+            body.shape.center.set_origin(origin, &self.origin);
+        }
+        self
+    }
+
+    pub fn update_barycenter(&mut self) -> &mut Self {
+        let mut total_mass = 0.;
+        self.barycenter.shape.center.reset0();
+        for body in self.bodies.iter() {
+            self.barycenter.shape.center += body.shape.center * body.mass;
+            total_mass += body.mass;
+        }
+        self.barycenter.shape.center /= total_mass;
+        self.barycenter.mass = total_mass;
+        self
     }
 
     pub fn current(&self) -> &Body {
@@ -181,40 +294,32 @@ impl VecBody {
         self.current
     }
 
-    pub fn increase_current(&mut self) -> &mut Self {
-        let current = self.current as isize;
-        self.current = max(current - 1, 0) as usize;
-        self
+    pub fn update_current_index(&mut self, increase: bool) -> &mut Self {
+        let current = self.current;
+        match increase {
+            true => self.increase_current(),
+            false => self.decrease_current(),
+        }
     }
 
-    pub fn count(&self) -> usize {
-        self.bodies.len()
-    }
-
-    pub fn decrease_current(&mut self) -> &mut Self {
-        let current = self.current as isize;
-        let count = self.count() as isize;
-        self.current = min(current + 1, max(count - 1, 0)) as usize;
-        self
-    }
 
     pub fn reset_current(&mut self) -> &mut Self {
         self.bodies[self.current].shape.center.reset(Vector2::zeros());
         self
     }
 
-    pub fn clear_current_trajectory(&mut self, size: &Option<Size>) -> &mut Self {
-        self.bodies[self.current].shape.center.clear_trajectory(size);
+    pub fn clear_current_trajectory(&mut self) -> &mut Self {
+        self.bodies[self.current].shape.center.clear_trajectory();
         self
     }
 
-    pub fn update_current_trajectory(&mut self, size: &Option<Size>) -> &mut Self {
-        self.bodies[self.current].shape.center.update_trajectory(size);
+    pub fn update_current_trajectory(&mut self) -> &mut Self {
+        self.bodies[self.current].shape.center.update_trajectory();
         self
     }
 
-    pub fn bound_current(&mut self, size: &Size) -> &mut Self {
-        self.bodies[self.current].shape.bound(*size);
+    pub fn bound_current(&mut self, middle: &Vector2) -> &mut Self {
+        self.bodies[self.current].shape.bound(middle);
         self
     }
 
@@ -228,13 +333,6 @@ impl VecBody {
         self
     }
 
-    pub fn update_current_index(&mut self, increase: bool) -> &mut Self {
-        match increase {
-            true => self.increase_current(),
-            false => self.decrease_current(),
-        }
-    }
-
     pub fn accelerate(&mut self, dt: f64) -> &mut Self {
         for body in self.bodies.iter_mut() {
             body.shape.center.accelerate(dt);
@@ -242,34 +340,23 @@ impl VecBody {
         self
     }
 
-    pub fn bound(&mut self, size: &Size) -> &mut Self {
+    pub fn bound(&mut self, middle: &Vector2) -> &mut Self {
         for body in self.bodies.iter_mut() {
-            body.shape.bound(*size);
+            body.shape.bound(middle);
         }
         self
     }
 
-    pub fn update_barycenter(&mut self) -> &mut Self {
-        let mut total_mass = 0.;
-        self.barycenter.reset0();
-        for body in self.bodies.iter() {
-            self.barycenter += body.shape.center.position * body.mass;
-            total_mass += body.mass;
-        }
-        self.barycenter /= total_mass;
-        self
-    }
-
-    pub fn update_trajectory(&mut self, size: &Option<Size>) -> &mut Self {
+    pub fn update_trajectory(&mut self) -> &mut Self {
         for body in self.bodies.iter_mut() {
-            body.shape.center.update_trajectory(size);
+            body.shape.center.update_trajectory();
         }
         self
     }
 
-    pub fn clear_trajectory(&mut self, size: &Option<Size>) -> &mut Self {
+    pub fn clear_trajectory(&mut self) -> &mut Self {
         for body in self.bodies.iter_mut() {
-            body.shape.center.clear_trajectory(size);
+            body.shape.center.clear_trajectory();
         }
         self
     }
@@ -287,20 +374,34 @@ impl VecBody {
         self.bodies.pop()
     }
 
-    pub fn wait_drop(&mut self, cursor: &[f64; 2], size: &Size, scale: f64) -> &mut Self {
-        self.bodies[self.current].shape.set_cursor_pos(cursor, size);
+    pub fn wait_drop(&mut self, cursor: &[f64; 2], middle: &Vector2, scale: f64) -> &mut Self {
+        self.bodies[self.current].shape.set_cursor_pos(cursor, middle);
         self.bodies[self.current].shape.center.position /= scale;
-        self.bodies[self.current].shape.center.clear_trajectory(&Some(*size));
+        self.bodies[self.current].shape.center.clear_trajectory();
+        self
+    }
+
+    fn increase_current(&mut self) -> &mut Self {
+        let current = self.current as isize;
+        self.current = max(current - 1, 0) as usize;
+        self
+    }
+
+    fn decrease_current(&mut self) -> &mut Self {
+        let current = self.current as isize;
+        let count = self.count() as isize;
+        self.current = min(current + 1, max(count - 1, 0)) as usize;
         self
     }
 }
 
 impl Debug for VecBody {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
-        let mut str = String::from("");
+        let mut buffer = String::from("");
+        buffer.push_str(format!("{:?}\n", self.barycenter).as_str());
         for body in self.bodies.iter() {
-            str.push_str(format!("{:?}\n", body).as_str());
+            buffer.push_str(format!("{:?}\n", body).as_str());
         }
-        write!(f, "{}", str)
+        write!(f, "{}", buffer)
     }
 }

@@ -2,7 +2,7 @@ use piston::window::Size;
 use piston_window::*;
 use piston_window::context::Context;
 
-use crate::physics::dynamics::VecBody;
+use crate::physics::dynamics::{Body, VecBody};
 use crate::physics::units;
 use crate::physics::vector::Vector2;
 
@@ -22,7 +22,7 @@ pub struct Drawer {
 
 impl Drawer {
     pub fn new(size: &Size) -> Drawer {
-        let middle = Vector2::new(size.width, size.height) / 2.;
+        let middle = Vector2::new(size.width, size.height) * 0.5;
         Drawer {
             from: Vector2::zeros(),
             to: Vector2::zeros(),
@@ -31,6 +31,15 @@ impl Drawer {
             rect: [0.; 4],
             color: [0.; 4],
         }
+    }
+
+    pub fn middle(&self) -> &Vector2 {
+        &self.middle
+    }
+
+    pub fn update_middle(&mut self, size: &Size) {
+        self.middle.x = 0.5 * size.width;
+        self.middle.y = 0.5 * size.height;
     }
 
     pub fn draw_scale(&mut self, scale: f64, c: &Context, g: &mut G2d, glyphs: &mut Glyphs) {
@@ -48,8 +57,7 @@ impl Drawer {
             c.transform, g,
         );
 
-        piston_window::text::Text
-        ::new_color([0.0, 0.0, 0.0, 1.0], 16).draw(
+        piston_window::text::Text::new_color([0.0, 0.0, 0.0, 1.0], 16).draw(
             format!("{:.3} ({}m)", prefix.value_of(scale_distance), prefix.label).as_str(),
             glyphs,
             &c.draw_state,
@@ -58,8 +66,8 @@ impl Drawer {
         ).unwrap();
     }
 
-    pub fn draw_barycenter(&mut self, barycenter: &Vector2, scale: f64, c: &Context, g: &mut G2d) {
-        let mut barycenter_rect = *barycenter * scale;
+    pub fn draw_barycenter(&mut self, barycenter: &Body, scale: f64, c: &Context, g: &mut G2d) {
+        let mut barycenter_rect = barycenter.shape.center.position * scale;
         barycenter_rect.y = -barycenter_rect.y;
         barycenter_rect += self.middle;
         piston_window::rectangle(
@@ -73,7 +81,7 @@ impl Drawer {
         let size = Size::from((self.middle * 2.).as_array());
         self.offset = self.middle * 2.;
         for i in 0..bodies.count() {
-            self.rect = bodies[i].shape.rounding_rect(&size, scale);
+            self.rect = bodies[i].shape.rounding_rect(&self.middle, scale);
             piston_window::ellipse(
                 bodies[i].shape.color,
                 self.rect,
@@ -84,15 +92,16 @@ impl Drawer {
 
     pub fn draw_trajectories(&mut self, bodies: &VecBody, scale: f64, c: &Context, g: &mut G2d) {
         use crate::physics::dynamics::TRAJECTORY_SIZE;
+        use crate::shapes::ellipse;
 
         for i in 0..bodies.count() {
             self.color = bodies[i].shape.color;
             for k in 1..TRAJECTORY_SIZE - 1 {
                 self.color[3] = k as f32 / (TRAJECTORY_SIZE as f32 - 1.);
-                self.from = (*bodies[i].shape.center.position(k - 1) - self.middle) * scale;
-                self.to = (*bodies[i].shape.center.position(k) - self.middle) * scale;
-                self.from += self.middle;
-                self.to += self.middle;
+                self.from = *bodies[i].shape.center.position(k - 1) * scale;
+                self.to = *bodies[i].shape.center.position(k) * scale;
+                ellipse::Circle::set_left_up(&mut self.from, &self.middle);
+                ellipse::Circle::set_left_up(&mut self.to, &self.middle);
                 piston_window::line_from_to(
                     self.color,
                     2.5,

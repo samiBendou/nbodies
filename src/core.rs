@@ -5,7 +5,31 @@ use piston::input::{Key, MouseButton};
 use piston::window::Size;
 
 use crate::common::*;
+use crate::core::Frame::Zero;
 use crate::toggle;
+
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum Frame {
+    Zero,
+    Current,
+    Barycenter,
+}
+
+impl Frame {
+    pub fn next(&mut self, key: &Key) {
+        use Frame::*;
+        *self = match key {
+            Key::K => {
+                match self {
+                    Zero => Current,
+                    Current => Barycenter,
+                    Barycenter => Zero,
+                }
+            }
+            _ => *self
+        };
+    }
+}
 
 #[derive(Copy, Clone)]
 pub struct Step {
@@ -192,19 +216,19 @@ pub struct Status {
     pub trajectory: bool,
     pub pause: bool,
     pub state: State,
+    pub frame: Frame,
 }
 
 impl Status {
     pub fn new(bounded: bool, translate: bool) -> Status {
-        let direction = Direction::Hold;
-        let state = State::Reset;
         Status {
-            direction,
+            direction: Direction::Hold,
             bounded,
             translate,
             trajectory: true,
             pause: true,
-            state,
+            state: State::Reset,
+            frame: Frame::Zero,
         }
     }
 
@@ -222,6 +246,7 @@ impl Status {
                 _ => ()
             }
             self.direction = Direction::from(key);
+            self.frame.next(key);
         } else {
             self.direction = Direction::Hold;
         }
