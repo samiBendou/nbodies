@@ -4,7 +4,6 @@ use piston::input::{Key, MouseButton};
 
 use crate::physics::vector::Vector2;
 
-#[macro_use]
 #[macro_export]
 macro_rules! toggle {
     ($boolean: expr) => {
@@ -19,7 +18,6 @@ macro_rules! to_centered {
     };
 }
 #[macro_export]
-#[macro_use]
 macro_rules! to_left_up {
     ($position: expr, $size: path) => {
     $position[0] = $position[0] + $size.width / 2.;

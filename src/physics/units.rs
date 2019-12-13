@@ -16,7 +16,6 @@ pub mod prefix {
 
     impl From<f64> for Scale<'static> {
         fn from(val: f64) -> Self {
-            use Standard::*;
             match val.abs().log10().floor() as i32 {
                 0 | 1 | 2 => Scale::new("", 1.),
                 3 | 4 | 5 => Scale::new("k", 1e-3),

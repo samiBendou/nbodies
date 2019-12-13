@@ -3,7 +3,7 @@ extern crate opengl_graphics;
 extern crate piston_window;
 
 use opengl_graphics::OpenGL;
-use piston::input::{Button, Key, MouseButton, MouseCursorEvent, PressEvent, RenderEvent, UpdateEvent};
+use piston::input::{Button, MouseCursorEvent, PressEvent, RenderEvent, UpdateEvent};
 use piston_window::{PistonWindow, WindowSettings};
 
 use piston_start::App;

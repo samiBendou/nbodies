@@ -79,7 +79,7 @@ impl Debug for Scale {
         use crate::physics::units::prefix;
         let time_prefix = prefix::Scale::from(self.time);
         let distance_prefix = prefix::Scale::from(self.distance);
-        write!(f, "time: {:.4} ({}s/s)\ndistance: {:.4} ({}m/m)",
+        write!(f, "time: {:.3} ({}s/s)\ndistance: {:.3} ({}px/m)",
                time_prefix.value_of(self.time), time_prefix.label,
                distance_prefix.value_of(self.distance), distance_prefix.label,
         )
@@ -139,7 +139,7 @@ impl State {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct Config {
     pub size: Size,
     pub scale: Scale,

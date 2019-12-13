@@ -6,7 +6,7 @@ use piston::window::Size;
 
 use crate::offset_or_position;
 use crate::physics::vector::Vector2;
-use crate::shape::Circle;
+use crate::shapes::ellipse::Circle;
 
 pub const TRAJECTORY_SIZE: usize = 256;
 
@@ -84,8 +84,8 @@ impl Point {
     pub fn clear_trajectory(&mut self, size: &Option<Size>) {
         let mut position_offset = self.position;
         offset_or_position!(position_offset, size);
-        for mut position in self.trajectory.iter_mut() {
-            position = &mut position_offset;
+        for position in self.trajectory.iter_mut() {
+            *position = position_offset;
         }
     }
 }

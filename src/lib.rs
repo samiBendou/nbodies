@@ -1,17 +1,16 @@
 use piston::input::{Event, Key, MouseButton, UpdateArgs};
 use piston::window::Size;
 use piston_window;
-use piston_window::{G2d, Glyphs, PistonWindow};
-use piston_window::*;
+use piston_window::{Glyphs, PistonWindow};
 
 use crate::common::*;
 use crate::core::{Config, Status, Step};
 use crate::log::Logger;
 use crate::physics::dynamics::{Body, VecBody};
-use crate::shape::*;
+use crate::shapes::Drawer;
 
 pub mod common;
-pub mod shape;
+pub mod shapes;
 pub mod physics;
 pub mod core;
 pub mod log;
@@ -22,26 +21,31 @@ pub struct App {
     pub status: Status,
     pub step: Step,
     pub logger: Logger,
+    pub drawer: Drawer,
 }
 
 impl App {
     pub fn new(bodies: VecBody, status: Status, config: Config) -> App {
+        let config = config;
         App {
             bodies,
             config,
             status,
             step: Step::new(),
             logger: Logger::new(),
+            drawer: Drawer::new(&config.size)
         }
     }
 
     pub fn default() -> App {
+        let config = Config::default();
         App {
             bodies: VecBody::empty(),
-            config: Config::default(),
+            config,
             status: Status::default(),
             step: Step::new(),
             logger: Logger::new(),
+            drawer: Drawer::new(&config.size),
         }
     }
 
@@ -62,6 +66,7 @@ impl App {
     }
 
     pub fn render(&mut self, window: &mut PistonWindow, event: &Event, glyphs: &mut Glyphs) {
+        let scale = self.config.scale.distance;
         self.logger.print(true);
         self.logger.clear();
         window.draw_2d(
@@ -69,14 +74,16 @@ impl App {
             |c, g, device| {
                 piston_window::clear([1.0; 4], g);
                 if self.bodies.count() == 0 {
-                    self.draw_static(&c, g, glyphs);
+                    self.drawer.draw_barycenter(self.bodies.barycenter(), scale, &c, g);
+                    self.drawer.draw_scale(scale, &c, g, glyphs);
                     return;
                 }
                 if self.status.trajectory {
-                    self.draw_trajectory(&c, g);
+                    self.drawer.draw_trajectories(&self.bodies, scale, &c, g);
                 }
-                self.draw_bodies(&c, g);
-                self.draw_static(&c, g, glyphs);
+                self.drawer.draw_bodies(&self.bodies, scale, &c, g);
+                self.drawer.draw_barycenter(self.bodies.barycenter(), scale, &c, g);
+                self.drawer.draw_scale(scale, &c, g, glyphs);
                 glyphs.factory.encoder.flush(device);
             }
         );
@@ -152,7 +159,8 @@ impl App {
     }
 
     fn do_add(&mut self, cursor: &[f64; 2]) {
-        let mut circle = Circle::at_cursor_random(cursor, &self.config.size);
+        use shapes::ellipse;
+        let mut circle = ellipse::Circle::at_cursor_random(cursor, &self.config.size);
         circle.center.position *= self.config.scale.distance;
         let body = Body::new(circle.radius / 10., format!(""), circle);
         self.bodies.push(body);
@@ -166,78 +174,6 @@ impl App {
 
     fn do_cancel_drop(&mut self) {
         self.bodies.pop();
-    }
-
-    fn draw_trajectory(&self, c: &Context, g: &mut G2d) {
-        use crate::physics::vector::Vector2;
-        use crate::physics::dynamics::TRAJECTORY_SIZE;
-        let middle: Vector2 = Vector2::new(self.config.size.width, self.config.size.height) / 2.;
-        let scale = self.config.scale.distance;
-
-        let mut from: Vector2;
-        let mut to: Vector2;
-        let mut color: [f32; 4];
-        for i in 0..self.bodies.count() {
-            color = self.bodies[i].shape.color;
-            for k in 1..TRAJECTORY_SIZE - 1 {
-                color[3] = k as f32 / (TRAJECTORY_SIZE as f32 - 1.);
-                from = (*self.bodies[i].shape.center.position(k - 1) - middle) * scale;
-                to = (*self.bodies[i].shape.center.position(k) - middle) * scale;
-                from += middle;
-                to += middle;
-                piston_window::line_from_to(
-                    color,
-                    2.5,
-                    from.as_array(),
-                    to.as_array(),
-                    c.transform, g,
-                );
-            }
-        }
-    }
-
-    fn draw_bodies(&self, c: &piston_window::Context, g: &mut G2d) {
-        let mut rect: [f64; 4];
-        let scale = self.config.scale.distance;
-        for i in 0..self.bodies.count() {
-            rect = self.bodies[i].shape.rounding_rect(&self.config.size, scale);
-            piston_window::ellipse(
-                self.bodies[i].shape.color,
-                rect,
-                c.transform, g,
-            );
-        }
-    }
-
-    fn draw_static(&self, c: &Context, g: &mut G2d, glyphs: &mut Glyphs) {
-        use crate::physics::units::PX_PER_METER;
-        let size = self.config.size;
-        let scale = self.config.scale.distance;
-        let x_offset = size.width - 160.;
-        let y_offset = size.height - 48.;
-        let mut barycenter_rect = *self.bodies.barycenter() * scale;
-        to_left_up!(barycenter_rect, size);
-
-        piston_window::rectangle(
-            [255., 0., 0., 1.],
-            [barycenter_rect[0] - 4., barycenter_rect[1] - 4., 8., 8.],
-            c.transform, g,
-        );
-        piston_window::line_from_to(
-            [0., 0., 0., 1.],
-            3.,
-            [x_offset, y_offset],
-            [x_offset + PX_PER_METER, y_offset],
-            c.transform, g,
-        );
-        piston_window::text::Text
-        ::new_color([0.0, 0.0, 0.0, 1.0], 16).draw(
-            format!("scale: {:.2e} (m/px)", PX_PER_METER * scale).as_str(),
-            glyphs,
-            &c.draw_state,
-            c.transform.trans(x_offset, y_offset - 16.),
-            g,
-        ).unwrap();
     }
 
     fn has_to_render(&self) -> bool {

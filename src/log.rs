@@ -1,4 +1,4 @@
-use piston::input::{Key, MouseButton};
+use piston::input::Key;
 
 use crate::common::*;
 use crate::core;
