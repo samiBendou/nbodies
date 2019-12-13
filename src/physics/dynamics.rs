@@ -340,6 +340,19 @@ impl VecBody {
         self
     }
 
+    pub fn apply<T>(&mut self, dt: f64, iterations: u32, mut f: T) where
+        T: FnMut(&Body, usize) -> Vector2 {
+        let mut mass: f64;
+        for _ in 0..iterations {
+            for i in 0..self.bodies.len() {
+                mass = self.bodies[i].mass;
+                self.bodies[i].shape.center.acceleration = f(&self.bodies[i], i);
+                self.bodies[i].shape.center.acceleration /= mass;
+            }
+            self.accelerate(dt);
+        }
+    }
+
     pub fn bound(&mut self, middle: &Vector2) -> &mut Self {
         for body in self.bodies.iter_mut() {
             body.shape.bound(middle);

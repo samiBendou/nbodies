@@ -100,9 +100,11 @@ impl App {
             WaitDrop => self.do_wait_drop(cursor),
             CancelDrop => self.do_cancel_drop()
         };
+        self.status.update(&Option::None, &Option::None);
         if self.status.pause || self.bodies.is_empty() {
             return;
         }
+        self.bodies.update_barycenter();
         let current = self.bodies.current().shape.center;
         let barycenter = self.bodies.barycenter().shape.center;
         match self.status.frame {
@@ -110,9 +112,7 @@ impl App {
             Current => self.bodies.update_origin(&current),
             Barycenter => self.bodies.update_origin(&barycenter)
         };
-        self.status.update(&Option::None, &Option::None);
         self.bodies.update_trajectory();
-        self.bodies.update_barycenter();
     }
 
     pub fn log(&mut self, input: &common::Input) {
@@ -142,19 +142,21 @@ impl App {
     fn do_accelerate(&mut self, dt: f64) {
         use crate::physics::vector::Vector2;
         use physics::forces;
-        let count = self.bodies.count();
-        let mut directions = vec![Direction::Hold; count];
-        let mut force: Vector2;
+        let current_index = self.bodies.current_index();
+        let current_direction = self.status.direction;
 
-        directions[self.bodies.current_index()] = self.status.direction;
-        for _ in 0..self.config.updates_per_frame {
-            for i in 0..count {
-                force = forces::push(&directions[i]);
-                force += forces::nav_stokes(&self.bodies[i].shape.center.speed);
-                self.bodies[i].shape.center.acceleration = force * (self.bodies[i].mass);
-            }
-            self.bodies.accelerate(dt);
-        }
+        let mut direction: Direction = Direction::Hold;
+        let mut force = Vector2::zeros();
+        self.bodies.apply(dt, self.config.updates_per_frame, |body, i| {
+            direction = if i == current_index {
+                current_direction
+            } else {
+                Direction::Hold
+            };
+            force = forces::push(&direction);
+            force += forces::nav_stokes(&body.shape.center.speed);
+            force
+        });
     }
 
     fn do_reset(&mut self) {
