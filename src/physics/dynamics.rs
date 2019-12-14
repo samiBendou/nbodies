@@ -2,6 +2,8 @@ use std::cmp::{max, min};
 use std::fmt::{Debug, Error, Formatter};
 use std::ops::{AddAssign, DivAssign, Index, IndexMut, Mul, MulAssign, Rem, SubAssign};
 
+use crate::physics::units::{Rescale, Serialize};
+use crate::physics::units::suffix::Distance;
 use crate::physics::vector::Vector2;
 use crate::shapes::ellipse::Circle;
 
@@ -99,19 +101,16 @@ impl Point {
 
 impl Debug for Point {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
-        use super::units::prefix;
-        let position_prefix = prefix::Scale::from(self.position.magnitude());
-        let speed_prefix = prefix::Scale::from(self.speed.magnitude());
-        let acceleration_prefix = prefix::Scale::from(self.acceleration.magnitude());
-        let position = self.position * position_prefix.multiplier;
-        let speed = self.speed * speed_prefix.multiplier;
-        let acceleration = self.acceleration * acceleration_prefix.multiplier;
+        use super::units::Unit;
+        let mut position_unit = Unit::from(Distance::Standard);
+        let mut speed_unit = Unit::from(Distance::Standard);
+        let mut acceleration_unit = Unit::from(Distance::Standard);
         write!(
             f,
-            "position: {:?} ({}m)\nspeed: {:?} ({}m/s)\nacceleration: {:?} ({}m/s2)",
-            position, position_prefix.label,
-            speed, speed_prefix.label,
-            acceleration, acceleration_prefix.label
+            "position: {}\nspeed: {}\nacceleration: {}",
+            position_unit.rescale(self.position).string_of(self.position),
+            speed_unit.rescale(self.speed).string_of(self.speed),
+            acceleration_unit.rescale(self.acceleration).string_of(self.acceleration),
         )
     }
 }
@@ -198,11 +197,11 @@ impl Body {
 
 impl Debug for Body {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
-        use super::units::prefix;
-        let mass_kg = self.mass * 1e3;
-        let prefix = prefix::Scale::from(mass_kg);
-        write!(f, "name:{}\nmass {:.4} ({}g)\n{:?}",
-               self.name, prefix.value_of(mass_kg), prefix.label, self.shape)
+        use super::units::Unit;
+        use super::units::suffix::Mass;
+        let mut mass_unit = Unit::from(Mass::Standard);
+        write!(f, "name:{}\nmass: {}\n{:?}",
+               self.name, mass_unit.rescale(1e3).string_of(self.mass * 1e3), self.shape)
     }
 }
 

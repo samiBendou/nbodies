@@ -1,4 +1,4 @@
-use std::fmt::{Debug, Error, Formatter};
+use std::fmt::{Debug, Display, Error, Formatter};
 use std::ops::{
     Add, AddAssign,
     Div, DivAssign,

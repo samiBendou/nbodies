@@ -3,7 +3,8 @@ use piston_window::*;
 use piston_window::context::Context;
 
 use crate::physics::dynamics::{Body, VecBody};
-use crate::physics::units;
+use crate::physics::units::{Rescale, Serialize, Unit};
+use crate::physics::units::suffix::*;
 use crate::physics::vector::Vector2;
 
 pub mod ellipse;
@@ -17,6 +18,7 @@ pub struct Drawer {
     middle: Vector2,
     rect: [f64; 4],
     color: [f32; 4],
+    unit: Unit<'static>,
 }
 
 
@@ -30,6 +32,7 @@ impl Drawer {
             middle,
             rect: [0.; 4],
             color: [0.; 4],
+            unit: Unit::from(Distance::Standard)
         }
     }
 
@@ -44,10 +47,11 @@ impl Drawer {
 
     pub fn draw_scale(&mut self, scale: f64, c: &Context, g: &mut G2d, glyphs: &mut Glyphs) {
         let scale_distance = SCALE_LENGTH / scale;
-        let prefix = units::prefix::Scale::from(scale_distance);
+
         self.offset = self.middle * 2.;
         self.offset.x -= 160.;
         self.offset.y -= 48.;
+        self.unit.rescale(scale_distance);
 
         piston_window::line_from_to(
             [0., 0., 0., 1.],
@@ -58,7 +62,7 @@ impl Drawer {
         );
 
         piston_window::text::Text::new_color([0.0, 0.0, 0.0, 1.0], 16).draw(
-            format!("{:.3} ({}m)", prefix.value_of(scale_distance), prefix.label).as_str(),
+            format!("{}", self.unit.string_of(scale_distance)).as_str(),
             glyphs,
             &c.draw_state,
             c.transform.trans(self.offset.x, self.offset.y - 16.),
@@ -92,7 +96,6 @@ impl Drawer {
 
     pub fn draw_trajectories(&mut self, bodies: &VecBody, scale: f64, c: &Context, g: &mut G2d) {
         use crate::physics::dynamics::TRAJECTORY_SIZE;
-        use crate::shapes::ellipse;
 
         for i in 0..bodies.count() {
             self.color = bodies[i].shape.color;

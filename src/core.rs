@@ -5,7 +5,8 @@ use piston::input::{Key, MouseButton};
 use piston::window::Size;
 
 use crate::common::*;
-use crate::core::Frame::Zero;
+use crate::physics::units::{Convert, Duration, Rescale, Serialize};
+use crate::physics::units::suffix::Time;
 use crate::toggle;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -34,27 +35,38 @@ impl Frame {
 #[derive(Copy, Clone)]
 pub struct Step {
     pub count: u32,
-    pub total: f64,
+    pub total: Duration,
+    pub simulated: Duration,
     pub frame: f64,
 }
 
 impl Step {
     pub fn new() -> Step {
-        Step { count: 0, total: 0., frame: 0. }
+        Step {
+            count: 0,
+            total: Duration::from(0.),
+            simulated: Duration::from(0.),
+            frame: 0.,
+        }
     }
 
-    pub fn update(&mut self, dt: f64) {
+    pub fn update(&mut self, dt: f64, scale: f64) {
         self.frame = dt;
         self.total += dt;
+        self.simulated += dt * scale;
         self.count = (self.count + 1) % std::u32::MAX;
     }
 }
 
 impl Debug for Step {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
-        let dt = self.frame * 1e3;
-        let framerate = 1. / self.frame;
-        write!(f, "dt: {:.4} (ms)\nframerate: {:.2} (fps)\ntotal time: {:.2} (s)", dt, framerate, self.total)
+        use super::physics::units::{Unit, Duration};
+        use super::physics::units::suffix::Time;
+        let framerate = (1. / self.frame).floor() as u8;
+        let mut time_unit = Unit::from(Time::Standard);
+        time_unit.rescale(self.frame);
+        write!(f, "dt: {}\nframerate: {} (fps)\ntotal: {:?}\nsimulated: {:?}",
+               time_unit.string_of(self.frame), framerate, self.total, self.simulated)
     }
 }
 
@@ -93,6 +105,8 @@ impl Scale {
         match *key {
             Key::I => self.increase_distance(),
             Key::U => self.decrease_distance(),
+            Key::Y => self.increase_time(),
+            Key::T => self.decrease_time(),
             _ => (),
         };
     }
@@ -100,12 +114,13 @@ impl Scale {
 
 impl Debug for Scale {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
-        use crate::physics::units::prefix;
-        let time_prefix = prefix::Scale::from(self.time);
-        let distance_prefix = prefix::Scale::from(self.distance);
-        write!(f, "time: {:.3} ({}s/s)\ndistance: {:.3} ({}px/m)",
-               time_prefix.value_of(self.time), time_prefix.label,
-               distance_prefix.value_of(self.distance), distance_prefix.label,
+        use crate::physics::units::*;
+        use crate::physics::units::suffix::{Distance, Time};
+        let mut time_unit = Unit::from(Time::Standard);
+        let mut distance_unit = Unit::from(Distance::Standard);
+        write!(f, "time: {} per (s)\ndistance: {} per (m)",
+               time_unit.rescale(self.time).string_of(self.time),
+               distance_unit.rescale(self.distance).string_of(self.distance),
         )
     }
 }

@@ -1,5 +1,4 @@
 use piston::input::{Event, Key, MouseButton, UpdateArgs};
-use piston::window::Size;
 use piston_window;
 use piston_window::{Glyphs, PistonWindow};
 
@@ -91,15 +90,15 @@ impl App {
     pub fn update(&mut self, _window: &mut PistonWindow, args: &UpdateArgs, cursor: &[f64; 2]) {
         use crate::core::State::*;
         use crate::core::Frame::*;
+        let dt =
 
-        self.step.update(args.dt);
-        match self.status.state {
-            Move => self.do_move(self.step.frame / self.config.updates_per_frame as f64),
-            Reset => self.do_reset(),
-            Add => self.do_add(cursor),
-            WaitDrop => self.do_wait_drop(cursor),
-            CancelDrop => self.do_cancel_drop()
-        };
+            match self.status.state {
+                Move => self.do_move(args.dt),
+                Reset => self.do_reset(),
+                Add => self.do_add(cursor),
+                WaitDrop => self.do_wait_drop(cursor),
+                CancelDrop => self.do_cancel_drop()
+            };
         self.status.update(&Option::None, &Option::None);
         if self.status.pause || self.bodies.is_empty() {
             return;
@@ -121,9 +120,11 @@ impl App {
 
     fn do_move(&mut self, dt: f64) {
         let scaled_middle = *self.drawer.middle() / self.config.scale.distance;
+
         if self.status.pause || self.bodies.is_empty() {
             return;
         }
+        self.step.update(dt, self.config.scale.time);
         if self.status.translate {
             self.bodies.translate_current(&self.status.direction.as_vector());
             if self.status.bounded {
@@ -132,7 +133,7 @@ impl App {
             self.bodies.update_current_trajectory();
             return;
         }
-        self.do_accelerate(dt);
+        self.do_accelerate(dt / self.config.updates_per_frame as f64 * self.config.scale.time);
 
         if self.status.bounded {
             self.bodies.bound(&scaled_middle);
@@ -154,7 +155,7 @@ impl App {
                 Direction::Hold
             };
             force = forces::push(&direction);
-            force += forces::nav_stokes(&body.shape.center.speed);
+            // force += forces::nav_stokes(&body.shape.center.speed);
             force
         });
     }
