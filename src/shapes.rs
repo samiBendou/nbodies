@@ -3,7 +3,7 @@ use piston_window::*;
 use piston_window::context::Context;
 
 use crate::physics::dynamics::{Body, VecBody};
-use crate::physics::units::{Rescale, Serialize, Unit};
+use crate::physics::units::{Rescale, Scale, Serialize, Unit};
 use crate::physics::units::suffix::*;
 use crate::physics::vector::Vector2;
 
@@ -18,7 +18,7 @@ pub struct Drawer {
     middle: Vector2,
     rect: [f64; 4],
     color: [f32; 4],
-    unit: Unit<'static>,
+    unit: Unit,
 }
 
 
@@ -32,7 +32,7 @@ impl Drawer {
             middle,
             rect: [0.; 4],
             color: [0.; 4],
-            unit: Unit::from(Distance::Standard)
+            unit: Unit::from(Scale::from(Distance::Standard))
         }
     }
 
@@ -82,7 +82,6 @@ impl Drawer {
     }
 
     pub fn draw_bodies(&mut self, bodies: &VecBody, scale: f64, c: &Context, g: &mut G2d) {
-        let size = Size::from((self.middle * 2.).as_array());
         self.offset = self.middle * 2.;
         for i in 0..bodies.count() {
             self.rect = bodies[i].shape.rounding_rect(&self.middle, scale);

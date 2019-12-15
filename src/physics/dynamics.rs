@@ -2,7 +2,7 @@ use std::cmp::{max, min};
 use std::fmt::{Debug, Error, Formatter};
 use std::ops::{AddAssign, DivAssign, Index, IndexMut, Mul, MulAssign, Rem, SubAssign};
 
-use crate::physics::units::{Rescale, Serialize};
+use crate::physics::units::{Rescale, Scale, Serialize, Unit};
 use crate::physics::units::suffix::Distance;
 use crate::physics::vector::Vector2;
 use crate::shapes::ellipse::Circle;
@@ -101,16 +101,15 @@ impl Point {
 
 impl Debug for Point {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
-        use super::units::Unit;
-        let mut position_unit = Unit::from(Distance::Standard);
-        let mut speed_unit = Unit::from(Distance::Standard);
-        let mut acceleration_unit = Unit::from(Distance::Standard);
+        let mut position_unit = Unit::from(Scale::from(Distance::Standard));
+        let mut speed_unit = Unit::from(Scale::from(Distance::Standard));
+        let mut acceleration_unit = Unit::from(Scale::from(Distance::Standard));
         write!(
             f,
             "position: {}\nspeed: {}\nacceleration: {}",
-            position_unit.rescale(self.position).string_of(self.position),
-            speed_unit.rescale(self.speed).string_of(self.speed),
-            acceleration_unit.rescale(self.acceleration).string_of(self.acceleration),
+            position_unit.rescale(self.position.magnitude()).string_of(self.position),
+            speed_unit.rescale(self.speed.magnitude()).string_of(self.speed),
+            acceleration_unit.rescale(self.acceleration.magnitude()).string_of(self.acceleration),
         )
     }
 }
@@ -197,9 +196,9 @@ impl Body {
 
 impl Debug for Body {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
-        use super::units::Unit;
+        use super::units::{Unit, Scale};
         use super::units::suffix::Mass;
-        let mut mass_unit = Unit::from(Mass::Standard);
+        let mut mass_unit = Unit::from(Scale::from(Mass::Standard));
         write!(f, "name:{}\nmass: {}\n{:?}",
                self.name, mass_unit.rescale(1e3).string_of(self.mass * 1e3), self.shape)
     }
@@ -294,7 +293,6 @@ impl VecBody {
     }
 
     pub fn update_current_index(&mut self, increase: bool) -> &mut Self {
-        let current = self.current;
         match increase {
             true => self.increase_current(),
             false => self.decrease_current(),

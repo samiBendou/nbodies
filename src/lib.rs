@@ -90,15 +90,13 @@ impl App {
     pub fn update(&mut self, _window: &mut PistonWindow, args: &UpdateArgs, cursor: &[f64; 2]) {
         use crate::core::State::*;
         use crate::core::Frame::*;
-        let dt =
-
-            match self.status.state {
-                Move => self.do_move(args.dt),
-                Reset => self.do_reset(),
-                Add => self.do_add(cursor),
-                WaitDrop => self.do_wait_drop(cursor),
-                CancelDrop => self.do_cancel_drop()
-            };
+        match self.status.state {
+            Move => self.do_move(args.dt),
+            Reset => self.do_reset(),
+            Add => self.do_add(cursor),
+            WaitDrop => self.do_wait_drop(cursor),
+            CancelDrop => self.do_cancel_drop()
+        };
         self.status.update(&Option::None, &Option::None);
         if self.status.pause || self.bodies.is_empty() {
             return;
@@ -155,7 +153,7 @@ impl App {
                 Direction::Hold
             };
             force = forces::push(&direction);
-            // force += forces::nav_stokes(&body.shape.center.speed);
+            force += forces::nav_stokes(&body.shape.center.speed);
             force
         });
     }
@@ -170,7 +168,7 @@ impl App {
 
     fn do_add(&mut self, cursor: &[f64; 2]) {
         use shapes::ellipse;
-        let mut circle = ellipse::Circle::at_cursor_random(cursor, self.drawer.middle());
+        let circle = ellipse::Circle::at_cursor_random(cursor, self.drawer.middle());
         let mut body = Body::new(circle.radius / 10., "", circle);
         body.shape.center.scale(self.config.scale.distance);
         self.bodies.push(body);
@@ -184,9 +182,5 @@ impl App {
 
     fn do_cancel_drop(&mut self) {
         self.bodies.pop();
-    }
-
-    fn has_to_render(&self) -> bool {
-        self.step.count > self.config.frames_per_update
     }
 }

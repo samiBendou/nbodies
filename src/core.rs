@@ -5,8 +5,7 @@ use piston::input::{Key, MouseButton};
 use piston::window::Size;
 
 use crate::common::*;
-use crate::physics::units::{Convert, Duration, Rescale, Serialize};
-use crate::physics::units::suffix::Time;
+use crate::physics::units::date::Duration;
 use crate::toggle;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -60,10 +59,14 @@ impl Step {
 
 impl Debug for Step {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
-        use super::physics::units::{Unit, Duration};
         use super::physics::units::suffix::Time;
+        use super::physics::units::prefix::Standard;
+        use super::physics::units::*;
         let framerate = (1. / self.frame).floor() as u8;
-        let mut time_unit = Unit::from(Time::Standard);
+        let mut time_unit = Unit::new(
+            Scale::from(Standard::Base),
+            Scale::from(Time::Standard),
+        );
         time_unit.rescale(self.frame);
         write!(f, "dt: {}\nframerate: {} (fps)\ntotal: {:?}\nsimulated: {:?}",
                time_unit.string_of(self.frame), framerate, self.total, self.simulated)
@@ -116,10 +119,11 @@ impl Debug for Scale {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
         use crate::physics::units::*;
         use crate::physics::units::suffix::{Distance, Time};
-        let mut time_unit = Unit::from(Time::Standard);
-        let mut distance_unit = Unit::from(Distance::Standard);
+        let mut time_unit = Unit::from(Scale::from(Time::Calendar));
+        let mut distance_unit = Unit::from(Scale::from(Distance::Standard));
+        time_unit.prefix.rescale(prefix::Calendar::from(self.time));
         write!(f, "time: {} per (s)\ndistance: {} per (m)",
-               time_unit.rescale(self.time).string_of(self.time),
+               time_unit.string_of(self.time),
                distance_unit.rescale(self.distance).string_of(self.distance),
         )
     }

@@ -27,7 +27,7 @@ impl Circle {
 
     pub fn at_cursor(cursor: &[f64; 2], radius: f64, color: [f32; 4], middle: &Vector2) -> Circle {
         let position = Vector2::from(*cursor);
-        let mut center = dynamics::Point::stationary(position);
+        let center = dynamics::Point::stationary(position);
         let mut circle = Circle::new(center, radius, color);
         Circle::set_centered(&mut circle.center.position, middle);
         circle
