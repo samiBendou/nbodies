@@ -1,8 +1,6 @@
-use piston::input::Key;
-
 use crate::common::*;
 use crate::core;
-use crate::physics::dynamics::VecBody;
+use crate::physics::dynamics::body::Cluster;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum State {
@@ -15,20 +13,15 @@ pub enum State {
 }
 
 impl State {
-    pub fn next(&mut self, key: &Key) {
+    pub fn next(&mut self) {
         use State::*;
-        *self = match key {
-            Key::L => {
-                match self {
-                    Hide => Status,
-                    Status => Timing,
-                    Timing => Cinematic,
-                    Cinematic => Physics,
-                    Physics => Bodies,
-                    Bodies => Hide,
-                }
-            }
-            _ => *self
+        *self = match self {
+            Hide => Status,
+            Status => Timing,
+            Timing => Cinematic,
+            Cinematic => Physics,
+            Physics => Bodies,
+            Bodies => Hide,
         };
     }
 }
@@ -43,10 +36,8 @@ impl Logger {
         Logger { state: State::Hide, buffer: String::from("") }
     }
 
-    pub fn update(&mut self, key: &Option<Key>) {
-        if let Some(key) = key {
-            self.state.next(key);
-        }
+    pub fn update(&mut self) {
+        self.state.next();
     }
 
     pub fn clear(&mut self) {
@@ -62,7 +53,7 @@ impl Logger {
 
     pub fn log(
         &mut self,
-        bodies: &VecBody,
+        bodies: &Cluster,
         status: &core::Status,
         config: &core::Config,
         step: &core::Step,
@@ -81,11 +72,13 @@ impl Logger {
     }
 
     fn log_status(&mut self, status: &core::Status, input: &Input) {
-        self.buffer += &format!("*** status info ***\n")[..];
-        self.buffer += &format!("{:#?}\n", status)[..];
-        self.buffer += &format!("pressed mouse button: '{:?}'\n", input.button)[..];
-        self.buffer += &format!("mouse at: {:?} (px)\n", input.cursor)[..];
-        self.buffer += &format!("pressed keyboard key: '{:?}'\n", input.key)[..];
+        self.buffer += &format!("\
+*** status info ***\n\
+{:#?}\n\
+pressed mouse button: '{:?}'\n\
+mouse at: {:?} (px)\n\
+pressed keyboard key: '{:?}'\n",
+                                status, input.button, input.cursor, input.key)[..];
     }
 
     fn log_timing(&mut self, step: &core::Step, config: &core::Config) {
@@ -95,7 +88,7 @@ impl Logger {
         self.buffer += &format!("updates per frame: {}\n", config.updates_per_frame)[..];
     }
 
-    fn log_cinematic(&mut self, bodies: &VecBody, config: &core::Config) {
+    fn log_cinematic(&mut self, bodies: &Cluster, config: &core::Config) {
         if bodies.is_empty() {
             return;
         }
@@ -107,7 +100,7 @@ impl Logger {
         self.buffer += &format!("{:?}\n", config.scale)[..];
     }
 
-    fn log_physics(&mut self, bodies: &VecBody, config: &core::Config) {
+    fn log_physics(&mut self, bodies: &Cluster, config: &core::Config) {
         if bodies.is_empty() {
             return;
         }
@@ -118,7 +111,7 @@ impl Logger {
         self.buffer += &format!("{:?}\n", config.scale)[..];
     }
 
-    fn log_bodies(&mut self, bodies: &VecBody) {
+    fn log_bodies(&mut self, bodies: &Cluster) {
         self.buffer += &format!("*** body list ***\n")[..];
         self.buffer += &format!("{:?}\n", bodies)[..];
     }

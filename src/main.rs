@@ -13,7 +13,6 @@ fn main() {
     let opengl = OpenGL::V3_2;
     let mut app: App = App::default();
     let mut input = Input::new();
-
     let mut window: PistonWindow =
         WindowSettings::new("Bodies Keeps Moving Like a Rollin' Stone!", app.config.size)
             .exit_on_esc(true)
@@ -21,9 +20,9 @@ fn main() {
             .graphics_api(opengl)
             .build()
             .unwrap();
+
     let assets = find_folder::Search::ParentsThenKids(3, 3).for_folder("assets").unwrap();
     let mut glyphs = window.load_font(assets.join("FiraSans-Regular.ttf")).unwrap();
-
     while let Some(event) = window.next() {
         event.mouse_cursor(|pos| {
             input.cursor = pos;
@@ -43,7 +42,6 @@ fn main() {
             app.render(&mut window, &event, &mut glyphs);
             app.log(&input);
         }
-
         if let Some(args) = event.update_args() {
             app.update(&mut window, &args, &input.cursor);
         }

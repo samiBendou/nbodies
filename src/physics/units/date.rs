@@ -1,7 +1,7 @@
 use std::fmt::{Debug, Error, Formatter};
 use std::ops::{Add, AddAssign, Sub, SubAssign};
 
-use super::constants::*;
+use super::consts::*;
 
 #[derive(Copy, Clone)]
 pub struct Duration {

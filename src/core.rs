@@ -5,31 +5,9 @@ use piston::input::{Key, MouseButton};
 use piston::window::Size;
 
 use crate::common::*;
+use crate::physics::dynamics::body::Frame;
 use crate::physics::units::date::Duration;
 use crate::toggle;
-
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub enum Frame {
-    Zero,
-    Current,
-    Barycenter,
-}
-
-impl Frame {
-    pub fn next(&mut self, key: &Key) {
-        use Frame::*;
-        *self = match key {
-            Key::K => {
-                match self {
-                    Zero => Current,
-                    Current => Barycenter,
-                    Barycenter => Zero,
-                }
-            }
-            _ => *self
-        };
-    }
-}
 
 #[derive(Copy, Clone)]
 pub struct Step {
@@ -256,18 +234,19 @@ impl Status {
     }
 
     pub fn update(&mut self, key: &Option<Key>, button: &Option<MouseButton>) {
+        let hold = Direction::Hold;
         if let Some(key) = key {
             match *key {
                 Key::B => toggle!(self.bounded),
                 Key::T => toggle!(self.translate),
                 Key::R => toggle!(self.trajectory),
                 Key::Space => toggle!(self.pause),
+                Key::K => self.frame.next(),
+                Key::Left | Key::Up | Key::Down | Key::Right => self.direction = Direction::from(key),
                 _ => ()
-            }
-            self.direction = Direction::from(key);
-            self.frame.next(key);
-        } else {
-            self.direction = Direction::Hold;
+            };
+        } else if self.direction != hold {
+            self.direction = hold;
         }
         self.state.next(key, button);
     }

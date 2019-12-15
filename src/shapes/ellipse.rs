@@ -2,18 +2,18 @@ use std::fmt::{Debug, Error, Formatter};
 
 use rand::Rng;
 
-use crate::physics::dynamics;
+use crate::physics::dynamics::point::Point2;
 use crate::physics::vector::Vector2;
 
 #[derive(Copy, Clone)]
 pub struct Circle {
-    pub center: dynamics::Point,
+    pub center: Point2,
     pub color: [f32; 4],
     pub radius: f64,
 }
 
 impl Circle {
-    pub fn new(center: dynamics::Point, radius: f64, color: [f32; 4]) -> Circle {
+    pub fn new(center: Point2, radius: f64, color: [f32; 4]) -> Circle {
         Circle {
             center,
             color,
@@ -22,12 +22,12 @@ impl Circle {
     }
 
     pub fn centered(radius: f64, color: [f32; 4]) -> Circle {
-        Circle::new(dynamics::Point::zeros(), radius, color)
+        Circle::new(Point2::zeros(), radius, color)
     }
 
     pub fn at_cursor(cursor: &[f64; 2], radius: f64, color: [f32; 4], middle: &Vector2) -> Circle {
         let position = Vector2::from(*cursor);
-        let center = dynamics::Point::stationary(position);
+        let center = Point2::stationary(position);
         let mut circle = Circle::new(center, radius, color);
         Circle::set_centered(&mut circle.center.position, middle);
         circle

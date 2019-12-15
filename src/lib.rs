@@ -5,7 +5,7 @@ use piston_window::{Glyphs, PistonWindow};
 use crate::common::*;
 use crate::core::{Config, Status, Step};
 use crate::log::Logger;
-use crate::physics::dynamics::{Body, Point, VecBody};
+use crate::physics::dynamics::body::{Body, Cluster};
 use crate::shapes::Drawer;
 
 pub mod common;
@@ -15,7 +15,7 @@ pub mod core;
 pub mod log;
 
 pub struct App {
-    pub bodies: VecBody,
+    pub bodies: Cluster,
     pub config: Config,
     pub status: Status,
     pub step: Step,
@@ -24,7 +24,7 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(bodies: VecBody, status: Status, config: Config) -> App {
+    pub fn new(bodies: Cluster, status: Status, config: Config) -> App {
         let config = config;
         App {
             bodies,
@@ -32,14 +32,14 @@ impl App {
             status,
             step: Step::new(),
             logger: Logger::new(),
-            drawer: Drawer::new(&config.size)
+            drawer: Drawer::new(&config.size),
         }
     }
 
     pub fn default() -> App {
         let config = Config::default();
         App {
-            bodies: VecBody::empty(),
+            bodies: Cluster::empty(),
             config,
             status: Status::default(),
             step: Step::new(),
@@ -49,14 +49,16 @@ impl App {
     }
 
     pub fn on_key(&mut self, key: &Key) {
-        let option_key = Some(*key);
         self.config.update(key);
-        self.status.update(&option_key, &Option::None);
+        self.status.update(&Some(*key), &Option::None);
         if *key == Key::Z || *key == Key::X {
             let increase = *key == Key::Z;
             self.bodies.update_current_index(increase);
+        } else if *key == Key::K {
+            self.bodies.update_frame();
+        } else if *key == Key::L {
+            self.logger.update();
         }
-        self.logger.update(&option_key);
     }
 
     pub fn on_click(&mut self, button: &MouseButton) {
@@ -89,7 +91,6 @@ impl App {
 
     pub fn update(&mut self, _window: &mut PistonWindow, args: &UpdateArgs, cursor: &[f64; 2]) {
         use crate::core::State::*;
-        use crate::core::Frame::*;
         match self.status.state {
             Move => self.do_move(args.dt),
             Reset => self.do_reset(),
@@ -101,14 +102,7 @@ impl App {
         if self.status.pause || self.bodies.is_empty() {
             return;
         }
-        self.bodies.update_barycenter();
-        let current = self.bodies.current().shape.center;
-        let barycenter = self.bodies.barycenter().shape.center;
-        match self.status.frame {
-            Zero => self.bodies.update_origin(&Point::zeros()),
-            Current => self.bodies.update_origin(&current),
-            Barycenter => self.bodies.update_origin(&barycenter)
-        };
+        // self.bodies.update_barycenter();
         self.bodies.update_trajectory();
     }
 
@@ -135,12 +129,13 @@ impl App {
 
         if self.status.bounded {
             self.bodies.bound(&scaled_middle);
+
         }
     }
 
     fn do_accelerate(&mut self, dt: f64) {
         use crate::physics::vector::Vector2;
-        use physics::forces;
+        use physics::dynamics::forces;
         let current_index = self.bodies.current_index();
         let current_direction = self.status.direction;
 
@@ -161,8 +156,6 @@ impl App {
     fn do_reset(&mut self) {
         if !self.bodies.is_empty() {
             self.bodies.reset_current();
-            self.bodies.clear_current_trajectory();
-            self.bodies.update_barycenter();
         }
     }
 

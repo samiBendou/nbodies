@@ -1,15 +1,13 @@
-use std::fmt::{Debug, Error, Formatter};
+use std::fmt::Debug;
 
-use constants::*;
+use consts::*;
 
-use crate::physics::units::prefix::Calendar;
 use crate::physics::vector::Vector2;
 
 pub mod prefix;
 pub mod suffix;
-pub mod constants;
+pub mod consts;
 pub mod date;
-pub mod scalar;
 
 pub trait Rescale<T> {
     fn rescale(&mut self, prefix: T) -> &mut Self;
@@ -67,7 +65,6 @@ impl Rescale<prefix::Standard> for Scale {
 
 impl Rescale<f64> for Scale {
     fn rescale(&mut self, val: f64) -> &mut Self {
-        use prefix::Standard::*;
         self.rescale(prefix::Standard::from(val));
         self
     }

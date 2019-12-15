@@ -2,7 +2,7 @@ use piston::window::Size;
 use piston_window::*;
 use piston_window::context::Context;
 
-use crate::physics::dynamics::{Body, VecBody};
+use crate::physics::dynamics::body::{Body, Cluster};
 use crate::physics::units::{Rescale, Scale, Serialize, Unit};
 use crate::physics::units::suffix::*;
 use crate::physics::vector::Vector2;
@@ -81,7 +81,7 @@ impl Drawer {
         );
     }
 
-    pub fn draw_bodies(&mut self, bodies: &VecBody, scale: f64, c: &Context, g: &mut G2d) {
+    pub fn draw_bodies(&mut self, bodies: &Cluster, scale: f64, c: &Context, g: &mut G2d) {
         self.offset = self.middle * 2.;
         for i in 0..bodies.count() {
             self.rect = bodies[i].shape.rounding_rect(&self.middle, scale);
@@ -93,8 +93,8 @@ impl Drawer {
         }
     }
 
-    pub fn draw_trajectories(&mut self, bodies: &VecBody, scale: f64, c: &Context, g: &mut G2d) {
-        use crate::physics::dynamics::TRAJECTORY_SIZE;
+    pub fn draw_trajectories(&mut self, bodies: &Cluster, scale: f64, c: &Context, g: &mut G2d) {
+        use crate::physics::dynamics::point::TRAJECTORY_SIZE;
 
         for i in 0..bodies.count() {
             self.color = bodies[i].shape.color;
