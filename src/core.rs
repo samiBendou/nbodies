@@ -1,5 +1,6 @@
 use std::cmp::{max, min};
 use std::fmt::{Debug, Error, Formatter};
+use std::time::SystemTime;
 
 use piston::input::{Key, MouseButton};
 use piston::window::Size;
@@ -7,47 +8,70 @@ use piston::window::Size;
 use crate::common::*;
 use crate::physics::dynamics::body::Frame;
 use crate::physics::units::date::Duration;
+use crate::physics::units::Unit;
 use crate::toggle;
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct Step {
     pub count: u32,
     pub total: Duration,
     pub simulated: Duration,
     pub frame: f64,
+    pub system: f64,
+    time: SystemTime,
+    frame_unit: Unit,
 }
 
 impl Step {
     pub fn new() -> Step {
+        use crate::physics::units;
+        use crate::physics::units::suffix::Time;
+        use crate::physics::units::prefix::Standard;
         Step {
             count: 0,
             total: Duration::from(0.),
             simulated: Duration::from(0.),
             frame: 0.,
+            system: 0.,
+            time: SystemTime::now(),
+            frame_unit: Unit::new(
+                units::Scale::from(Standard::Base),
+                units::Scale::from(Time::Standard),
+            ),
         }
     }
 
     pub fn update(&mut self, dt: f64, scale: f64) {
+        use crate::physics::units::*;
+        let time = SystemTime::now();
+        self.system = time.duration_since(self.time).unwrap().as_secs_f64();
+        self.time = time;
         self.frame = dt;
         self.total += dt;
         self.simulated += dt * scale;
         self.count = (self.count + 1) % std::u32::MAX;
+        self.frame_unit.rescale(self.frame);
     }
 }
 
 impl Debug for Step {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
-        use super::physics::units::suffix::Time;
-        use super::physics::units::prefix::Standard;
-        use super::physics::units::*;
+        use crate::physics::units::*;
         let framerate = (1. / self.frame).floor() as u8;
-        let mut time_unit = Unit::new(
-            Scale::from(Standard::Base),
-            Scale::from(Time::Standard),
-        );
-        time_unit.rescale(self.frame);
-        write!(f, "dt: {}\nframerate: {} (fps)\ntotal: {:?}\nsimulated: {:?}",
-               time_unit.string_of(self.frame), framerate, self.total, self.simulated)
+        let framerate_system = (1. / self.system).floor() as u8;
+        write!(f,
+               "\
+dt: {} framerate: {} (fps)\n\
+(system) dt: {} framerate: {} (fps)\n\
+total: {:?}\n\
+simulated: {:?}",
+               self.frame_unit.string_of(self.frame),
+               framerate,
+               self.frame_unit.string_of(self.system),
+               framerate_system,
+               self.total,
+               self.simulated
+        )
     }
 }
 

@@ -21,7 +21,7 @@ pub trait Convert<T> {
     fn value_of(&self, val: T) -> T;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Scale {
     pub label: String,
     pub multiplier: f64,
@@ -127,7 +127,7 @@ impl From<suffix::Mass> for Scale {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Unit {
     pub(crate) prefix: Scale,
     suffix: Scale,
