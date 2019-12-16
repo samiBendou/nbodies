@@ -82,10 +82,14 @@ pressed keyboard key: '{:?}'\n",
     }
 
     fn log_timing(&mut self, step: &core::Step, config: &core::Config) {
-        self.buffer += &format!("*** timing info ***\n")[..];
-        self.buffer += &format!("{:?}\n", step)[..];
-        self.buffer += &format!("frames per updates: {}\n", config.frames_per_update)[..];
-        self.buffer += &format!("updates per frame: {}\n", config.updates_per_frame)[..];
+        self.buffer += &format!("\
+*** timing info ***\n\
+{:?}\n\
+updates per frame: {}\n\n\
+*** scale ***\n\
+{:?}",
+                                step, config.updates_per_frame, config.scale
+        );
     }
 
     fn log_cinematic(&mut self, bodies: &Cluster, config: &core::Config) {
@@ -94,25 +98,29 @@ pressed keyboard key: '{:?}'\n",
         }
         let mut scaled_point = bodies.current().shape.center.clone();
         scaled_point.scale(config.scale.distance);
-        self.buffer += &format!("*** current shape ***\n")[..];
-        self.buffer += &format!("{:?}\n", scaled_point)[..];
-        self.buffer += &format!("*** scale ***\n")[..];
-        self.buffer += &format!("{:?}\n", config.scale)[..];
+        self.buffer += &format!("\
+*** current shape ***\n\
+{:?}\n",
+                                scaled_point
+        );
     }
 
     fn log_physics(&mut self, bodies: &Cluster, config: &core::Config) {
         if bodies.is_empty() {
             return;
         }
-
-        self.buffer += &format!("*** current body ***\n")[..];
-        self.buffer += &format!("{:?}\n", bodies.current())[..];
-        self.buffer += &format!("*** scale ***\n")[..];
-        self.buffer += &format!("{:?}\n", config.scale)[..];
+        self.buffer += &format!("
+*** current body ***\n\
+{:?}\n",
+                                bodies.current()
+        );
     }
 
     fn log_bodies(&mut self, bodies: &Cluster) {
-        self.buffer += &format!("*** body list ***\n")[..];
-        self.buffer += &format!("{:?}\n", bodies)[..];
+        self.buffer += &format!("
+*** body list ***\n\
+{:?}\n",
+                                bodies
+        );
     }
 }

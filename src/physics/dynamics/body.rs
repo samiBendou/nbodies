@@ -182,12 +182,12 @@ impl Cluster {
     }
 
     pub fn apply<T>(&mut self, dt: f64, iterations: u32, mut f: T) where
-        T: FnMut(&Body, usize) -> Vector2 {
+        T: FnMut(&mut Vector2, &Body, usize) {
         let count = self.bodies.len();
         let mass: Vec<f64> = self.bodies.iter()
             .map(|body| body.mass)
             .collect();
-        let mut force: Vector2;
+        let mut force = Vector2::zeros();
         self.barycenter.shape.center.position += self.origin.position;
         self.barycenter.shape.center.speed += self.origin.speed;
         for body in self.bodies.iter_mut() {
@@ -197,7 +197,7 @@ impl Cluster {
         for _ in 0..iterations {
             self.barycenter.shape.center.acceleration.reset0();
             for i in 0..count {
-                force = f(&self.bodies[i], i);
+                f(&mut force, &self.bodies[i], i);
                 self.barycenter.shape.center.acceleration += force;
                 self.bodies[i].shape.center.acceleration = force;
                 self.bodies[i].shape.center.acceleration /= mass[i];
@@ -276,9 +276,9 @@ impl Cluster {
 impl Debug for Cluster {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
         let mut buffer = String::from("");
-        buffer.push_str(format!("{:?}\n", self.barycenter).as_str());
+        buffer.push_str(format!("{:?}\n\n", self.barycenter).as_str());
         for body in self.bodies.iter() {
-            buffer.push_str(format!("{:?}\n", body).as_str());
+            buffer.push_str(format!("{:?}\n\n", body).as_str());
         }
         write!(f, "{}", buffer)
     }
