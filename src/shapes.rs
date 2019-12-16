@@ -32,7 +32,7 @@ impl Drawer {
             middle,
             rect: [0.; 4],
             color: [0.; 4],
-            unit: Unit::from(Scale::from(Distance::Standard))
+            unit: Unit::from(Scale::from(Distance::Meter))
         }
     }
 

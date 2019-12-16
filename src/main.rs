@@ -15,7 +15,7 @@ fn main() {
     let mut app: App = App::default();
     let mut input = Input::new();
     let mut window: PistonWindow =
-        WindowSettings::new("Bodies Keeps Moving Like a Rollin' Stone!", app.config.size)
+        WindowSettings::new("Bodies Keeps Moving Like Rollin' Stones!", app.config.size)
             .exit_on_esc(true)
             .resizable(false)
             .graphics_api(opengl)

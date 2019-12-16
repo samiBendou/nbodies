@@ -1,16 +1,21 @@
 pub enum Distance {
-    Standard,
+    Meter,
     Astronomic,
     Light,
 }
 
 pub enum Time {
-    Standard,
+    Second,
     Calendar,
     Light,
 }
 
 pub enum Mass {
-    Standard,
+    Grams,
     Tons,
+}
+
+pub enum Angle {
+    Radians,
+    Degrees,
 }

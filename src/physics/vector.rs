@@ -57,6 +57,12 @@ impl Vector2 {
         self
     }
 
+    pub fn reset1(&mut self) -> &mut Self {
+        self.x = 1.;
+        self.y = 1.;
+        self
+    }
+
     pub fn new(x: f64, y: f64) -> Vector2 {
         Vector2 { x, y }
     }
@@ -97,10 +103,10 @@ impl Vector2 {
 
 impl Debug for Vector2 {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
-        if self.magnitude() > 1e6f64 {
-            write!(f, "({:e}, {:e})", self.x, self.y)
+        if self.magnitude() > 1000. {
+            write!(f, "( {:.5e} , {:.5e} )", self.x, self.y)
         } else {
-            write!(f, "({:.3}, {:.3})", self.x, self.y)
+            write!(f, "( {:.3} , {:.3} )", self.x, self.y)
         }
     }
 }

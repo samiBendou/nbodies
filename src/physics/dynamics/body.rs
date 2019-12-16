@@ -40,9 +40,9 @@ impl Debug for Body {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
         use crate::physics::units::{Scale, Unit, Rescale, Serialize};
         use crate::physics::units::suffix::Mass;
-        let mut mass_unit = Unit::from(Scale::from(Mass::Standard));
+        let mut mass_unit = Unit::from(Scale::from(Mass::Grams));
         write!(f, "name:{}\nmass: {}\n{:?}",
-               self.name, mass_unit.rescale(1e3).string_of(self.mass * 1e3), self.shape)
+               self.name, mass_unit.rescale(self.mass * 1e3).string_of(self.mass * 1e3), self.shape)
     }
 }
 

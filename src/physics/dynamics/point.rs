@@ -1,6 +1,8 @@
 use std::fmt::{Debug, Error, Formatter};
 use std::ops::{AddAssign, DivAssign, Mul, MulAssign, Rem, SubAssign};
 
+use crate::physics::units::{Compound, Rescale, Scale, Serialize, Unit};
+use crate::physics::units::suffix::{Distance, Time};
 use crate::physics::vector::Vector2;
 
 pub const TRAJECTORY_SIZE: usize = 256;
@@ -16,6 +18,7 @@ pub struct Point2 {
 }
 
 impl Point2 {
+
     pub fn new(position: Vector2, speed: Vector2, acceleration: Vector2) -> Point2 {
         Point2 {
             position,
@@ -97,17 +100,19 @@ impl Point2 {
 
 impl Debug for Point2 {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
-        use crate::physics::units::{Scale, Unit, Rescale, Serialize};
-        use crate::physics::units::suffix::Distance;
-        let mut position_unit = Unit::from(Scale::from(Distance::Standard));
-        let mut speed_unit = Unit::from(Scale::from(Distance::Standard));
-        let mut acceleration_unit = Unit::from(Scale::from(Distance::Standard));
+        let time_unit = Unit::from(Scale::from(Time::Second));
+        let mut position_unit = Compound::new(vec![Unit::from(Scale::from(Distance::Meter))]);
+        let mut speed_unit = position_unit.clone() / time_unit.clone();
+        let mut acceleration_unit = speed_unit.clone() / time_unit;
+        position_unit.units[0].rescale(self.position.magnitude());
+        speed_unit.units[0].rescale(self.speed.magnitude());
+        acceleration_unit.units[0].rescale(self.acceleration.magnitude());
         write!(
             f,
             "position: {}\nspeed: {}\nacceleration: {}",
-            position_unit.rescale(self.position.magnitude()).string_of(self.position),
-            speed_unit.rescale(self.speed.magnitude()).string_of(self.speed),
-            acceleration_unit.rescale(self.acceleration.magnitude()).string_of(self.acceleration),
+            position_unit.string_of(self.position),
+            speed_unit.string_of(self.speed),
+            acceleration_unit.string_of(self.acceleration),
         )
     }
 }

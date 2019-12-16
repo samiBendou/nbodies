@@ -36,7 +36,7 @@ impl Step {
             time: SystemTime::now(),
             frame_unit: Unit::new(
                 units::Scale::from(Standard::Base),
-                units::Scale::from(Time::Standard),
+                units::Scale::from(Time::Second),
             ),
         }
     }
@@ -122,9 +122,9 @@ impl Debug for Scale {
         use crate::physics::units::*;
         use crate::physics::units::suffix::{Distance, Time};
         let mut time_unit = Unit::from(Scale::from(Time::Calendar));
-        let mut distance_unit = Unit::from(Scale::from(Distance::Standard));
+        let mut distance_unit = Unit::from(Scale::from(Distance::Meter));
         time_unit.prefix.rescale(prefix::Calendar::from(self.time));
-        write!(f, "time: {} per (s)\ndistance: {} per (m)",
+        write!(f, "time: {} per (second)\ndistance: {} per (meter/px)",
                time_unit.string_of(self.time),
                distance_unit.rescale(self.distance).string_of(self.distance),
         )
