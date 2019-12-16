@@ -124,7 +124,7 @@ impl Debug for Scale {
         let mut time_unit = Unit::from(Scale::from(Time::Calendar));
         let mut distance_unit = Unit::from(Scale::from(Distance::Meter));
         time_unit.prefix.rescale(prefix::Calendar::from(self.time));
-        write!(f, "time: {} per (second)\ndistance: {} per (meter/px)",
+        write!(f, "time: {} per (second)\ndistance: {} per (px)",
                time_unit.string_of(self.time),
                distance_unit.rescale(self.distance).string_of(self.distance),
         )

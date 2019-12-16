@@ -101,10 +101,10 @@ impl Point2 {
 impl Debug for Point2 {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
         let time_unit = Unit::from(Scale::from(Time::Second));
-        let mut position_unit = Compound::new(vec![Unit::from(Scale::from(Distance::Meter))]);
+        let mut position_unit = Unit::from(Scale::from(Distance::Meter));
         let mut speed_unit = position_unit.clone() / time_unit.clone();
         let mut acceleration_unit = speed_unit.clone() / time_unit;
-        position_unit.units[0].rescale(self.position.magnitude());
+        position_unit.rescale(self.position.magnitude());
         speed_unit.units[0].rescale(self.speed.magnitude());
         acceleration_unit.units[0].rescale(self.acceleration.magnitude());
         write!(
