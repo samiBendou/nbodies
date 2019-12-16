@@ -22,9 +22,8 @@ fn main() {
             .build()
             .unwrap();
 
-    window.events.set_max_fps(30);
-    window.events.set_ups(30);
-
+    window.events.set_max_fps(60);
+    window.events.set_ups(60);
 
     let assets = find_folder::Search::ParentsThenKids(3, 3).for_folder("assets").unwrap();
     let mut glyphs = window.load_font(assets.join("FiraSans-Regular.ttf")).unwrap();

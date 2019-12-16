@@ -99,10 +99,9 @@ impl App {
             CancelDrop => self.do_cancel_drop()
         };
         self.status.update(&Option::None, &Option::None);
-        if self.status.pause || self.bodies.is_empty() {
+        if self.status.pause {
             return;
         }
-        // self.bodies.update_barycenter();
         self.bodies.update_trajectory();
     }
 

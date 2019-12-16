@@ -3,6 +3,7 @@ use std::fmt::{Debug, Error, Formatter};
 use std::time::SystemTime;
 
 use piston::input::{Key, MouseButton};
+use piston::input::Input::Button;
 use piston::window::Size;
 
 use crate::common::*;
@@ -10,6 +11,10 @@ use crate::physics::dynamics::body::Frame;
 use crate::physics::units::date::Duration;
 use crate::physics::units::Unit;
 use crate::toggle;
+
+static HOLD: Direction = Direction::Hold;
+static BUTTON_UNKNOWN: MouseButton = MouseButton::Unknown;
+static KEY_UNKNOWN: Key = Key::Unknown;
 
 #[derive(Clone)]
 pub struct Step {
@@ -142,44 +147,31 @@ pub enum State {
 }
 
 impl State {
-    pub fn next(&mut self, key: &Option<Key>, button: &Option<MouseButton>) {
+    pub fn next(&mut self, key: &Key, button: &MouseButton) {
         use State::*;
-
-        if let Some(key) = key {
-            match key {
-                Key::Backspace => {
-                    *self = Reset;
-                    return;
-                }
-                _ => *self,
-            };
-        }
 
         *self = match self {
             Reset => Move,
             Add => WaitDrop,
             CancelDrop => Move,
             Move => {
-                if let Some(button) = button {
-                    match button {
-                        MouseButton::Left => Add,
-                        _ => *self,
-                    }
-                } else {
-                    *self
+                match button {
+                    MouseButton::Left => Add,
+                    _ => *self,
                 }
-            }
+            },
             WaitDrop => {
-                if let Some(button) = button {
-                    match button {
-                        MouseButton::Left => Move,
-                        MouseButton::Right => CancelDrop,
-                        _ => WaitDrop,
-                    }
-                } else {
-                    *self
+                match button {
+                    MouseButton::Left => Move,
+                    MouseButton::Right => CancelDrop,
+                    _ => *self,
                 }
             }
+        };
+
+        *self = match key {
+            Key::Backspace => Reset,
+            _ => *self,
         };
     }
 }
@@ -237,7 +229,6 @@ pub struct Status {
     pub trajectory: bool,
     pub pause: bool,
     pub state: State,
-    pub frame: Frame,
 }
 
 impl Status {
@@ -249,7 +240,6 @@ impl Status {
             trajectory: true,
             pause: true,
             state: State::Reset,
-            frame: Frame::Zero,
         }
     }
 
@@ -258,20 +248,27 @@ impl Status {
     }
 
     pub fn update(&mut self, key: &Option<Key>, button: &Option<MouseButton>) {
-        let hold = Direction::Hold;
-        if let Some(key) = key {
-            match *key {
-                Key::B => toggle!(self.bounded),
-                Key::T => toggle!(self.translate),
-                Key::R => toggle!(self.trajectory),
-                Key::Space => toggle!(self.pause),
-                Key::K => self.frame.next(),
-                Key::Left | Key::Up | Key::Down | Key::Right => self.direction = Direction::from(key),
-                _ => ()
-            };
-        } else if self.direction != hold {
-            self.direction = hold;
-        }
-        self.state.next(key, button);
+        match key {
+            None => {
+                self.direction = HOLD;
+                match button {
+                    None => self.state.next(&KEY_UNKNOWN, &BUTTON_UNKNOWN),
+                    Some(button) => self.state.next(&KEY_UNKNOWN, button),
+                };
+            },
+            Some(key) => {
+                match key {
+                    Key::B => toggle!(self.bounded),
+                    Key::T => toggle!(self.translate),
+                    Key::R => toggle!(self.trajectory),
+                    Key::Space => toggle!(self.pause),
+                    _ => self.direction = Direction::from(key),
+                };
+                match button {
+                    None => self.state.next(key, &BUTTON_UNKNOWN),
+                    Some(button) => self.state.next(key, button),
+                };
+            },
+        };
     }
 }

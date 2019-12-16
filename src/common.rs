@@ -4,6 +4,12 @@ use piston::input::{Key, MouseButton};
 
 use crate::physics::vector::Vector2;
 
+static EX: Vector2 = Vector2 { x: 1., y: 0. };
+static N_EX: Vector2 = Vector2 { x: -1., y: 0. };
+static EY: Vector2 = Vector2 { x: 0., y: 1. };
+static N_EY: Vector2 = Vector2 { x: 0., y: -1. };
+static ZERO: Vector2 = Vector2 { x: 0., y: 0. };
+
 #[macro_export]
 macro_rules! toggle {
     ($boolean: expr) => {
@@ -58,31 +64,13 @@ impl Direction {
 
     pub fn as_vector(&self) -> Vector2 {
         match *self {
-            Direction::Left => -Vector2::ex(),
-            Direction::Right => Vector2::ex(),
-            Direction::Up => Vector2::ey(),
-            Direction::Down => -Vector2::ey(),
-            Direction::Hold => Vector2::zeros()
+            Direction::Left => N_EX,
+            Direction::Right => EX,
+            Direction::Up => EY,
+            Direction::Down => N_EY,
+            Direction::Hold => ZERO
         }
     }
 }
-
-#[derive(Copy, Clone, PartialEq, Debug)]
-pub enum Color {
-    Red,
-    Green,
-    Blue,
-}
-
-impl Color {
-    pub fn rgba_array(&self) -> [f32; 4] {
-        match self {
-            Color::Red => [1.0, 0.0, 0.0, 1.0],
-            Color::Green => [0.0, 1.0, 0.0, 1.0],
-            Color::Blue => [0.0, 0.0, 1.0, 1.0],
-        }
-    }
-}
-
 
 

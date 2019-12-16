@@ -9,7 +9,13 @@ use crate::physics::vector::Vector2;
 
 pub mod ellipse;
 
-const SCALE_LENGTH: f64 = 50.; // in px
+const SCALE_LENGTH: f64 = 50.;
+// in px
+const BLACK: [f32; 4] = [0., 0., 0., 1.];
+const WHITE: [f32; 4] = [255., 255., 255., 1.];
+const RED: [f32; 4] = [255., 0., 0., 1.];
+const GREEN: [f32; 4] = [0., 255., 0., 1.];
+const BLUE: [f32; 4] = [0., 0., 255., 1.];
 
 pub struct Drawer {
     from: Vector2,
@@ -54,7 +60,7 @@ impl Drawer {
         self.unit.rescale(scale_distance);
 
         piston_window::line_from_to(
-            [0., 0., 0., 1.],
+            BLACK,
             3.,
             [self.offset.x, self.offset.y],
             [self.offset.x + SCALE_LENGTH, self.offset.y],
@@ -75,7 +81,7 @@ impl Drawer {
         barycenter_rect.y = -barycenter_rect.y;
         barycenter_rect += self.middle;
         piston_window::rectangle(
-            [255., 0., 0., 1.],
+            RED,
             [barycenter_rect.x - 4., barycenter_rect.y - 4., 8., 8.],
             c.transform, g,
         );
