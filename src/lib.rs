@@ -51,12 +51,12 @@ impl App {
     pub fn on_key(&mut self, key: &Key) {
         self.config.update(key);
         self.status.update(&Some(*key), &Option::None);
-        if *key == Key::Z || *key == Key::X {
-            let increase = *key == Key::Z;
+        if *key == KEY_INCREASE_CURRENT_INDEX || *key == KEY_DECREASE_CURRENT_INDEX {
+            let increase = *key == KEY_INCREASE_CURRENT_INDEX;
             self.bodies.update_current_index(increase);
-        } else if *key == Key::K {
+        } else if *key == KEY_NEXT_FRAME_STATE {
             self.bodies.update_frame();
-        } else if *key == Key::L {
+        } else if *key == KEY_NEXT_LOGGER_STATE {
             self.logger.update();
         }
     }

@@ -112,13 +112,15 @@ impl Scale {
     }
 
     pub fn update(&mut self, key: &Key) {
-        match *key {
-            Key::I => self.increase_distance(),
-            Key::U => self.decrease_distance(),
-            Key::Y => self.increase_time(),
-            Key::T => self.decrease_time(),
-            _ => (),
-        };
+        if *key == KEY_INCREASE_DISTANCE {
+            self.increase_distance();
+        } else if *key == KEY_DECREASE_DISTANCE {
+            self.decrease_distance();
+        } else if *key == KEY_INCREASE_TIME {
+            self.increase_time();
+        } else if *key == KEY_DECREASE_TIME {
+            self.decrease_time();
+        }
     }
 }
 
@@ -154,25 +156,23 @@ impl State {
             Reset => Move,
             Add => WaitDrop,
             CancelDrop => Move,
-            Move => {
-                match button {
-                    MouseButton::Left => Add,
-                    _ => *self,
-                }
+            Move => if *button == MOUSE_MOVE_ADD {
+                Add
+            } else {
+                *self
             },
-            WaitDrop => {
-                match button {
-                    MouseButton::Left => Move,
-                    MouseButton::Right => CancelDrop,
-                    _ => *self,
-                }
+            WaitDrop => if *button == MOUSE_WAIT_DROP_MOVE {
+                Move
+            } else if *button == MOUSE_WAIT_DROP_CANCEL {
+                CancelDrop
+            } else {
+                *self
             }
         };
 
-        *self = match key {
-            Key::Backspace => Reset,
-            _ => *self,
-        };
+        if *key == KEY_RESET {
+            *self = Reset;
+        }
     }
 }
 
@@ -204,11 +204,11 @@ impl Config {
     }
 
     pub fn update(&mut self, key: &Key) {
-        match *key {
-            Key::P => self.increase_updates_per_frame(),
-            Key::O => self.decrease_updates_per_frame(),
-            _ => (),
-        };
+        if *key == KEY_INCREASE_UP_FRAME {
+            self.increase_updates_per_frame();
+        } else if *key == KEY_DECREASE_UP_FRAME {
+            self.decrease_updates_per_frame();
+        }
         self.scale.update(key);
     }
 
@@ -257,13 +257,17 @@ impl Status {
                 };
             },
             Some(key) => {
-                match key {
-                    Key::B => toggle!(self.bounded),
-                    Key::T => toggle!(self.translate),
-                    Key::R => toggle!(self.trajectory),
-                    Key::Space => toggle!(self.pause),
-                    _ => self.direction = Direction::from(key),
-                };
+                if *key == KEY_TOGGLE_BOUNDED {
+                    toggle!(self.bounded);
+                } else if *key == KEY_TOGGLE_TRANSLATE {
+                    toggle!(self.translate);
+                } else if *key == KEY_TOGGLE_TRAJECTORY {
+                    toggle!(self.trajectory);
+                } else if *key == KEY_TOGGLE_PAUSE {
+                    toggle!(self.pause);
+                } else {
+                    self.direction = Direction::from(key);
+                }
                 match button {
                     None => self.state.next(key, &BUTTON_UNKNOWN),
                     Some(button) => self.state.next(key, button),
