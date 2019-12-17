@@ -12,10 +12,6 @@ use crate::physics::units::date::Duration;
 use crate::physics::units::Unit;
 use crate::toggle;
 
-static HOLD: Direction = Direction::Hold;
-static BUTTON_UNKNOWN: MouseButton = MouseButton::Unknown;
-static KEY_UNKNOWN: Key = Key::Unknown;
-
 #[derive(Clone)]
 pub struct Step {
     pub count: u32,

@@ -10,6 +10,12 @@ use std::ops::{
     Sub, SubAssign,
 };
 
+pub static EX: Vector2 = Vector2 { x: 1., y: 0. };
+pub static N_EX: Vector2 = Vector2 { x: -1., y: 0. };
+pub static EY: Vector2 = Vector2 { x: 0., y: 1. };
+pub static N_EY: Vector2 = Vector2 { x: 0., y: -1. };
+pub static ZERO: Vector2 = Vector2 { x: 0., y: 0. };
+
 #[derive(Copy, Clone)]
 pub struct Vector2 {
     pub x: f64,
@@ -79,14 +85,6 @@ impl Vector2 {
 
     pub fn ones() -> Vector2 {
         Vector2::new(1., 1.)
-    }
-
-    pub fn ex() -> Vector2 {
-        Vector2::new(1., 0.)
-    }
-
-    pub fn ey() -> Vector2 {
-        Vector2::new(0., 1.)
     }
 
     pub fn barycenter(vectors: &Vec<Vector2>, scalars: &Vec<f64>) -> Vector2 {

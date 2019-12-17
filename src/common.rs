@@ -2,13 +2,7 @@ use std::fmt::Debug;
 
 use piston::input::{Key, MouseButton};
 
-use crate::physics::vector::Vector2;
-
-pub static EX: Vector2 = Vector2 { x: 1., y: 0. };
-pub static N_EX: Vector2 = Vector2 { x: -1., y: 0. };
-pub static EY: Vector2 = Vector2 { x: 0., y: 1. };
-pub static N_EY: Vector2 = Vector2 { x: 0., y: -1. };
-pub static ZERO: Vector2 = Vector2 { x: 0., y: 0. };
+use crate::physics::vector::*;
 
 pub static KEY_TOGGLE_BOUNDED: Key = Key::B;
 pub static KEY_TOGGLE_TRANSLATE: Key = Key::T;
@@ -35,6 +29,10 @@ pub static KEY_NEXT_FRAME_STATE: Key = Key::K;
 pub static MOUSE_MOVE_ADD: MouseButton = MouseButton::Left;
 pub static MOUSE_WAIT_DROP_MOVE: MouseButton = MouseButton::Left;
 pub static MOUSE_WAIT_DROP_CANCEL: MouseButton = MouseButton::Right;
+
+pub static HOLD: Direction = Direction::Hold;
+pub static BUTTON_UNKNOWN: MouseButton = MouseButton::Unknown;
+pub static KEY_UNKNOWN: Key = Key::Unknown;
 
 #[macro_export]
 macro_rules! toggle {
