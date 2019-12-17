@@ -74,6 +74,14 @@ impl Circle {
         self
     }
 
+    pub fn set_cursor_speed(&mut self, cursor: &[f64; 2], middle: &Vector2, scale: f64) -> &mut Circle {
+        let mut speed = Vector2::from(*cursor);
+        Circle::set_centered(&mut speed, middle);
+        speed -= self.center.position * scale;
+        self.center.speed = speed;
+        self
+    }
+
     pub fn set_centered(position: &mut Vector2, middle: &Vector2) {
         position.x = position.x - middle.x;
         position.y = middle.y - position.y;

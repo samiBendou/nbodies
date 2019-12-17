@@ -27,7 +27,7 @@ pub static KEY_NEXT_LOGGER_STATE: Key = Key::L;
 pub static KEY_NEXT_FRAME_STATE: Key = Key::K;
 
 pub static MOUSE_MOVE_ADD: MouseButton = MouseButton::Left;
-pub static MOUSE_WAIT_DROP_MOVE: MouseButton = MouseButton::Left;
+pub static MOUSE_WAIT_DROP_DO: MouseButton = MouseButton::Left;
 pub static MOUSE_WAIT_DROP_CANCEL: MouseButton = MouseButton::Right;
 
 pub static HOLD: Direction = Direction::Hold;

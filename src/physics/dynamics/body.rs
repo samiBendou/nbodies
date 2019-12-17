@@ -256,6 +256,15 @@ impl Cluster {
         self.bodies[self.current].shape.set_cursor_pos(cursor, middle);
         self.bodies[self.current].shape.center.position /= scale;
         self.bodies[self.current].shape.center.clear_trajectory();
+        self.clear_barycenter();
+        self
+    }
+
+    pub fn wait_speed(&mut self, cursor: &[f64; 2], middle: &Vector2, scale: f64) -> &mut Self {
+        self.bodies[self.current].shape.set_cursor_speed(cursor, middle, scale);
+        self.bodies[self.current].shape.center.speed /= scale;
+        self.bodies[self.current].shape.center.clear_trajectory();
+        self.clear_barycenter();
         self
     }
 

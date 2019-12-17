@@ -55,8 +55,13 @@ impl Point2 {
         self
     }
 
-    pub fn scale(&mut self, scale: f64) -> &mut Self {
+    pub fn scale_position(&mut self, scale: f64) -> &mut Self {
         self.position *= scale;
+        self
+    }
+
+    pub fn scale_speed(&mut self, scale: f64) -> &mut Self {
+        self.speed *= scale;
         self
     }
 

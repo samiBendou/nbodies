@@ -97,7 +97,8 @@ updates per frame: {}\n\n\
             return;
         }
         let mut scaled_point = bodies.current().shape.center.clone();
-        scaled_point.scale(config.scale.distance);
+        scaled_point.scale_position(config.scale.distance);
+        scaled_point.scale_speed(config.scale.distance);
         self.buffer += &format!("\
 *** current shape ***\n\
 {:?}\n",

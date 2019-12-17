@@ -135,11 +135,12 @@ impl Debug for Scale {
 }
 
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum State {
     Move,
     Add,
     WaitDrop,
+    WaitSpeed,
     CancelDrop,
     Reset,
 }
@@ -157,10 +158,17 @@ impl State {
             } else {
                 *self
             },
-            WaitDrop => if *button == MOUSE_WAIT_DROP_MOVE {
-                Move
+            WaitDrop => if *button == MOUSE_WAIT_DROP_DO {
+                WaitSpeed
             } else if *button == MOUSE_WAIT_DROP_CANCEL {
                 CancelDrop
+            } else {
+                *self
+            }
+            WaitSpeed => if *button == MOUSE_WAIT_DROP_DO {
+                Move
+            } else if *button == MOUSE_WAIT_DROP_CANCEL {
+                WaitDrop
             } else {
                 *self
             }

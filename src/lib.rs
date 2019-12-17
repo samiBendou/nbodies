@@ -81,6 +81,9 @@ impl App {
                 if self.status.trajectory {
                     self.drawer.draw_trajectories(&self.bodies, scale, &c, g);
                 }
+                if self.status.state == core::State::WaitSpeed {
+                    self.drawer.draw_speed(self.bodies.current(), self.config.scale.distance, &c, g);
+                }
                 self.drawer.draw_bodies(&self.bodies, scale, &c, g);
                 self.drawer.draw_barycenter(self.bodies.barycenter(), scale, &c, g);
                 self.drawer.draw_scale(scale, &c, g, glyphs);
@@ -96,6 +99,7 @@ impl App {
             Reset => self.do_reset(),
             Add => self.do_add(cursor),
             WaitDrop => self.do_wait_drop(cursor),
+            WaitSpeed => self.do_wait_speed(cursor),
             CancelDrop => self.do_cancel_drop()
         };
         self.status.update(&Option::None, &Option::None);
@@ -160,14 +164,17 @@ impl App {
         use shapes::ellipse;
         let circle = ellipse::Circle::at_cursor_random(cursor, self.drawer.middle());
         let mut body = Body::new(circle.radius / 10., "", circle);
-        body.shape.center.scale(self.config.scale.distance);
+        body.shape.center.scale_position(self.config.scale.distance);
         self.bodies.push(body);
         self.bodies.current_mut().name = format!("body {}", self.bodies.current_index() + 1);
     }
 
     fn do_wait_drop(&mut self, cursor: &[f64; 2]) {
         self.bodies.wait_drop(cursor, self.drawer.middle(), self.config.scale.distance);
-        self.bodies.clear_current_trajectory();
+    }
+
+    fn do_wait_speed(&mut self, cursor: &[f64; 2]) {
+        self.bodies.wait_speed(cursor, self.drawer.middle(), self.config.scale.distance);
     }
 
     fn do_cancel_drop(&mut self) {
