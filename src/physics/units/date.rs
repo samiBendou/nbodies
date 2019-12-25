@@ -6,12 +6,12 @@ use super::consts::*;
 #[derive(Copy, Clone)]
 pub struct Duration {
     seconds: f64,
-    minutes: i32,
-    hours: i32,
-    days: i32,
-    weeks: i32,
-    months: i32,
-    years: i32,
+    minutes: i64,
+    hours: i64,
+    days: i64,
+    weeks: i64,
+    months: i64,
+    years: i64,
 }
 
 impl Duration {
@@ -38,18 +38,19 @@ impl Duration {
     }
 
     fn set_seconds(&mut self, sec: f64) -> &mut Self {
-        let years = (sec * YEAR_PER_SEC).floor() as i32;
-        let months = (sec * MONTH_PER_SEC).floor() as i32;
-        let weeks = (sec * WEEK_PER_SEC).floor() as i32;
-        let days = (sec * DAY_PER_SEC).floor() as i32;
-        let hours = (sec * HOUR_PER_SEC).floor() as i32;
-        let minutes = (sec * MIN_PER_SEC).floor() as i32;
+        let years = (sec * YEAR_PER_SEC).floor() as i64;
+        let months = (sec * MONTH_PER_SEC).floor() as i64;
+        let weeks = (sec * WEEK_PER_SEC).floor() as i64;
+        let days = (sec * DAY_PER_SEC).floor() as i64;
+        let hours = (sec * HOUR_PER_SEC).floor() as i64;
+        let minutes = (sec * MIN_PER_SEC).floor() as i64;
         self.seconds = sec - (minutes * 60) as f64;
         self.minutes = minutes - hours * 60;
         self.hours = hours - days * 24;
         self.days = days - weeks * 7;
         self.weeks = weeks - months * 4;
         self.months = months - years * 12;
+        self.years = years;
         self
     }
 }

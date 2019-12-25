@@ -244,7 +244,8 @@ impl Cluster {
     }
 
     pub fn pop(&mut self) -> Option<Body> {
-        if self.current == self.bodies.len() - 1 {
+        let len = self.bodies.len();
+        if len != 0 && self.current == len - 1 {
             self.current -= 1;
         }
         let body = self.bodies.pop();

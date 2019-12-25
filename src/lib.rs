@@ -150,7 +150,8 @@ impl App {
             } else {
                 Direction::Hold
             };
-            *force = forces::gravity(&bodies[i], bodies); // forces::push(&direction);
+            *force = forces::gravity(&bodies[i], bodies);
+            *force += forces::push(&direction);
         });
     }
 
@@ -163,7 +164,7 @@ impl App {
     fn do_add(&mut self, cursor: &[f64; 2]) {
         use shapes::ellipse;
         let circle = ellipse::Circle::at_cursor_random(cursor, self.drawer.middle());
-        let mut body = Body::new(circle.radius / 10., "", circle);
+        let mut body = Body::new(circle.radius * 10e24, "", circle);
         body.shape.center.scale_position(self.config.scale.distance);
         self.bodies.push(body);
         self.bodies.current_mut().name = format!("body {}", self.bodies.current_index() + 1);
