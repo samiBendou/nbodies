@@ -143,14 +143,13 @@ impl App {
         let current_direction = self.status.direction;
 
         let mut direction: Direction = Direction::Hold;
-        self.bodies.apply(dt, self.config.updates_per_frame, |mut force, body, i| {
+        self.bodies.apply(dt, self.config.updates_per_frame, |mut force, bodies, i| {
             direction = if i == current_index {
                 current_direction
             } else {
                 Direction::Hold
             };
-            *force = forces::push(&direction);
-            *force += forces::nav_stokes(&body.shape.center.speed);
+            *force = forces::gravity(&bodies[i], bodies); // forces::push(&direction);
         });
     }
 

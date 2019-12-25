@@ -12,3 +12,5 @@ pub const YEAR_PER_SEC: f64 = 4.5928865373309815e-09;
 pub const LM_PER_SEC: f64 = 3.3356409519815204e-09; // light meter (time)
 
 pub const TONS_PER_KG: f64 = 1e-3;
+
+pub const G_UNIV: f64 = 6.67430e-11;

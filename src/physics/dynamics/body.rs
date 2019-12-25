@@ -182,7 +182,7 @@ impl Cluster {
     }
 
     pub fn apply<T>(&mut self, dt: f64, iterations: u32, mut f: T) where
-        T: FnMut(&mut Vector2, &Body, usize) {
+        T: FnMut(&mut Vector2, &Cluster, usize) {
         let count = self.bodies.len();
         let mass: Vec<f64> = self.bodies.iter()
             .map(|body| body.mass)
@@ -197,7 +197,7 @@ impl Cluster {
         for _ in 0..iterations {
             self.barycenter.shape.center.acceleration.reset0();
             for i in 0..count {
-                f(&mut force, &self.bodies[i], i);
+                f(&mut force, &self, i);
                 self.barycenter.shape.center.acceleration += force;
                 self.bodies[i].shape.center.acceleration = force;
                 self.bodies[i].shape.center.acceleration /= mass[i];
