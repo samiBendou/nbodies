@@ -76,6 +76,7 @@ impl App {
                 if self.bodies.count() == 0 {
                     self.drawer.draw_barycenter(self.bodies.barycenter(), scale, &c, g);
                     self.drawer.draw_scale(scale, &c, g, glyphs);
+                    glyphs.factory.encoder.flush(device);
                     return;
                 }
                 if self.status.trajectory {
