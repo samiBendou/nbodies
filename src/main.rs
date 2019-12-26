@@ -5,7 +5,7 @@ extern crate piston_window;
 use opengl_graphics::OpenGL;
 use piston::event_loop::EventLoop;
 use piston::input::{Button, MouseCursorEvent, PressEvent, RenderEvent, UpdateEvent};
-use piston_window::{Events, PistonWindow, WindowSettings};
+use piston_window::{PistonWindow, WindowSettings};
 
 use piston_start::App;
 use piston_start::common::Input;

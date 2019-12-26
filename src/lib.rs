@@ -139,13 +139,12 @@ impl App {
     }
 
     fn do_accelerate(&mut self, dt: f64) {
-        use crate::physics::vector::Vector2;
         use physics::dynamics::forces;
         let current_index = self.bodies.current_index();
         let current_direction = self.status.direction;
 
         let mut direction: Direction = Direction::Hold;
-        self.bodies.apply(dt, self.config.updates_per_frame, |mut force, bodies, i| {
+        self.bodies.apply(dt, self.config.updates_per_frame, |force, bodies, i| {
             direction = if i == current_index {
                 current_direction
             } else {

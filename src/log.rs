@@ -1,13 +1,9 @@
 use crate::common::*;
 use crate::core;
-use crate::physics::dynamics::body::{Body, Frame};
-use crate::physics::dynamics::body::Cluster;
+use crate::physics::dynamics::body::{Body, Cluster};
 use crate::physics::dynamics::point::Point2;
 use crate::physics::units;
 use crate::physics::units::{Compound, Rescale, Serialize, Unit};
-use crate::physics::units::date::Duration;
-use crate::physics::vector::Vector2;
-use crate::toggle;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum State {
@@ -80,7 +76,7 @@ impl Logger {
             Status => self.log_status(status, input),
             Timing => self.log_timing(step, config),
             Cinematic => self.log_cinematic(bodies, config),
-            Physics => self.log_physics(bodies, config),
+            Physics => self.log_physics(bodies),
             Bodies => self.log_bodies(bodies)
         };
     }
@@ -121,7 +117,7 @@ updates per frame: {}\n\n\
         );
     }
 
-    fn log_physics(&mut self, bodies: &Cluster, config: &core::Config) {
+    fn log_physics(&mut self, bodies: &Cluster) {
         if bodies.is_empty() {
             return;
         }

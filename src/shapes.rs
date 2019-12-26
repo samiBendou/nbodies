@@ -12,10 +12,10 @@ pub mod ellipse;
 const SCALE_LENGTH: f64 = 50.;
 // in px
 const BLACK: [f32; 4] = [0., 0., 0., 1.];
-const WHITE: [f32; 4] = [255., 255., 255., 1.];
+// const WHITE: [f32; 4] = [255., 255., 255., 1.];
 const RED: [f32; 4] = [255., 0., 0., 1.];
-const GREEN: [f32; 4] = [0., 255., 0., 1.];
-const BLUE: [f32; 4] = [0., 0., 255., 1.];
+// const GREEN: [f32; 4] = [0., 255., 0., 1.];
+// const BLUE: [f32; 4] = [0., 0., 255., 1.];
 
 pub struct Drawer {
     from: Vector2,

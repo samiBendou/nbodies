@@ -16,8 +16,8 @@ pub fn nav_stokes(speed: &Vector2) -> Vector2 {
 
 pub fn gravity(body: &Body, bodies: &Cluster) -> Vector2 {
     let mut result = Vector2::zeros();
-    let mut distance = Vector2::zeros();
-    let mut magnitude = 0.;
+    let mut distance: Vector2;
+    let mut magnitude: f64;
     for i in 0..bodies.count() {
         distance = bodies[i].shape.center.position - body.shape.center.position;
         magnitude = distance.magnitude();

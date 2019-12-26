@@ -3,16 +3,11 @@ use std::fmt::{Debug, Error, Formatter};
 use std::time::SystemTime;
 
 use piston::input::{Key, MouseButton};
-use piston::input::Input::Button;
 use piston::window::Size;
 
 use crate::common::*;
-use crate::physics::dynamics::body::{Body, Frame};
-use crate::physics::dynamics::point::Point2;
-use crate::physics::units;
-use crate::physics::units::{Compound, Rescale, Serialize, Unit};
+use crate::physics::units::{Rescale, Unit};
 use crate::physics::units::date::Duration;
-use crate::physics::vector::Vector2;
 use crate::toggle;
 
 #[derive(Clone)]
@@ -88,7 +83,8 @@ pub struct Scale {
 
 impl Scale {
     pub fn new(time: f64, distance: f64) -> Scale {
-        use crate::physics::units::suffix::{Distance, Time};
+        use crate::physics::units;
+        use units::suffix::{Distance, Time};
         assert!(time > 0. && distance > 0.);
         Scale {
             time,
