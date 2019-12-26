@@ -38,11 +38,8 @@ impl Body {
 
 impl Debug for Body {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
-        use crate::physics::units::{Scale, Unit, Rescale, Serialize};
-        use crate::physics::units::suffix::Mass;
-        let mut mass_unit = Unit::from(Scale::from(Mass::Grams));
-        write!(f, "name:{}\nmass: {}\n{:?}",
-               self.name, mass_unit.rescale(self.mass * 1e3).string_of(self.mass * 1e3), self.shape)
+        write!(f, "name: {}\nmass: {:.5e}\n{:?}",
+               self.name, self.mass, self.shape.center)
     }
 }
 
@@ -245,7 +242,7 @@ impl Cluster {
 
     pub fn pop(&mut self) -> Option<Body> {
         let len = self.bodies.len();
-        if len != 0 && self.current == len - 1 {
+        if self.current != 0 && self.current == len - 1 {
             self.current -= 1;
         }
         let body = self.bodies.pop();

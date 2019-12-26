@@ -5,7 +5,7 @@ use piston::input::{Key, MouseButton};
 use crate::physics::vector::*;
 
 pub static KEY_TOGGLE_BOUNDED: Key = Key::B;
-pub static KEY_TOGGLE_TRANSLATE: Key = Key::T;
+pub static KEY_TOGGLE_TRANSLATE: Key = Key::J;
 pub static KEY_TOGGLE_TRAJECTORY: Key = Key::R;
 pub static KEY_TOGGLE_PAUSE: Key = Key::Space;
 pub static KEY_RESET: Key = Key::Backspace;

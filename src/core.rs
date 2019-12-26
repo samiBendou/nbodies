@@ -7,9 +7,12 @@ use piston::input::Input::Button;
 use piston::window::Size;
 
 use crate::common::*;
-use crate::physics::dynamics::body::Frame;
+use crate::physics::dynamics::body::{Body, Frame};
+use crate::physics::dynamics::point::Point2;
+use crate::physics::units;
+use crate::physics::units::{Compound, Rescale, Serialize, Unit};
 use crate::physics::units::date::Duration;
-use crate::physics::units::Unit;
+use crate::physics::vector::Vector2;
 use crate::toggle;
 
 #[derive(Clone)]
@@ -51,7 +54,7 @@ impl Step {
         self.total += dt;
         self.simulated += dt * scale;
         self.count = (self.count + 1) % std::u32::MAX;
-        self.frame_unit.rescale(self.frame);
+        self.frame_unit.rescale(&self.frame);
     }
 }
 
@@ -66,9 +69,9 @@ dt: {} framerate: {} (fps)\n\
 (system) dt: {} framerate: {} (fps)\n\
 total: {:?}\n\
 simulated: {:?}",
-               self.frame_unit.string_of(self.frame),
+               self.frame_unit.string_of(&self.frame),
                framerate,
-               self.frame_unit.string_of(self.system),
+               self.frame_unit.string_of(&self.system),
                framerate_system,
                self.total,
                self.simulated
@@ -76,20 +79,27 @@ simulated: {:?}",
     }
 }
 
-#[derive(Copy, Clone)]
 pub struct Scale {
     pub time: f64,
     pub distance: f64,
+    pub time_unit: Unit,
+    pub distance_unit: Unit,
 }
 
 impl Scale {
     pub fn new(time: f64, distance: f64) -> Scale {
+        use crate::physics::units::suffix::{Distance, Time};
         assert!(time > 0. && distance > 0.);
-        Scale { time, distance }
+        Scale {
+            time,
+            distance,
+            time_unit: Unit::from(units::Scale::from(Time::Second)),
+            distance_unit: Unit::from(units::Scale::from(Distance::Pixel)),
+        }
     }
 
     pub fn unit() -> Scale {
-        Scale { time: 1., distance: 1. }
+        Scale::new(1., 1.)
     }
 
     pub fn increase_time(&mut self) {
@@ -117,19 +127,17 @@ impl Scale {
         } else if *key == KEY_DECREASE_TIME {
             self.decrease_time();
         }
+        self.time_unit.rescale(&self.time);
+        self.distance_unit.rescale(&self.distance);
     }
 }
 
 impl Debug for Scale {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
         use crate::physics::units::*;
-        use crate::physics::units::suffix::{Distance, Time};
-        let mut time_unit = Unit::from(Scale::from(Time::Calendar));
-        let mut distance_unit = Unit::from(Scale::from(Distance::Meter));
-        time_unit.prefix.rescale(prefix::Calendar::from(self.time));
-        write!(f, "time: {} per (second)\ndistance: {} per (px)",
-               time_unit.string_of(self.time),
-               distance_unit.rescale(self.distance).string_of(self.distance),
+        write!(f, "time: {} per (second)\ndistance: {} per (meter)",
+               self.time_unit.string_of(&self.time),
+               self.distance_unit.string_of(&self.distance),
         )
     }
 }
@@ -180,7 +188,6 @@ impl State {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
 pub struct Config {
     pub size: Size,
     pub scale: Scale,

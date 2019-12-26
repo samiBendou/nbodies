@@ -105,19 +105,12 @@ impl Point2 {
 
 impl Debug for Point2 {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
-        let time_unit = Unit::from(Scale::from(Time::Second));
-        let mut position_unit = Unit::from(Scale::from(Distance::Meter));
-        let mut speed_unit = position_unit.clone() / time_unit.clone();
-        let mut acceleration_unit = speed_unit.clone() / time_unit;
-        position_unit.rescale(self.position.magnitude());
-        speed_unit.units[0].rescale(self.speed.magnitude());
-        acceleration_unit.units[0].rescale(self.acceleration.magnitude());
         write!(
             f,
-            "position: {}\nspeed: {}\nacceleration: {}",
-            position_unit.string_of(self.position),
-            speed_unit.string_of(self.speed),
-            acceleration_unit.string_of(self.acceleration),
+            "position: {:?}\nspeed: {:?}\nacceleration: {:?}",
+            self.position,
+            self.speed,
+            self.acceleration,
         )
     }
 }

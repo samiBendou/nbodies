@@ -57,7 +57,7 @@ impl Drawer {
         self.offset = self.middle * 2.;
         self.offset.x -= 160.;
         self.offset.y -= 48.;
-        self.unit.rescale(scale_distance);
+        self.unit.rescale(&scale_distance);
 
         piston_window::line_from_to(
             BLACK,
@@ -68,7 +68,7 @@ impl Drawer {
         );
 
         piston_window::text::Text::new_color([0.0, 0.0, 0.0, 1.0], 16).draw(
-            format!("{}", self.unit.string_of(scale_distance)).as_str(),
+            format!("{}", self.unit.string_of(&scale_distance)).as_str(),
             glyphs,
             &c.draw_state,
             c.transform.trans(self.offset.x, self.offset.y - 16.),

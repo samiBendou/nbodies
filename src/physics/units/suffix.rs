@@ -2,6 +2,7 @@ pub enum Distance {
     Meter,
     Astronomic,
     Light,
+    Pixel,
 }
 
 pub enum Time {
@@ -12,6 +13,7 @@ pub enum Time {
 
 pub enum Mass {
     Grams,
+    Kilograms,
     Tons,
 }
 

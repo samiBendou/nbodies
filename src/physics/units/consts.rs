@@ -1,7 +1,8 @@
-pub const PX_PER_METER: f64 = 1.;
 pub const AU_PER_METER: f64 = 6.684587122268445e-12;
 // astronomic units
-pub const LS_PER_METER: f64 = 3.3356409519815204e-09; // light second (distance)
+pub const LS_PER_METER: f64 = 3.3356409519815204e-09;
+// light second (distance)
+pub const PX_PER_METER: f64 = 1.;
 
 pub const MIN_PER_SEC: f64 = 0.016666666666666666;
 pub const HOUR_PER_SEC: f64 = 0.0002777777777777778;

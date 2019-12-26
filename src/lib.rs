@@ -25,26 +25,27 @@ pub struct App {
 
 impl App {
     pub fn new(bodies: Cluster, status: Status, config: Config) -> App {
-        let config = config;
+        let size = config.size.clone();
         App {
             bodies,
             config,
             status,
             step: Step::new(),
             logger: Logger::new(),
-            drawer: Drawer::new(&config.size),
+            drawer: Drawer::new(&size),
         }
     }
 
     pub fn default() -> App {
         let config = Config::default();
+        let size = config.size.clone();
         App {
             bodies: Cluster::empty(),
             config,
             status: Status::default(),
             step: Step::new(),
             logger: Logger::new(),
-            drawer: Drawer::new(&config.size),
+            drawer: Drawer::new(&size),
         }
     }
 
