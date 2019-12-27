@@ -9,13 +9,13 @@ use crate::physics::vector::Vector2;
 
 pub mod ellipse;
 
-const SCALE_LENGTH: f64 = 50.;
-// in px
-const BLACK: [f32; 4] = [0., 0., 0., 1.];
-// const WHITE: [f32; 4] = [255., 255., 255., 1.];
-const RED: [f32; 4] = [255., 0., 0., 1.];
-// const GREEN: [f32; 4] = [0., 255., 0., 1.];
-// const BLUE: [f32; 4] = [0., 0., 255., 1.];
+const SCALE_LENGTH: f64 = 50.; // in px
+
+pub const BLACK: [f32; 4] = [0., 0., 0., 1.];
+pub const WHITE: [f32; 4] = [1., 1., 1., 1.];
+pub const RED: [f32; 4] = [1., 0., 0., 1.];
+// const GREEN: [f32; 4] = [0., 1., 0., 1.];
+// const BLUE: [f32; 4] = [0., 0., 1., 1.];
 
 pub struct Drawer {
     from: Vector2,
@@ -60,14 +60,14 @@ impl Drawer {
         self.unit.rescale(&scale_distance);
 
         piston_window::line_from_to(
-            BLACK,
+            WHITE,
             3.,
             [self.offset.x, self.offset.y],
             [self.offset.x + SCALE_LENGTH, self.offset.y],
             c.transform, g,
         );
 
-        piston_window::text::Text::new_color([0.0, 0.0, 0.0, 1.0], 16).draw(
+        piston_window::text::Text::new_color(WHITE, 16).draw(
             format!("{}", self.unit.string_of(&scale_distance)).as_str(),
             glyphs,
             &c.draw_state,

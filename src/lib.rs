@@ -1,3 +1,5 @@
+use std::process;
+
 use piston::input::{Event, Key, MouseButton, UpdateArgs};
 use piston_window;
 use piston_window::{Glyphs, PistonWindow};
@@ -6,7 +8,7 @@ use crate::common::*;
 use crate::core::{Config, Status, Step};
 use crate::log::Logger;
 use crate::physics::dynamics::body::{Body, Cluster};
-use crate::shapes::Drawer;
+use crate::shapes::{BLACK, Drawer};
 
 pub mod common;
 pub mod shapes;
@@ -24,12 +26,12 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(bodies: Cluster, status: Status, config: Config) -> App {
+    pub fn new(bodies: Cluster, config: Config) -> App {
         let size = config.size.clone();
         App {
             bodies,
             config,
-            status,
+            status: Status::default(),
             step: Step::new(),
             logger: Logger::new(),
             drawer: Drawer::new(&size),
@@ -37,16 +39,24 @@ impl App {
     }
 
     pub fn default() -> App {
-        let config = Config::default();
-        let size = config.size.clone();
-        App {
-            bodies: Cluster::empty(),
-            config,
-            status: Status::default(),
-            step: Step::new(),
-            logger: Logger::new(),
-            drawer: Drawer::new(&size),
+        App::new(Cluster::empty(), Config::default())
+    }
+
+    pub fn cluster(cluster: Cluster) -> App {
+        let mut config = Config::default();
+        let mut max_distance = 0.;
+
+        let mut distance: f64;
+        for body in cluster.bodies.iter() {
+            distance = body.shape.center.position.magnitude();
+            if distance > max_distance {
+                max_distance = distance;
+            }
         }
+        println!("there {:?}", cluster);
+        config.scale.distance = 1. / max_distance * config.size.width;
+        let mut app = App::new(cluster, config);
+        app
     }
 
     pub fn on_key(&mut self, key: &Key) {
@@ -73,7 +83,7 @@ impl App {
         window.draw_2d(
             event,
             |c, g, device| {
-                piston_window::clear([1.0; 4], g);
+                piston_window::clear(BLACK, g);
                 if self.bodies.count() == 0 {
                     self.drawer.draw_barycenter(self.bodies.barycenter(), scale, &c, g);
                     self.drawer.draw_scale(scale, &c, g, glyphs);
@@ -90,7 +100,7 @@ impl App {
                 self.drawer.draw_barycenter(self.bodies.barycenter(), scale, &c, g);
                 self.drawer.draw_scale(scale, &c, g, glyphs);
                 glyphs.factory.encoder.flush(device);
-            }
+            },
         );
     }
 
@@ -134,7 +144,6 @@ impl App {
 
         if self.status.bounded {
             self.bodies.bound(&scaled_middle);
-
         }
     }
 

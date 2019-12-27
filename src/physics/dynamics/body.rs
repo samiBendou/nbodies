@@ -2,6 +2,7 @@ use std::cmp::{max, min};
 use std::fmt::{Debug, Error, Formatter};
 use std::ops::{Index, IndexMut};
 
+use crate::physics::dynamics::orbital;
 use crate::physics::dynamics::point::Point2;
 use crate::physics::vector::Vector2;
 use crate::shapes::ellipse::Circle;
@@ -34,6 +35,14 @@ impl Body {
     pub fn new(mass: f64, name: &str, shape: Circle) -> Body {
         Body { mass, name: String::from(name), shape }
     }
+
+    pub fn planet(body: &orbital::Body, true_anomaly: f64) -> Body {
+        let position = body.orbit.position_at(true_anomaly);
+        let speed = body.orbit.speed_at(true_anomaly);
+        let center = Point2::inertial(position, speed);
+        let shape = Circle::new(center, 30.0, body.color);
+        Body::new(body.mass, body.name.as_str(), shape)
+    }
 }
 
 impl Debug for Body {
@@ -44,7 +53,7 @@ impl Debug for Body {
 }
 
 pub struct Cluster {
-    bodies: Vec<Body>,
+    pub bodies: Vec<Body>,
     barycenter: Body,
     origin: Point2,
     current: usize,
@@ -55,7 +64,13 @@ impl Cluster {
     pub fn new(bodies: Vec<Body>) -> Self {
         let shape = Circle::new(Point2::zeros(), 0., [1., 0., 0., 0.]);
         let barycenter = Body::new(0., "barycenter", shape);
-        Cluster { bodies, barycenter, origin: Point2::zeros(), current: 0, frame: Frame::Zero }
+        Cluster {
+            bodies,
+            barycenter,
+            origin: Point2::zeros(),
+            current: 0,
+            frame: Frame::Zero,
+        }
     }
 
     pub fn empty() -> Self {

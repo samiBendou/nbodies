@@ -251,7 +251,7 @@ impl Status {
     }
 
     pub fn default() -> Status {
-        Status::new(true, false)
+        Status::new(false, false)
     }
 
     pub fn update(&mut self, key: &Option<Key>, button: &Option<MouseButton>) {
