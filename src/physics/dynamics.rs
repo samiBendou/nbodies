@@ -2,6 +2,8 @@ use std::cmp::{max, min};
 use std::fmt::{Debug, Error, Formatter};
 use std::ops::{Index, IndexMut};
 
+use rand::Rng;
+
 use crate::physics::dynamics::point::Point2;
 use crate::physics::vector::Vector2;
 use crate::shapes::ellipse::Circle;
@@ -78,6 +80,37 @@ impl Cluster {
         }
     }
 
+    pub fn from_orbits(cluster: orbital::Cluster, true_anomalies: Vec<f64>) -> Self {
+        let len = cluster.bodies.len();
+        let mut bodies: Vec<Body> = Vec::with_capacity(len);
+        for i in 0..len {
+            bodies.push(Body::planet(&cluster.bodies[i], true_anomalies[i]));
+        }
+        Cluster::new(bodies)
+    }
+
+    pub fn from_orbits_at(cluster: orbital::Cluster, true_anomaly: f64) -> Self {
+        let len = cluster.bodies.len();
+        let mut bodies: Vec<Body> = Vec::with_capacity(len);
+        for i in 0..len {
+            bodies.push(Body::planet(&cluster.bodies[i], true_anomaly));
+        }
+        Cluster::new(bodies)
+    }
+
+    pub fn from_orbits_random(cluster: orbital::Cluster) -> Self {
+        let two_pi = 2. * std::f64::consts::PI;
+        let len = cluster.bodies.len();
+        let mut rng = rand::thread_rng();
+        let mut bodies: Vec<Body> = Vec::with_capacity(len);
+        let mut anomaly: f64;
+        for i in 0..len {
+            anomaly = rng.gen_range(0., two_pi);
+            bodies.push(Body::planet(&cluster.bodies[i], anomaly));
+        }
+        Cluster::new(bodies)
+    }
+
     pub fn empty() -> Self {
         Cluster::new(vec![])
     }
@@ -88,6 +121,18 @@ impl Cluster {
 
     pub fn count(&self) -> usize {
         self.bodies.len()
+    }
+
+    pub fn max_distance(&self) -> f64 {
+        let mut max_distance = 0.;
+        let mut distance: f64;
+        for body in self.bodies.iter() {
+            distance = body.shape.center.position.magnitude();
+            if distance > max_distance {
+                max_distance = distance;
+            }
+        }
+        max_distance
     }
 
     pub fn barycenter(&self) -> &Body {

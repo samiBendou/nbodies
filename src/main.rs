@@ -16,12 +16,8 @@ use piston_start::physics::dynamics::orbital;
 
 fn main() {
     let opengl = OpenGL::V3_2;
-    let orbit_cluster = orbital::Cluster::from_file(Path::new("data/solar_system.json")).unwrap();
-    let mut body_cluster = dynamics::Cluster::empty();
-    for body in orbit_cluster.bodies.iter() {
-        body_cluster.bodies.push(dynamics::Body::planet(body, 0.));
-    }
-    let mut app: App = App::cluster(body_cluster);
+    let cluster = orbital::Cluster::from_file(Path::new("data/solar_system.json")).unwrap();
+    let mut app: App = App::cluster(dynamics::Cluster::from_orbits_at(cluster, 0.));
     let mut input = Input::new();
     let mut window: PistonWindow =
         WindowSettings::new("Bodies Keeps Moving Like Rollin' Stones!", app.config.size)

@@ -98,7 +98,7 @@ pub struct Cluster {
 }
 
 impl Cluster {
-    pub fn from_file(path: &Path) -> Result<Cluster, io::Error> {
+    pub fn from_file(path: &Path) -> Result<Self, io::Error> {
         let mut file = File::open(path)?;
         let mut contents = String::new();
         file.read_to_string(&mut contents)?;

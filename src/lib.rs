@@ -42,17 +42,7 @@ impl App {
 
     pub fn cluster(cluster: Cluster) -> App {
         let mut config = Config::default();
-        let mut max_distance = 0.;
-
-        let mut distance: f64;
-        for body in cluster.bodies.iter() {
-            distance = body.shape.center.position.magnitude();
-            if distance > max_distance {
-                max_distance = distance;
-            }
-        }
-        println!("there {:?}", cluster);
-        config.scale.distance = 1. / max_distance * config.size.width;
+        config.scale.distance = 1. / cluster.max_distance() * config.size.width;
         App::new(cluster, config)
     }
 
