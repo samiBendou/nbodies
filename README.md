@@ -6,7 +6,7 @@ and render it in 2D.
 
 #### Features
 - Simulate stellar systems with JSON data
-- Simulate your own stellar systems using the GUI
+- Build and simulate your own stellar systems using the GUI
 - Visualize trajectories from any point of view
 
 #### Usage
