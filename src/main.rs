@@ -12,16 +12,16 @@ use piston_window::{PistonWindow, WindowSettings};
 
 use piston_start::App;
 use piston_start::common::Input;
-use piston_start::physics::dynamics::body;
+use piston_start::physics::dynamics;
 use piston_start::physics::dynamics::orbital;
 
 fn main() {
     let opengl = OpenGL::V3_2;
     let path: &Path = Path::new("data/solar_system.json");
     let orbit_cluster = orbital::Cluster::from(path);
-    let mut body_cluster = body::Cluster::empty();
+    let mut body_cluster = dynamics::Cluster::empty();
     for body in orbit_cluster.bodies.iter() {
-        body_cluster.bodies.push(body::Body::planet(body, 0.));
+        body_cluster.bodies.push(dynamics::Body::planet(body, 0.));
     }
     let mut app: App = App::cluster(body_cluster);
     let mut input = Input::new();

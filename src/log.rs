@@ -1,6 +1,6 @@
 use crate::common::*;
 use crate::core;
-use crate::physics::dynamics::body::{Body, Cluster};
+use crate::physics::dynamics::{Body, Cluster};
 use crate::physics::dynamics::point::Point2;
 use crate::physics::units;
 use crate::physics::units::{Compound, Rescale, Serialize, Unit};

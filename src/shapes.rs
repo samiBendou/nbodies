@@ -2,7 +2,7 @@ use piston::window::Size;
 use piston_window::*;
 use piston_window::context::Context;
 
-use crate::physics::dynamics::body::{Body, Cluster};
+use crate::physics::dynamics::{Body, Cluster};
 use crate::physics::units::{Rescale, Scale, Serialize, Unit};
 use crate::physics::units::suffix::*;
 use crate::physics::vector::Vector2;

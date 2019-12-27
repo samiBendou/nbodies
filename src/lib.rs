@@ -7,7 +7,7 @@ use piston_window::{Glyphs, PistonWindow};
 use crate::common::*;
 use crate::core::{Config, Status, Step};
 use crate::log::Logger;
-use crate::physics::dynamics::body::{Body, Cluster};
+use crate::physics::dynamics::{Body, Cluster};
 use crate::shapes::{BLACK, Drawer};
 
 pub mod common;
@@ -17,7 +17,7 @@ pub mod core;
 pub mod log;
 
 pub struct App {
-    pub bodies: Cluster,
+    pub cluster: Cluster,
     pub config: Config,
     pub status: Status,
     pub step: Step,
@@ -26,10 +26,10 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(bodies: Cluster, config: Config) -> App {
+    pub fn new(cluster: Cluster, config: Config) -> App {
         let size = config.size.clone();
         App {
-            bodies,
+            cluster,
             config,
             status: Status::default(),
             step: Step::new(),
@@ -64,9 +64,9 @@ impl App {
         self.status.update(&Some(*key), &Option::None);
         if *key == KEY_INCREASE_CURRENT_INDEX || *key == KEY_DECREASE_CURRENT_INDEX {
             let increase = *key == KEY_INCREASE_CURRENT_INDEX;
-            self.bodies.update_current_index(increase);
+            self.cluster.update_current_index(increase);
         } else if *key == KEY_NEXT_FRAME_STATE {
-            self.bodies.update_frame();
+            self.cluster.update_frame();
         } else if *key == KEY_NEXT_LOGGER_STATE {
             self.logger.update();
         }
@@ -84,20 +84,20 @@ impl App {
             event,
             |c, g, device| {
                 piston_window::clear(BLACK, g);
-                if self.bodies.count() == 0 {
-                    self.drawer.draw_barycenter(self.bodies.barycenter(), scale, &c, g);
+                if self.cluster.count() == 0 {
+                    self.drawer.draw_barycenter(self.cluster.barycenter(), scale, &c, g);
                     self.drawer.draw_scale(scale, &c, g, glyphs);
                     glyphs.factory.encoder.flush(device);
                     return;
                 }
                 if self.status.trajectory {
-                    self.drawer.draw_trajectories(&self.bodies, scale, &c, g);
+                    self.drawer.draw_trajectories(&self.cluster, scale, &c, g);
                 }
                 if self.status.state == core::State::WaitSpeed {
-                    self.drawer.draw_speed(self.bodies.current(), self.config.scale.distance, &c, g);
+                    self.drawer.draw_speed(self.cluster.current(), self.config.scale.distance, &c, g);
                 }
-                self.drawer.draw_bodies(&self.bodies, scale, &c, g);
-                self.drawer.draw_barycenter(self.bodies.barycenter(), scale, &c, g);
+                self.drawer.draw_bodies(&self.cluster, scale, &c, g);
+                self.drawer.draw_barycenter(self.cluster.barycenter(), scale, &c, g);
                 self.drawer.draw_scale(scale, &c, g, glyphs);
                 glyphs.factory.encoder.flush(device);
             },
@@ -118,42 +118,42 @@ impl App {
         if self.status.pause {
             return;
         }
-        self.bodies.update_trajectory();
+        self.cluster.update_trajectory();
     }
 
     pub fn log(&mut self, input: &common::Input) {
-        self.logger.log(&self.bodies, &self.status, &self.config, &self.step, input);
+        self.logger.log(&self.cluster, &self.status, &self.config, &self.step, input);
     }
 
     fn do_move(&mut self, dt: f64) {
         let scaled_middle = *self.drawer.middle() / self.config.scale.distance;
 
-        if self.status.pause || self.bodies.is_empty() {
+        if self.status.pause || self.cluster.is_empty() {
             return;
         }
         self.step.update(dt, self.config.scale.time);
         if self.status.translate {
-            self.bodies.translate_current(&self.status.direction.as_vector());
+            self.cluster.translate_current(&self.status.direction.as_vector());
             if self.status.bounded {
-                self.bodies.bound_current(&scaled_middle);
+                self.cluster.bound_current(&scaled_middle);
             }
-            self.bodies.update_current_trajectory();
+            self.cluster.update_current_trajectory();
             return;
         }
         self.do_accelerate(dt / self.config.updates_per_frame as f64 * self.config.scale.time);
 
         if self.status.bounded {
-            self.bodies.bound(&scaled_middle);
+            self.cluster.bound(&scaled_middle);
         }
     }
 
     fn do_accelerate(&mut self, dt: f64) {
         use physics::dynamics::forces;
-        let current_index = self.bodies.current_index();
+        let current_index = self.cluster.current_index();
         let current_direction = self.status.direction;
 
         let mut direction: Direction = Direction::Hold;
-        self.bodies.apply(dt, self.config.updates_per_frame, |force, bodies, i| {
+        self.cluster.apply(dt, self.config.updates_per_frame, |force, bodies, i| {
             direction = if i == current_index {
                 current_direction
             } else {
@@ -165,8 +165,8 @@ impl App {
     }
 
     fn do_reset(&mut self) {
-        if !self.bodies.is_empty() {
-            self.bodies.reset_current();
+        if !self.cluster.is_empty() {
+            self.cluster.reset_current();
         }
     }
 
@@ -175,19 +175,19 @@ impl App {
         let circle = ellipse::Circle::at_cursor_random(cursor, self.drawer.middle());
         let mut body = Body::new(circle.radius * 10e24, "", circle);
         body.shape.center.scale_position(self.config.scale.distance);
-        self.bodies.push(body);
-        self.bodies.current_mut().name = format!("body {}", self.bodies.current_index() + 1);
+        self.cluster.push(body);
+        self.cluster.current_mut().name = format!("body {}", self.cluster.current_index() + 1);
     }
 
     fn do_wait_drop(&mut self, cursor: &[f64; 2]) {
-        self.bodies.wait_drop(cursor, self.drawer.middle(), self.config.scale.distance);
+        self.cluster.wait_drop(cursor, self.drawer.middle(), self.config.scale.distance);
     }
 
     fn do_wait_speed(&mut self, cursor: &[f64; 2]) {
-        self.bodies.wait_speed(cursor, self.drawer.middle(), self.config.scale.distance);
+        self.cluster.wait_speed(cursor, self.drawer.middle(), self.config.scale.distance);
     }
 
     fn do_cancel_drop(&mut self) {
-        self.bodies.pop();
+        self.cluster.pop();
     }
 }
