@@ -1,3 +1,5 @@
+use piston::input::Key;
+
 use crate::common::*;
 use crate::core;
 use crate::physics::dynamics::{Body, Cluster};
@@ -46,8 +48,10 @@ impl Logger {
         }
     }
 
-    pub fn update(&mut self) {
-        self.state.next();
+    pub fn update(&mut self, key: &Key) {
+        if *key == KEY_NEXT_LOGGER_STATE {
+            self.state.next();
+        }
     }
 
     pub fn clear(&mut self) {
@@ -63,7 +67,7 @@ impl Logger {
 
     pub fn log(
         &mut self,
-        bodies: &Cluster,
+        cluster: &Cluster,
         status: &core::Status,
         config: &core::Config,
         step: &core::Step,
@@ -75,9 +79,9 @@ impl Logger {
             Hide => (),
             Status => self.log_status(status, input),
             Timing => self.log_timing(step, config),
-            Cinematic => self.log_cinematic(bodies, config),
-            Physics => self.log_physics(bodies),
-            Bodies => self.log_bodies(bodies)
+            Cinematic => self.log_cinematic(cluster, config),
+            Physics => self.log_physics(cluster),
+            Bodies => self.log_cluster(cluster)
         };
     }
 
@@ -98,15 +102,15 @@ pressed keyboard key: '{:?}'\n",
 updates per frame: {}\n\n\
 *** scale ***\n\
 {:?}",
-                                step, config.updates_per_frame, config.scale
+                                step, config.oversampling, config.scale
         );
     }
 
-    fn log_cinematic(&mut self, bodies: &Cluster, config: &core::Config) {
-        if bodies.is_empty() {
+    fn log_cinematic(&mut self, cluster: &Cluster, config: &core::Config) {
+        if cluster.is_empty() {
             return;
         }
-        let mut current = bodies.current().shape.center.clone();
+        let mut current = cluster.current().shape.center.clone();
         current.scale_position(config.scale.distance);
         current.scale_speed(config.scale.distance);
         self.px_units.rescale(&current);
@@ -117,11 +121,11 @@ updates per frame: {}\n\n\
         );
     }
 
-    fn log_physics(&mut self, bodies: &Cluster) {
-        if bodies.is_empty() {
+    fn log_physics(&mut self, cluster: &Cluster) {
+        if cluster.is_empty() {
             return;
         }
-        let current = bodies.current();
+        let current = cluster.current();
         self.units.rescale(current);
         self.buffer += &format!("
 *** current body ***\n\
@@ -130,11 +134,11 @@ updates per frame: {}\n\n\
         );
     }
 
-    fn log_bodies(&mut self, bodies: &Cluster) {
+    fn log_cluster(&mut self, cluster: &Cluster) {
         self.buffer += &format!("
 *** body list ***\n\
 {:?}\n",
-                                bodies
+                                cluster
         );
     }
 }

@@ -99,18 +99,18 @@ impl Scale {
     }
 
     pub fn increase_time(&mut self) {
-        self.time *= 1.10;
+        self.time *= 2.;
     }
 
     pub fn decrease_time(&mut self) {
-        self.time /= 1.10;
+        self.time /= 2.;
     }
 
     pub fn increase_distance(&mut self) {
-        self.distance *= 1.10;
+        self.distance *= 2.;
     }
     pub fn decrease_distance(&mut self) {
-        self.distance /= 1.10;
+        self.distance /= 2.;
     }
 
     pub fn update(&mut self, key: &Key) {
@@ -187,17 +187,17 @@ impl State {
 pub struct Config {
     pub size: Size,
     pub scale: Scale,
-    pub frames_per_update: u32,
-    pub updates_per_frame: u32,
+    pub undersampling: u32,
+    pub oversampling: u32,
 }
 
 impl Config {
-    pub fn new(size: Size, scale: Scale, frames_per_update: u32, updates_per_frame: u32) -> Config {
+    pub fn new(size: Size, scale: Scale, undersampling: u32, oversampling: u32) -> Config {
         Config {
             size,
             scale,
-            frames_per_update,
-            updates_per_frame,
+            undersampling,
+            oversampling,
         }
     }
 
@@ -205,26 +205,26 @@ impl Config {
         Config {
             size: Size::from([640., 640.]),
             scale: Scale::unit(),
-            frames_per_update: 1,
-            updates_per_frame: 1024,
+            undersampling: 1,
+            oversampling: 1024,
         }
     }
 
     pub fn update(&mut self, key: &Key) {
-        if *key == KEY_INCREASE_UP_FRAME {
-            self.increase_updates_per_frame();
-        } else if *key == KEY_DECREASE_UP_FRAME {
-            self.decrease_updates_per_frame();
+        if *key == KEY_INCREASE_OVERSAMPLING {
+            self.increase_oversampling();
+        } else if *key == KEY_DECREASE_OVERSAMPLING {
+            self.decrease_oversampling();
         }
         self.scale.update(key);
     }
 
-    fn increase_updates_per_frame(&mut self) {
-        self.updates_per_frame = min(self.updates_per_frame << 1, std::u32::MAX);
+    fn increase_oversampling(&mut self) {
+        self.oversampling = min(self.oversampling << 1, std::u32::MAX);
     }
 
-    fn decrease_updates_per_frame(&mut self) {
-        self.updates_per_frame = max(self.updates_per_frame >> 1, std::u32::MIN + 1);
+    fn decrease_oversampling(&mut self) {
+        self.oversampling = max(self.oversampling >> 1, std::u32::MIN + 1);
     }
 }
 

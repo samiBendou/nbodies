@@ -48,14 +48,13 @@ impl App {
 
     pub fn on_key(&mut self, key: &Key) {
         self.config.update(key);
+        self.logger.update(key);
         self.status.update(&Some(*key), &Option::None);
         if *key == KEY_INCREASE_CURRENT_INDEX || *key == KEY_DECREASE_CURRENT_INDEX {
             let increase = *key == KEY_INCREASE_CURRENT_INDEX;
             self.cluster.update_current_index(increase);
         } else if *key == KEY_NEXT_FRAME_STATE {
             self.cluster.update_frame();
-        } else if *key == KEY_NEXT_LOGGER_STATE {
-            self.logger.update();
         }
     }
 
@@ -127,7 +126,7 @@ impl App {
             self.cluster.update_current_trajectory();
             return;
         }
-        self.do_accelerate(dt / self.config.updates_per_frame as f64 * self.config.scale.time);
+        self.do_accelerate(dt / self.config.oversampling as f64 * self.config.scale.time);
 
         if self.status.bounded {
             self.cluster.bound(&scaled_middle);
@@ -140,7 +139,7 @@ impl App {
         let current_direction = self.status.direction;
 
         let mut direction: Direction = Direction::Hold;
-        self.cluster.apply(dt, self.config.updates_per_frame, |force, bodies, i| {
+        self.cluster.apply(dt, self.config.oversampling, |force, bodies, i| {
             direction = if i == current_index {
                 current_direction
             } else {

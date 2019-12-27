@@ -15,8 +15,8 @@ pub static KEY_MOVE_DOWN: Key = Key::Down;
 pub static KEY_MOVE_LEFT: Key = Key::Left;
 pub static KEY_MOVE_RIGHT: Key = Key::Right;
 
-pub static KEY_INCREASE_UP_FRAME: Key = Key::P;
-pub static KEY_DECREASE_UP_FRAME: Key = Key::O;
+pub static KEY_INCREASE_OVERSAMPLING: Key = Key::P;
+pub static KEY_DECREASE_OVERSAMPLING: Key = Key::O;
 pub static KEY_INCREASE_DISTANCE: Key = Key::I;
 pub static KEY_DECREASE_DISTANCE: Key = Key::U;
 pub static KEY_INCREASE_TIME: Key = Key::Y;
