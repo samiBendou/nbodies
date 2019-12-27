@@ -9,8 +9,6 @@ pub struct Duration {
     minutes: i64,
     hours: i64,
     days: i64,
-    weeks: i64,
-    months: i64,
     years: i64,
 }
 
@@ -21,8 +19,6 @@ impl Duration {
             minutes: 0,
             hours: 0,
             days: 0,
-            weeks: 0,
-            months: 0,
             years: 0,
         }
     }
@@ -31,25 +27,19 @@ impl Duration {
         let minutes = (self.minutes * 60) as f64;
         let hours = (self.hours * 3600) as f64;
         let days = (self.days * 86400) as f64;
-        let weeks = (self.weeks * 604800) as f64;
-        let months = (self.months * 2419200) as f64;
-        let years = (self.years * 29030400) as f64;
-        self.seconds + minutes + hours + days + weeks + months + years
+        let years = (self.years * 31536000) as f64;
+        self.seconds + minutes + hours + days + years
     }
 
     fn set_seconds(&mut self, sec: f64) -> &mut Self {
         let years = (sec * YEAR_PER_SEC).floor() as i64;
-        let months = (sec * MONTH_PER_SEC).floor() as i64;
-        let weeks = (sec * WEEK_PER_SEC).floor() as i64;
         let days = (sec * DAY_PER_SEC).floor() as i64;
         let hours = (sec * HOUR_PER_SEC).floor() as i64;
         let minutes = (sec * MIN_PER_SEC).floor() as i64;
         self.seconds = sec - (minutes * 60) as f64;
         self.minutes = minutes - hours * 60;
         self.hours = hours - days * 24;
-        self.days = days - weeks * 7;
-        self.weeks = weeks - months * 4;
-        self.months = months - years * 12;
+        self.days = days - years * 365;
         self.years = years;
         self
     }
@@ -67,13 +57,12 @@ impl Debug for Duration {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
         use super::prefix::{Calendar::*, Calendar};
         let ms = ((self.seconds - self.seconds.floor()) * 1e3) as i32;
-        let hms = format!("{:02}:{:02}:{:02.0}:{:3}", self.hours, self.minutes, self.seconds, ms);
+        let sec = self.seconds.floor() as i32;
+        let hms = format!("{:02}:{:02}:{:02}:{:3}", self.hours, self.minutes, sec, ms);
         match Calendar::from(self.as_seconds()) {
             Hour | Second | Minute => write!(f, "{}", hms.as_str()),
             Day => write!(f, "{}d {}", self.days, hms.as_str()),
-            Week => write!(f, "{}w {}d {}", self.weeks, self.days, hms.as_str()),
-            Month => write!(f, "{}m {}w {}d {}", self.months, self.weeks, self.days, hms.as_str()),
-            Year => write!(f, "{}y {}m {}w {}d {}", self.years, self.months, self.weeks, self.days, hms.as_str()),
+            _ => write!(f, "{}y {}d {}", self.years, self.days, hms.as_str()),
         }
     }
 }
