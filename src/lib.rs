@@ -1,5 +1,3 @@
-use std::process;
-
 use piston::input::{Event, Key, MouseButton, UpdateArgs};
 use piston_window;
 use piston_window::{Glyphs, PistonWindow};
@@ -55,8 +53,7 @@ impl App {
         }
         println!("there {:?}", cluster);
         config.scale.distance = 1. / max_distance * config.size.width;
-        let mut app = App::new(cluster, config);
-        app
+        App::new(cluster, config)
     }
 
     pub fn on_key(&mut self, key: &Key) {

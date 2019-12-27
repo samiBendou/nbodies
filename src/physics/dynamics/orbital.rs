@@ -1,7 +1,7 @@
 use std::fs::File;
+use std::io;
 use std::io::prelude::*;
 use std::path::Path;
-use std::process::exit;
 
 use serde::{Deserialize, Serialize};
 
@@ -77,11 +77,8 @@ impl Orbit {
         if self.is_degenerated() {
             return Vector2::zeros();
         }
-        let pi_frac_2 = std::f64::consts::FRAC_PI_2;
-        let a = self.semi_major();
-        let epsilon = self.eccentricity();
-        let ang = true_anomaly + pi_frac_2 - self.flight_angle_at(true_anomaly);
-        let mag = (self.mu * (2. / self.radius_at(true_anomaly) - 1. / a)).sqrt();
+        let ang = true_anomaly + std::f64::consts::FRAC_PI_2 - self.flight_angle_at(true_anomaly);
+        let mag = (self.mu * (2. / self.radius_at(true_anomaly) - 1. / self.semi_major())).sqrt();
         Vector2::radial(mag, ang + self.argument)
     }
 }
@@ -95,28 +92,20 @@ pub struct Body {
     pub orbit: Orbit,
 }
 
-impl From<&Path> for Body {
-    fn from(path: &Path) -> Self {
-        let mut contents = String::new();
-        if let mut file = File::open(path).unwrap() {
-            file.read_to_string(&mut contents).unwrap_err();
-        }
-        serde_json::from_str(&contents).unwrap()
-    }
-}
-
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Cluster {
     pub bodies: Vec<Body>
 }
 
-impl From<&Path> for Cluster {
-    fn from(path: &Path) -> Self {
+impl Cluster {
+    pub fn from_file(path: &Path) -> Result<Cluster, io::Error> {
+        let mut file = File::open(path)?;
         let mut contents = String::new();
-        if let mut file = File::open(path).unwrap() {
-            file.read_to_string(&mut contents).unwrap();
+        file.read_to_string(&mut contents)?;
+        match serde_json::from_str(&contents) {
+            Ok(bodies) => Ok(Cluster { bodies }),
+            Err(e) => Err(io::Error::new(io::ErrorKind::InvalidData, e))
         }
-        Cluster { bodies: serde_json::from_str(&contents).unwrap() }
     }
 }
 
@@ -130,7 +119,7 @@ mod tests {
         #[test]
         fn simple_deserialize() {
             let path: &Path = Path::new("data/solar_system.json");
-            let cluster = Cluster::from(path);
+            let cluster = Cluster::from_file(path);
             println!("{:?}", cluster);
         }
     }

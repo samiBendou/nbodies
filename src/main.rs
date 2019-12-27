@@ -3,7 +3,6 @@ extern crate opengl_graphics;
 extern crate piston_window;
 
 use std::path::Path;
-use std::process::exit;
 
 use opengl_graphics::OpenGL;
 use piston::event_loop::EventLoop;
@@ -17,8 +16,7 @@ use piston_start::physics::dynamics::orbital;
 
 fn main() {
     let opengl = OpenGL::V3_2;
-    let path: &Path = Path::new("data/solar_system.json");
-    let orbit_cluster = orbital::Cluster::from(path);
+    let orbit_cluster = orbital::Cluster::from_file(Path::new("data/solar_system.json")).unwrap();
     let mut body_cluster = dynamics::Cluster::empty();
     for body in orbit_cluster.bodies.iter() {
         body_cluster.bodies.push(dynamics::Body::planet(body, 0.));

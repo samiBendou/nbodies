@@ -2,7 +2,7 @@ use piston::window::Size;
 use piston_window::*;
 use piston_window::context::Context;
 
-use crate::physics::dynamics::{Body, Cluster};
+use crate::physics::dynamics::{Body, Cluster, SPEED_SCALING_FACTOR};
 use crate::physics::units::{Rescale, Scale, Serialize, Unit};
 use crate::physics::units::suffix::*;
 use crate::physics::vector::Vector2;
@@ -123,7 +123,7 @@ impl Drawer {
 
     pub fn draw_speed(&mut self, body: &Body, scale: f64, c: &Context, g: &mut G2d) {
         self.from = (body.shape.center.position) * scale;
-        self.to = (body.shape.center.position + body.shape.center.speed) * scale;
+        self.to = (body.shape.center.position + body.shape.center.speed * SPEED_SCALING_FACTOR) * scale;
         ellipse::Circle::set_left_up(&mut self.from, &self.middle);
         ellipse::Circle::set_left_up(&mut self.to, &self.middle);
         piston_window::line_from_to(

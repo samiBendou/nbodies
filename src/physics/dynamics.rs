@@ -10,6 +10,8 @@ pub mod point;
 pub mod forces;
 pub mod orbital;
 
+pub const SPEED_SCALING_FACTOR: f64 = 10e7;
+
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Frame {
     Zero,
@@ -278,7 +280,7 @@ impl Cluster {
 
     pub fn wait_speed(&mut self, cursor: &[f64; 2], middle: &Vector2, scale: f64) -> &mut Self {
         self.bodies[self.current].shape.set_cursor_speed(cursor, middle, scale);
-        self.bodies[self.current].shape.center.speed /= scale;
+        self.bodies[self.current].shape.center.speed /= scale * SPEED_SCALING_FACTOR;
         self.bodies[self.current].shape.center.clear_trajectory();
         self.clear_barycenter();
         self
