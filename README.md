@@ -4,6 +4,8 @@
 This project is an application that can simulate any stellar system configuration
 and render it in 2D.
 
+![Demo](assets/demo.png)
+
 #### Features
 - Simulate stellar systems with JSON data
 - Build and simulate your own stellar systems using the GUI
