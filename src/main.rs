@@ -9,8 +9,8 @@ use piston::event_loop::EventLoop;
 use piston::input::{Button, MouseCursorEvent, PressEvent, RenderEvent, UpdateEvent};
 use piston_window::{PistonWindow, WindowSettings};
 
-use piston_start::App;
-use piston_start::common::Input;
+use nbodies::App;
+use nbodies::common::Input;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
