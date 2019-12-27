@@ -95,19 +95,13 @@ pub struct Body {
     pub orbit: Orbit,
 }
 
-impl From<String> for Body {
-    fn from(json: String) -> Self {
-        serde_json::from_str(&json).unwrap()
-    }
-}
-
 impl From<&Path> for Body {
     fn from(path: &Path) -> Self {
         let mut contents = String::new();
         if let mut file = File::open(path).unwrap() {
             file.read_to_string(&mut contents).unwrap_err();
         }
-        Body::from(contents)
+        serde_json::from_str(&contents).unwrap()
     }
 }
 
@@ -116,19 +110,13 @@ pub struct Cluster {
     pub bodies: Vec<Body>
 }
 
-impl From<String> for Cluster {
-    fn from(json: String) -> Self {
-        Cluster { bodies: serde_json::from_str(&json).unwrap() }
-    }
-}
-
 impl From<&Path> for Cluster {
     fn from(path: &Path) -> Self {
         let mut contents = String::new();
         if let mut file = File::open(path).unwrap() {
             file.read_to_string(&mut contents).unwrap();
         }
-        Cluster::from(contents)
+        Cluster { bodies: serde_json::from_str(&contents).unwrap() }
     }
 }
 
