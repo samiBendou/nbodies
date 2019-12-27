@@ -1,4 +1,3 @@
-use std::cmp::{max, min};
 use std::fmt::{Debug, Error, Formatter};
 use std::ops::{Index, IndexMut};
 
@@ -156,10 +155,11 @@ impl Cluster {
         if self.is_empty() {
             return self;
         }
-        let origin = self.origin;
+        let old_origin = self.origin;
         self.update_origin();
+        self.barycenter.shape.center.set_origin(&self.origin, &None);
         for body in self.bodies.iter_mut() {
-            body.shape.center.set_origin(&self.origin, &Some(origin));
+            body.shape.center.set_origin(&self.origin, &None);
         }
         self
     }
@@ -195,10 +195,11 @@ impl Cluster {
     }
 
     pub fn update_current_index(&mut self, increase: bool) -> &mut Self {
-        match increase {
-            true => self.increase_current(),
-            false => self.decrease_current(),
-        };
+        if increase {
+            self.increase_current();
+        } else {
+            self.decrease_current();
+        }
         if self.frame == Frame::Current {
             self.clear_origin();
         }
@@ -235,6 +236,14 @@ impl Cluster {
         self
     }
 
+    pub fn translate(&mut self, direction: &Vector2) -> &mut Self {
+        self.barycenter.shape.center.translate(direction);
+        for body in self.bodies.iter_mut() {
+            body.shape.center.translate(direction);
+        }
+        self
+    }
+
     pub fn accelerate(&mut self, dt: f64) -> &mut Self {
         self.barycenter.shape.center.accelerate(dt);
         for body in self.bodies.iter_mut() {
@@ -250,12 +259,7 @@ impl Cluster {
             .map(|body| body.mass)
             .collect();
         let mut force = Vector2::zeros();
-        self.barycenter.shape.center.position += self.origin.position;
-        self.barycenter.shape.center.speed += self.origin.speed;
-        for body in self.bodies.iter_mut() {
-            body.shape.center.position += self.origin.position;
-            body.shape.center.speed += self.origin.speed;
-        }
+        self.deframe();
         for _ in 0..iterations {
             self.barycenter.shape.center.acceleration.reset0();
             for i in 0..count {
@@ -268,12 +272,7 @@ impl Cluster {
             self.accelerate(dt);
         }
         self.update_origin();
-        self.barycenter.shape.center.position -= self.origin.position;
-        self.barycenter.shape.center.speed -= self.origin.speed;
-        for body in self.bodies.iter_mut() {
-            body.shape.center.position -= self.origin.position;
-            body.shape.center.speed -= self.origin.speed;
-        }
+        self.reframe();
     }
 
     pub fn bound(&mut self, middle: &Vector2) -> &mut Self {
@@ -281,6 +280,26 @@ impl Cluster {
             body.shape.bound(middle);
         }
         self.clear_barycenter();
+        self
+    }
+
+    pub fn deframe(&mut self) -> &mut Self {
+        self.barycenter.shape.center.position += self.origin.position;
+        self.barycenter.shape.center.speed += self.origin.speed;
+        for body in self.bodies.iter_mut() {
+            body.shape.center.position += self.origin.position;
+            body.shape.center.speed += self.origin.speed;
+        }
+        self
+    }
+
+    pub fn reframe(&mut self) -> &mut Self {
+        self.barycenter.shape.center.position -= self.origin.position;
+        self.barycenter.shape.center.speed -= self.origin.speed;
+        for body in self.bodies.iter_mut() {
+            body.shape.center.position -= self.origin.position;
+            body.shape.center.speed -= self.origin.speed;
+        }
         self
     }
 
@@ -331,16 +350,17 @@ impl Cluster {
         self
     }
 
-    fn increase_current(&mut self) -> &mut Self {
-        let current = self.current as isize;
-        self.current = max(current - 1, 0) as usize;
+    fn decrease_current(&mut self) -> &mut Self {
+        if self.current > 0 {
+            self.current -= 1;
+        }
         self
     }
 
-    fn decrease_current(&mut self) -> &mut Self {
-        let current = self.current as isize;
-        let count = self.count() as isize;
-        self.current = min(current + 1, max(count - 1, 0)) as usize;
+    fn increase_current(&mut self) -> &mut Self {
+        if self.current < self.count() - 1 {
+            self.current += 1;
+        }
         self
     }
 }

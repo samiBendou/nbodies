@@ -2,6 +2,7 @@ extern crate find_folder;
 extern crate opengl_graphics;
 extern crate piston_window;
 
+use std::{env, process};
 use std::path::Path;
 
 use opengl_graphics::OpenGL;
@@ -15,17 +16,22 @@ use piston_start::physics::dynamics;
 use piston_start::physics::dynamics::orbital;
 
 fn main() {
-    let opengl = OpenGL::V3_2;
-    let cluster = orbital::Cluster::from_file(Path::new("data/solar_system.json")).unwrap();
-    let mut app: App = App::cluster(dynamics::Cluster::from_orbits_at(cluster, 0.));
+    let args: Vec<String> = env::args().collect();
+    let mut app = App::from_args(args).unwrap_or_else(|err| {
+        eprintln!("Problem building app: {}", err);
+        process::exit(1);
+    });
     let mut input = Input::new();
     let mut window: PistonWindow =
         WindowSettings::new("Bodies Keeps Moving Like Rollin' Stones!", app.config.size)
             .exit_on_esc(true)
             .resizable(false)
-            .graphics_api(opengl)
+            .graphics_api(OpenGL::V3_2)
             .build()
-            .unwrap();
+            .unwrap_or_else(|err| {
+                eprintln!("Problem building window: {}", err);
+                process::exit(1);
+            });
 
     window.events.set_max_fps(60);
     window.events.set_ups(60);

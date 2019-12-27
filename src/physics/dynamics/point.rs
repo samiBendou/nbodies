@@ -92,11 +92,10 @@ impl Point2 {
     }
 
     pub fn set_origin(&mut self, origin: &Point2, old_origin: &Option<Point2>) -> &mut Self {
-        let mut translation = *origin;
         if let Some(old_origin) = old_origin {
-            translation -= *old_origin
+            *self += *old_origin;
         }
-        *self -= translation;
+        *self -= *origin;
         self
     }
 }

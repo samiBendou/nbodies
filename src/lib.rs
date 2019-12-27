@@ -1,3 +1,6 @@
+use std::io;
+use std::path::Path;
+
 use piston::input::{Event, Key, MouseButton, UpdateArgs};
 use piston_window;
 use piston_window::{Glyphs, PistonWindow};
@@ -5,7 +8,8 @@ use piston_window::{Glyphs, PistonWindow};
 use crate::common::*;
 use crate::core::{Config, Status, Step};
 use crate::log::Logger;
-use crate::physics::dynamics::{Body, Cluster};
+use crate::physics::dynamics;
+use crate::physics::dynamics::orbital;
 use crate::shapes::{BLACK, Drawer};
 
 pub mod common;
@@ -15,7 +19,7 @@ pub mod core;
 pub mod log;
 
 pub struct App {
-    pub cluster: Cluster,
+    pub cluster: dynamics::Cluster,
     pub config: Config,
     pub status: Status,
     pub step: Step,
@@ -23,8 +27,16 @@ pub struct App {
     pub drawer: Drawer,
 }
 
+impl From<dynamics::Cluster> for App {
+    fn from(cluster: dynamics::Cluster) -> Self {
+        let mut config = Config::default();
+        config.scale.distance = 1. / cluster.max_distance() * config.size.width;
+        App::new(cluster, config)
+    }
+}
+
 impl App {
-    pub fn new(cluster: Cluster, config: Config) -> App {
+    pub fn new(cluster: dynamics::Cluster, config: Config) -> App {
         let size = config.size.clone();
         App {
             cluster,
@@ -37,25 +49,23 @@ impl App {
     }
 
     pub fn default() -> App {
-        App::new(Cluster::empty(), Config::default())
+        App::new(dynamics::Cluster::empty(), Config::default())
     }
 
-    pub fn cluster(cluster: Cluster) -> App {
-        let mut config = Config::default();
-        config.scale.distance = 1. / cluster.max_distance() * config.size.width;
-        App::new(cluster, config)
+    pub fn from_args(args: Vec<String>) -> Result<App, io::Error> {
+        if args.len() == 1 {
+            Ok(App::default())
+        } else {
+            let cluster = orbital::Cluster::from_file(Path::new(args[1].as_str()))?;
+            Ok(App::from(dynamics::Cluster::from_orbits_at(cluster, 0.)))
+        }
     }
 
     pub fn on_key(&mut self, key: &Key) {
         self.config.update(key);
         self.logger.update(key);
         self.status.update(&Some(*key), &Option::None);
-        if *key == KEY_INCREASE_CURRENT_INDEX || *key == KEY_DECREASE_CURRENT_INDEX {
-            let increase = *key == KEY_INCREASE_CURRENT_INDEX;
-            self.cluster.update_current_index(increase);
-        } else if *key == KEY_NEXT_FRAME_STATE {
-            self.cluster.update_frame();
-        }
+        self.update_cluster(key);
     }
 
     pub fn on_click(&mut self, button: &MouseButton) {
@@ -107,6 +117,15 @@ impl App {
         self.cluster.update_trajectory();
     }
 
+    pub fn update_cluster(&mut self, key: &Key) {
+        if *key == KEY_INCREASE_CURRENT_INDEX || *key == KEY_DECREASE_CURRENT_INDEX {
+            let increase = *key == KEY_INCREASE_CURRENT_INDEX;
+            self.cluster.update_current_index(increase);
+        } else if *key == KEY_NEXT_FRAME_STATE {
+            self.cluster.update_frame();
+        }
+    }
+
     pub fn log(&mut self, input: &common::Input) {
         self.logger.log(&self.cluster, &self.status, &self.config, &self.step, input);
     }
@@ -117,6 +136,7 @@ impl App {
         if self.status.pause || self.cluster.is_empty() {
             return;
         }
+
         self.step.update(dt, self.config.scale.time);
         if self.status.translate {
             self.cluster.translate_current(&self.status.direction.as_vector());
@@ -126,6 +146,7 @@ impl App {
             self.cluster.update_current_trajectory();
             return;
         }
+
         self.do_accelerate(dt / self.config.oversampling as f64 * self.config.scale.time);
 
         if self.status.bounded {
@@ -135,18 +156,8 @@ impl App {
 
     fn do_accelerate(&mut self, dt: f64) {
         use physics::dynamics::forces;
-        let current_index = self.cluster.current_index();
-        let current_direction = self.status.direction;
-
-        let mut direction: Direction = Direction::Hold;
         self.cluster.apply(dt, self.config.oversampling, |force, bodies, i| {
-            direction = if i == current_index {
-                current_direction
-            } else {
-                Direction::Hold
-            };
             *force = forces::gravity(&bodies[i], bodies);
-            *force += forces::push(&direction);
         });
     }
 
@@ -159,7 +170,7 @@ impl App {
     fn do_add(&mut self, cursor: &[f64; 2]) {
         use shapes::ellipse;
         let circle = ellipse::Circle::at_cursor_random(cursor, self.drawer.middle());
-        let mut body = Body::new(circle.radius * 10e24, "", circle);
+        let mut body = dynamics::Body::new(circle.radius * 10e24, "", circle);
         body.shape.center.scale_position(self.config.scale.distance);
         self.cluster.push(body);
         self.cluster.current_mut().name = format!("body {}", self.cluster.current_index() + 1);
