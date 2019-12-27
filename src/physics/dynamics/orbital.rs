@@ -26,8 +26,18 @@ impl Orbit {
     pub fn semi_minor(&self) -> f64 {
         (self.apoapsis * self.periapsis).sqrt()
     }
+
     pub fn semi_major(&self) -> f64 {
         0.5 * (self.apoapsis + self.periapsis)
+    }
+
+    pub fn is_degenerated(&self) -> bool {
+        let epsilon_f64 = std::f64::EPSILON;
+        if self.semi_minor() < epsilon_f64 || self.semi_major() < epsilon_f64 {
+            true
+        } else {
+            false
+        }
     }
 
     pub fn eccentricity(&self) -> f64 {
@@ -59,16 +69,16 @@ impl Orbit {
     }
 
     pub fn position_at(&self, true_anomaly: f64) -> Vector2 {
-        let r = self.radius_at(true_anomaly);
-        Vector2::radial(r, true_anomaly + self.argument)
+        let mag = self.radius_at(true_anomaly);
+        Vector2::radial(mag, true_anomaly + self.argument)
     }
 
     pub fn speed_at(&self, true_anomaly: f64) -> Vector2 {
-        let a = self.semi_major();
-        if a == 0. {
+        if self.is_degenerated() {
             return Vector2::zeros();
         }
         let pi_frac_2 = std::f64::consts::FRAC_PI_2;
+        let a = self.semi_major();
         let epsilon = self.eccentricity();
         let ang = true_anomaly + pi_frac_2 - self.flight_angle_at(true_anomaly);
         let mag = (self.mu * (2. / self.radius_at(true_anomaly) - 1. / a)).sqrt();
