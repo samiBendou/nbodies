@@ -170,7 +170,7 @@ impl App {
     fn do_add(&mut self, cursor: &[f64; 2]) {
         use shapes::ellipse;
         let circle = ellipse::Circle::at_cursor_random(cursor, self.drawer.middle());
-        let mut body = dynamics::Body::new(circle.radius * 10e24, "", circle);
+        let mut body = dynamics::Body::new(10f64.powf(circle.radius), "", circle);
         body.shape.center.scale_position(self.config.scale.distance);
         self.cluster.push(body);
         self.cluster.current_mut().name = format!("body {}", self.cluster.current_index() + 1);

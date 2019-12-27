@@ -37,7 +37,7 @@ impl Circle {
         let mut rng = rand::thread_rng();
         let radius: f64 = rng.gen();
         let color: [f32; 4] = [rng.gen(), rng.gen(), rng.gen(), 1.];
-        Circle::at_cursor(cursor, 40. * radius + 20., color, middle)
+        Circle::at_cursor(cursor, 20. * radius + 20., color, middle)
     }
 
     pub fn rounding_rect(&self, middle: &Vector2, scale: f64) -> [f64; 4] {

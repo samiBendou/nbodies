@@ -3,7 +3,6 @@ extern crate opengl_graphics;
 extern crate piston_window;
 
 use std::{env, process};
-use std::path::Path;
 
 use opengl_graphics::OpenGL;
 use piston::event_loop::EventLoop;
@@ -12,8 +11,6 @@ use piston_window::{PistonWindow, WindowSettings};
 
 use piston_start::App;
 use piston_start::common::Input;
-use piston_start::physics::dynamics;
-use piston_start::physics::dynamics::orbital;
 
 fn main() {
     let args: Vec<String> = env::args().collect();

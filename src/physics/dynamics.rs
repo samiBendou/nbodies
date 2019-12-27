@@ -155,7 +155,6 @@ impl Cluster {
         if self.is_empty() {
             return self;
         }
-        let old_origin = self.origin;
         self.update_origin();
         self.barycenter.shape.center.set_origin(&self.origin, &None);
         for body in self.bodies.iter_mut() {
