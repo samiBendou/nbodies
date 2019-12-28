@@ -10,7 +10,6 @@ use crate::core::{Config, Status, Step};
 use crate::log::Logger;
 use crate::physics::dynamics;
 use crate::physics::dynamics::orbital;
-use crate::physics::dynamics::orbital::Kind;
 use crate::shapes::{BLACK, Drawer};
 
 pub mod common;
@@ -174,7 +173,11 @@ impl App {
 
     fn do_add(&mut self, cursor: &[f64; 2]) {
         use shapes::ellipse;
-        let kind = orbital::Kind::random();
+        let kind = if self.cluster.is_empty() {
+            orbital::Kind::Star
+        } else {
+            orbital::Kind::random()
+        };
         let mass = kind.random_mass();
         let color = random_color();
         let radius = kind.scaled_radius(kind.random_radius());

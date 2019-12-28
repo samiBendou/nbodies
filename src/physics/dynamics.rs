@@ -3,7 +3,6 @@ use std::ops::{Index, IndexMut};
 
 use rand::Rng;
 
-use crate::physics::dynamics::orbital::Kind;
 use crate::physics::dynamics::point::Point2;
 use crate::physics::vector::Vector2;
 use crate::shapes::ellipse::Circle;

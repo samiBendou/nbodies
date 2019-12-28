@@ -6,7 +6,6 @@ use std::path::Path;
 use rand::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::physics::dynamics::orbital::Kind::Artificial;
 use crate::physics::vector::Vector2;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Copy, Clone)]

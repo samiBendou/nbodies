@@ -115,7 +115,6 @@ updates per frame: {}\n\n\
         if !status.is_waiting_to_add() || count == 1 {
             return;
         }
-        let mut last = cluster.last().unwrap().shape.center;
         self.log_shape(cluster.last().unwrap(), config);
     }
 
