@@ -1,6 +1,7 @@
 [
   {
     "name": "Sun",
+    "kind": "Star",
     "mass": 1.9891e+30,
     "radius": 6.96342e+8,
     "color": [
@@ -22,6 +23,7 @@
   },
   {
     "name": "Mercury",
+    "kind": "Terrestrial",
     "mass": 3.3011e+23,
     "radius": 2.4397e+6,
     "color": [
@@ -43,6 +45,7 @@
   },
   {
     "name": "Venus",
+    "kind": "Terrestrial",
     "mass": 4.8685e+24,
     "radius": 6.0518e+6,
     "color": [
@@ -64,6 +67,7 @@
   },
   {
     "name": "Earth",
+    "kind": "Terrestrial",
     "mass": 5.9736e+24,
     "radius": 6.3781e+6,
     "color": [
@@ -85,6 +89,7 @@
   },
   {
     "name": "Mars",
+    "kind": "Terrestrial",
     "mass": 6.4185e+23,
     "radius": 3.3962e+6,
     "color": [
@@ -106,6 +111,7 @@
   },
   {
     "name": "Jupiter",
+    "kind": "Giant",
     "mass": 1.8986e+27,
     "radius": 7.1492e+7,
     "color": [
@@ -127,6 +133,7 @@
   },
   {
     "name": "Saturn",
+    "kind": "Giant",
     "mass": 5.6846e+26,
     "radius": 6.0268e+7,
     "color": [
@@ -148,6 +155,7 @@
   },
   {
     "name": "Uranus",
+    "kind": "Giant",
     "mass": 8.6810e+25,
     "radius": 2.5559e+7,
     "color": [
@@ -169,6 +177,7 @@
   },
   {
     "name": "Neptune",
+    "kind": "Giant",
     "mass": 1.0243e+26,
     "radius": 2.4764e+7,
     "color": [

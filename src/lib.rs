@@ -10,6 +10,7 @@ use crate::core::{Config, Status, Step};
 use crate::log::Logger;
 use crate::physics::dynamics;
 use crate::physics::dynamics::orbital;
+use crate::physics::dynamics::orbital::Kind;
 use crate::shapes::{BLACK, Drawer};
 
 pub mod common;
@@ -90,7 +91,7 @@ impl App {
                     self.drawer.draw_trajectories(&self.cluster, scale, &c, g);
                 }
                 if self.status.state == core::State::WaitSpeed {
-                    self.drawer.draw_speed(self.cluster.current(), self.config.scale.distance, &c, g);
+                    self.drawer.draw_speed(self.cluster.last().unwrap(), self.config.scale.distance, &c, g);
                 }
                 self.drawer.draw_bodies(&self.cluster, scale, &c, g);
                 self.drawer.draw_barycenter(self.cluster.barycenter(), scale, &c, g);
@@ -120,7 +121,11 @@ impl App {
     pub fn update_cluster(&mut self, key: &Key) {
         if *key == KEY_INCREASE_CURRENT_INDEX || *key == KEY_DECREASE_CURRENT_INDEX {
             let increase = *key == KEY_INCREASE_CURRENT_INDEX;
-            self.cluster.update_current_index(increase);
+            let mut bypass_last = false;
+            if self.status.state == core::State::WaitSpeed || self.status.state == core::State::WaitDrop {
+                bypass_last = true;
+            }
+            self.cluster.update_current_index(increase, bypass_last);
         } else if *key == KEY_NEXT_FRAME_STATE {
             self.cluster.update_frame();
         }
@@ -169,11 +174,15 @@ impl App {
 
     fn do_add(&mut self, cursor: &[f64; 2]) {
         use shapes::ellipse;
-        let circle = ellipse::Circle::at_cursor_random(cursor, self.drawer.middle());
-        let mut body = dynamics::Body::new(10f64.powf(circle.radius), "", circle);
+        let kind = orbital::Kind::random();
+        let mass = kind.random_mass();
+        let color = random_color();
+        let radius = kind.scaled_radius(kind.random_radius());
+        let circle = ellipse::Circle::at_cursor(cursor, radius, color, self.drawer.middle());
+        let mut body = dynamics::Body::new(mass, "", circle);
         body.shape.center.scale_position(self.config.scale.distance);
         self.cluster.push(body);
-        self.cluster.current_mut().name = format!("body {}", self.cluster.current_index() + 1);
+        self.cluster.last_mut().unwrap().name = format!("body {}", self.cluster.count());
     }
 
     fn do_wait_drop(&mut self, cursor: &[f64; 2]) {

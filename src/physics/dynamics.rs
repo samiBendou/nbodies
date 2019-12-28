@@ -3,6 +3,7 @@ use std::ops::{Index, IndexMut};
 
 use rand::Rng;
 
+use crate::physics::dynamics::orbital::Kind;
 use crate::physics::dynamics::point::Point2;
 use crate::physics::vector::Vector2;
 use crate::shapes::ellipse::Circle;
@@ -11,7 +12,7 @@ pub mod point;
 pub mod forces;
 pub mod orbital;
 
-pub const SPEED_SCALING_FACTOR: f64 = 10e7;
+pub const SPEED_SCALING_FACTOR: f64 = 10e5;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Frame {
@@ -46,8 +47,14 @@ impl Body {
         let position = body.orbit.position_at(true_anomaly);
         let speed = body.orbit.speed_at(true_anomaly);
         let center = Point2::inertial(position, speed);
-        let shape = Circle::new(center, 30.0, body.color);
-        Body::new(body.mass, body.name.as_str(), shape)
+        let shape = Circle::new(center, 0., body.color);
+        let mut result = Body::new(body.mass, body.name.as_str(), shape);
+        result.set_radius_from(body);
+        result
+    }
+
+    pub fn set_radius_from(&mut self, body: &orbital::Body) {
+        self.shape.radius = body.kind.scaled_radius(body.radius);
     }
 }
 
@@ -63,7 +70,7 @@ pub struct Cluster {
     barycenter: Body,
     origin: Point2,
     current: usize,
-    pub frame: Frame,
+    frame: Frame,
 }
 
 impl Cluster {
@@ -126,7 +133,7 @@ impl Cluster {
         let mut max_distance = 0.;
         let mut distance: f64;
         for body in self.bodies.iter() {
-            distance = body.shape.center.position.magnitude();
+            distance = body.shape.center.position % self.origin.position;
             if distance > max_distance {
                 max_distance = distance;
             }
@@ -183,6 +190,10 @@ impl Cluster {
         &mut self.bodies[self.current]
     }
 
+    pub fn last(&self) -> Option<&Body> { self.bodies.last() }
+
+    pub fn last_mut(&mut self) -> Option<&mut Body> { self.bodies.last_mut() }
+
     pub fn current_index(&self) -> usize {
         self.current
     }
@@ -193,9 +204,9 @@ impl Cluster {
         self.clear_barycenter()
     }
 
-    pub fn update_current_index(&mut self, increase: bool) -> &mut Self {
+    pub fn update_current_index(&mut self, increase: bool, bypass_last: bool) -> &mut Self {
         if increase {
-            self.increase_current();
+            self.increase_current(bypass_last);
         } else {
             self.decrease_current();
         }
@@ -317,7 +328,6 @@ impl Cluster {
     }
 
     pub fn push(&mut self, body: Body) -> &mut Self {
-        self.current = self.bodies.len();
         self.bodies.push(body);
         self.clear_barycenter();
         self
@@ -334,17 +344,19 @@ impl Cluster {
     }
 
     pub fn wait_drop(&mut self, cursor: &[f64; 2], middle: &Vector2, scale: f64) -> &mut Self {
-        self.bodies[self.current].shape.set_cursor_pos(cursor, middle);
-        self.bodies[self.current].shape.center.position /= scale;
-        self.bodies[self.current].shape.center.clear_trajectory();
+        let last = self.bodies.len() - 1;
+        self.bodies[last].shape.set_cursor_pos(cursor, middle);
+        self.bodies[last].shape.center.position /= scale;
+        self.bodies[last].shape.center.clear_trajectory();
         self.clear_barycenter();
         self
     }
 
     pub fn wait_speed(&mut self, cursor: &[f64; 2], middle: &Vector2, scale: f64) -> &mut Self {
-        self.bodies[self.current].shape.set_cursor_speed(cursor, middle, scale);
-        self.bodies[self.current].shape.center.speed /= scale * SPEED_SCALING_FACTOR;
-        self.bodies[self.current].shape.center.clear_trajectory();
+        let last = self.bodies.len() - 1;
+        self.bodies[last].shape.set_cursor_speed(cursor, middle, scale);
+        self.bodies[last].shape.center.speed /= scale * SPEED_SCALING_FACTOR;
+        self.bodies[last].shape.center.clear_trajectory();
         self.clear_barycenter();
         self
     }
@@ -356,8 +368,9 @@ impl Cluster {
         self
     }
 
-    fn increase_current(&mut self) -> &mut Self {
-        if self.current < self.count() - 1 {
+    fn increase_current(&mut self, bypass_last: bool) -> &mut Self {
+        let offset = if bypass_last { 2 } else { 1 };
+        if self.current < self.count() - offset {
             self.current += 1;
         }
         self

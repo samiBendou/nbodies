@@ -2,6 +2,7 @@ use std::fmt::{Debug, Error, Formatter};
 
 use rand::Rng;
 
+use crate::common::random_color;
 use crate::physics::dynamics::point::Point2;
 use crate::physics::vector::Vector2;
 
@@ -36,15 +37,15 @@ impl Circle {
     pub fn at_cursor_random(cursor: &[f64; 2], middle: &Vector2) -> Circle {
         let mut rng = rand::thread_rng();
         let radius: f64 = rng.gen();
-        let color: [f32; 4] = [rng.gen(), rng.gen(), rng.gen(), 1.];
-        Circle::at_cursor(cursor, 20. * radius + 20., color, middle)
+        Circle::at_cursor(cursor, 20. * radius + 20., random_color(), middle)
     }
 
     pub fn rounding_rect(&self, middle: &Vector2, scale: f64) -> [f64; 4] {
-        let diameter = 2. * self.radius;
+        let radius = 2. * (self.radius + scale.log10());
+        let diameter = 2. * radius;
         let mut position_scaled = self.center.position * scale;
         Circle::set_left_up(&mut position_scaled, middle);
-        [position_scaled.x - self.radius, position_scaled.y - self.radius, diameter, diameter]
+        [position_scaled.x - radius, position_scaled.y - radius, diameter, diameter]
     }
 
     pub fn bound(&mut self, middle: &Vector2) -> &mut Circle {

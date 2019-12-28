@@ -3,9 +3,67 @@ use std::io;
 use std::io::prelude::*;
 use std::path::Path;
 
+use rand::prelude::*;
 use serde::{Deserialize, Serialize};
 
+use crate::physics::dynamics::orbital::Kind::Artificial;
 use crate::physics::vector::Vector2;
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Copy, Clone)]
+pub enum Kind {
+    Artificial,
+    Terrestrial,
+    Giant,
+    Star,
+    Hole,
+}
+
+impl Kind {
+    pub fn random() -> Kind {
+        use Kind::*;
+        let mut rng = rand::thread_rng();
+        match rng.gen_range(0, 4) {
+            1 => Terrestrial,
+            2 => Giant,
+            3 => Star,
+            4 => Hole,
+            _ => Artificial,
+        }
+    }
+
+    pub fn random_mass(&self) -> f64 {
+        let mut rng = rand::thread_rng();
+        match self {
+            Kind::Artificial => rng.gen_range(1., 1e6),
+            Kind::Terrestrial => rng.gen_range(1e22, 1e25),
+            Kind::Giant => rng.gen_range(1e25, 1e28),
+            Kind::Star => rng.gen_range(1e28, 1e31),
+            Kind::Hole => rng.gen_range(1e32, 1e31),
+        }
+    }
+
+
+    pub fn random_radius(&self) -> f64 {
+        let mut rng = rand::thread_rng();
+        match self {
+            Kind::Artificial => rng.gen_range(1., 100.),
+            Kind::Terrestrial => rng.gen_range(1e6, 1e7),
+            Kind::Giant => rng.gen_range(1e7, 1e8),
+            Kind::Star => rng.gen_range(1e7, 1e9),
+            Kind::Hole => rng.gen_range(1e6, 1e10),
+        }
+    }
+
+    pub fn scaled_radius(&self, radius: f64) -> f64 {
+        radius / 10f64.powf(radius.log10()) + match self {
+            Kind::Artificial => 1.,
+            Kind::Terrestrial => 20.,
+            Kind::Giant => 22.,
+            Kind::Star => 24.,
+            Kind::Hole => 24.,
+        }
+    }
+}
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Copy, Clone)]
 pub struct Inclination {
@@ -87,6 +145,7 @@ impl Orbit {
 pub struct Body {
     pub name: String,
     pub mass: f64,
+    pub kind: Kind,
     pub color: [f32; 4],
     pub radius: f64,
     pub orbit: Orbit,
