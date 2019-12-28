@@ -122,7 +122,7 @@ impl App {
         if *key == KEY_INCREASE_CURRENT_INDEX || *key == KEY_DECREASE_CURRENT_INDEX {
             let increase = *key == KEY_INCREASE_CURRENT_INDEX;
             let mut bypass_last = false;
-            if self.status.state == core::State::WaitSpeed || self.status.state == core::State::WaitDrop {
+            if self.status.is_waiting_to_add() {
                 bypass_last = true;
             }
             self.cluster.update_current_index(increase, bypass_last);

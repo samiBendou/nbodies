@@ -182,12 +182,12 @@ impl Cluster {
         self
     }
 
-    pub fn current(&self) -> &Body {
-        &self.bodies[self.current]
+    pub fn current(&self) -> Option<&Body> {
+        self.bodies.get(self.current)
     }
 
-    pub fn current_mut(&mut self) -> &mut Body {
-        &mut self.bodies[self.current]
+    pub fn current_mut(&mut self) -> Option<&mut Body> {
+        self.bodies.get_mut(self.current)
     }
 
     pub fn last(&self) -> Option<&Body> { self.bodies.last() }

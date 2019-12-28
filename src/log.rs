@@ -111,8 +111,8 @@ updates per frame: {}\n\n\
         if count == 0 {
             return;
         }
-        self.log_shape(cluster.current(), config);
-        if (status.state != core::State::WaitSpeed && status.state != core::State::WaitDrop) || count == 1 {
+        self.log_shape(cluster.current().unwrap(), config);
+        if !status.is_waiting_to_add() || count == 1 {
             return;
         }
         let mut last = cluster.last().unwrap().shape.center;
@@ -124,8 +124,8 @@ updates per frame: {}\n\n\
         if count == 0 {
             return;
         }
-        self.log_body(cluster.current());
-        if (status.state != core::State::WaitSpeed && status.state != core::State::WaitDrop) || count == 1 {
+        self.log_body(cluster.current().unwrap());
+        if !status.is_waiting_to_add() || count == 1 {
             return;
         }
         self.log_body(cluster.last().unwrap());

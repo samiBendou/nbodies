@@ -254,6 +254,10 @@ impl Status {
         Status::new(false, false)
     }
 
+    pub fn is_waiting_to_add(&self) -> bool {
+        self.state == State::WaitSpeed || self.state == State::WaitDrop
+    }
+
     pub fn update(&mut self, key: &Option<Key>, button: &Option<MouseButton>) {
         match key {
             None => {
