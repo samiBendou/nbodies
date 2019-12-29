@@ -38,22 +38,49 @@ impl Vector2 {
         self
     }
 
-    pub fn rotation(&mut self, angle: f64) -> &mut Self {
+    pub fn rotate(&mut self, angle: f64) -> &mut Self {
         let c = angle.cos();
         let s = angle.sin();
-
         self.x = self.x * c - self.y * s;
         self.y = self.x * s + self.y * c;
         self
     }
 
-    pub fn as_array(&self) -> [f64; 2] {
+    pub fn rotate_translate(&mut self, angle: f64, direction: Vector2) -> &mut Self {
+        let c = angle.cos();
+        let s = angle.sin();
+        self.x = self.x * c - self.y * s + direction.x;
+        self.y = self.x * s + self.y * c + direction.y;
+        self
+    }
+
+    pub fn array(&self) -> [f64; 2] {
         [self.x, self.y]
     }
 
     pub fn set_array(&mut self, array: &[f64; 2]) -> &mut Self {
         self.x = array[0];
         self.y = array[1];
+        self
+    }
+
+    pub fn left_up(&self, middle: &Vector2, scale: f64) -> Self {
+        Vector2::new(self.x * scale + middle.x, middle.y - self.y * scale)
+    }
+
+    pub fn set_left_up(&mut self, middle: &Vector2, scale: f64) -> &mut Self {
+        self.x = self.x * scale + middle.x;
+        self.y = middle.y - self.y * scale;
+        self
+    }
+
+    pub fn centered(&self, middle: &Vector2, scale: f64) -> Self {
+        Vector2::new((self.x - middle.x) / scale, (middle.y - self.y) / scale)
+    }
+
+    pub fn set_centered(&mut self, middle: &Vector2, scale: f64) -> &mut Self {
+        self.x = (self.x - middle.x) / scale;
+        self.y = (middle.y - self.y) / scale;
         self
     }
 

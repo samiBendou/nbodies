@@ -4,6 +4,7 @@ use rand::Rng;
 
 use crate::common::random_color;
 use crate::physics::dynamics::point::Point2;
+use crate::physics::dynamics::SPEED_SCALING_FACTOR;
 use crate::physics::vector::Vector2;
 
 #[derive(Copy, Clone)]
@@ -26,25 +27,22 @@ impl Circle {
         Circle::new(Point2::zeros(), radius, color)
     }
 
-    pub fn at_cursor(cursor: &[f64; 2], radius: f64, color: [f32; 4], middle: &Vector2) -> Circle {
-        let position = Vector2::from(*cursor);
+    pub fn at_cursor(cursor: &[f64; 2], radius: f64, color: [f32; 4], middle: &Vector2, scale: f64) -> Circle {
+        let position = *Vector2::from(*cursor).set_centered(middle, scale);
         let center = Point2::stationary(position);
-        let mut circle = Circle::new(center, radius, color);
-        Circle::set_centered(&mut circle.center.position, middle);
-        circle
+        Circle::new(center, radius, color)
     }
 
-    pub fn at_cursor_random(cursor: &[f64; 2], middle: &Vector2) -> Circle {
+    pub fn at_cursor_random(cursor: &[f64; 2], middle: &Vector2, scale: f64) -> Circle {
         let mut rng = rand::thread_rng();
         let radius: f64 = rng.gen();
-        Circle::at_cursor(cursor, 20. * radius + 20., random_color(), middle)
+        Circle::at_cursor(cursor, 20. * radius + 20., random_color(), middle, scale)
     }
 
     pub fn rounding_rect(&self, middle: &Vector2, scale: f64) -> [f64; 4] {
         let radius = 2. * (self.radius + scale.log10());
         let diameter = 2. * radius;
-        let mut position_scaled = self.center.position * scale;
-        Circle::set_left_up(&mut position_scaled, middle);
+        let position_scaled = self.center.position.left_up(middle, scale);
         [position_scaled.x - radius, position_scaled.y - radius, diameter, diameter]
     }
 
@@ -69,28 +67,15 @@ impl Circle {
         self
     }
 
-    pub fn set_cursor_pos(&mut self, cursor: &[f64; 2], middle: &Vector2) -> &mut Circle {
-        self.center.position.set_array(&cursor);
-        Circle::set_centered(&mut self.center.position, middle);
+    pub fn set_cursor_pos(&mut self, cursor: &[f64; 2], middle: &Vector2, scale: f64) -> &mut Circle {
+        self.center.position.set_array(&cursor).set_centered(middle, scale);
         self
     }
 
     pub fn set_cursor_speed(&mut self, cursor: &[f64; 2], middle: &Vector2, scale: f64) -> &mut Circle {
-        let mut speed = Vector2::from(*cursor);
-        Circle::set_centered(&mut speed, middle);
-        speed -= self.center.position * scale;
-        self.center.speed = speed;
+        let cursor_position = *Vector2::from(*cursor).set_centered(middle, scale);
+        self.center.speed = (cursor_position - self.center.position) / SPEED_SCALING_FACTOR;
         self
-    }
-
-    pub fn set_centered(position: &mut Vector2, middle: &Vector2) {
-        position.x = position.x - middle.x;
-        position.y = middle.y - position.y;
-    }
-
-    pub fn set_left_up(position: &mut Vector2, middle: &Vector2) {
-        position.x = position.x + middle.x;
-        position.y = middle.y - position.y;
     }
 }
 

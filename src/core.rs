@@ -143,6 +143,7 @@ impl Debug for Scale {
 pub enum State {
     Move,
     Add,
+    Remove,
     WaitDrop,
     WaitSpeed,
     CancelDrop,
@@ -156,9 +157,12 @@ impl State {
         *self = match self {
             Reset => Move,
             Add => WaitDrop,
+            Remove => Move,
             CancelDrop => Move,
             Move => if *button == MOUSE_MOVE_ADD {
                 Add
+            } else if *button == MOUSE_MOVE_REMOVE {
+                Remove
             } else {
                 *self
             },
@@ -266,7 +270,7 @@ impl Status {
                     None => self.state.next(&KEY_UNKNOWN, &BUTTON_UNKNOWN),
                     Some(button) => self.state.next(&KEY_UNKNOWN, button),
                 };
-            },
+            }
             Some(key) => {
                 if *key == KEY_TOGGLE_BOUNDED {
                     toggle!(self.bounded);
@@ -283,7 +287,7 @@ impl Status {
                     None => self.state.next(key, &BUTTON_UNKNOWN),
                     Some(button) => self.state.next(key, button),
                 };
-            },
+            }
         };
     }
 }

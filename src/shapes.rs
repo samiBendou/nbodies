@@ -106,15 +106,13 @@ impl Drawer {
             self.color = bodies[i].shape.color;
             for k in 1..TRAJECTORY_SIZE - 1 {
                 self.color[3] = k as f32 / (TRAJECTORY_SIZE as f32 - 1.);
-                self.from = *bodies[i].shape.center.position(k - 1) * scale;
-                self.to = *bodies[i].shape.center.position(k) * scale;
-                ellipse::Circle::set_left_up(&mut self.from, &self.middle);
-                ellipse::Circle::set_left_up(&mut self.to, &self.middle);
+                self.from = bodies[i].shape.center.position(k - 1).left_up(&self.middle, scale);
+                self.to = bodies[i].shape.center.position(k).left_up(&self.middle, scale);
                 piston_window::line_from_to(
                     self.color,
                     2.5,
-                    self.from.as_array(),
-                    self.to.as_array(),
+                    self.from.array(),
+                    self.to.array(),
                     c.transform, g,
                 );
             }
@@ -122,15 +120,15 @@ impl Drawer {
     }
 
     pub fn draw_speed(&mut self, body: &Body, scale: f64, c: &Context, g: &mut G2d) {
-        self.from = (body.shape.center.position) * scale;
-        self.to = (body.shape.center.position + body.shape.center.speed * SPEED_SCALING_FACTOR) * scale;
-        ellipse::Circle::set_left_up(&mut self.from, &self.middle);
-        ellipse::Circle::set_left_up(&mut self.to, &self.middle);
+        self.from = body.shape.center.position;
+        self.to = body.shape.center.position + body.shape.center.speed * SPEED_SCALING_FACTOR;
+        self.from.set_left_up(&self.middle, scale);
+        self.to.set_left_up(&self.middle, scale);
         piston_window::line_from_to(
             body.shape.color,
             2.5,
-            self.from.as_array(),
-            self.to.as_array(),
+            self.from.array(),
+            self.to.array(),
             c.transform, g,
         );
     }

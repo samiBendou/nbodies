@@ -11,7 +11,7 @@ pub mod point;
 pub mod forces;
 pub mod orbital;
 
-pub const SPEED_SCALING_FACTOR: f64 = 10e5;
+pub const SPEED_SCALING_FACTOR: f64 = 2e6;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Frame {
@@ -377,14 +377,16 @@ impl Cluster {
         if index == len - 1 {
             self.pop().unwrap()
         } else {
+            if self.current == len - 1 {
+                self.current -= 1;
+            }
             self.bodies.remove(index)
         }
     }
 
     pub fn wait_drop(&mut self, cursor: &[f64; 2], middle: &Vector2, scale: f64) -> &mut Self {
         let last = self.bodies.len() - 1;
-        self.bodies[last].shape.set_cursor_pos(cursor, middle);
-        self.bodies[last].shape.center.position /= scale;
+        self.bodies[last].shape.set_cursor_pos(cursor, middle, scale);
         self.bodies[last].shape.center.clear_trajectory();
         self.clear_barycenter();
         self
@@ -393,7 +395,6 @@ impl Cluster {
     pub fn wait_speed(&mut self, cursor: &[f64; 2], middle: &Vector2, scale: f64) -> &mut Self {
         let last = self.bodies.len() - 1;
         self.bodies[last].shape.set_cursor_speed(cursor, middle, scale);
-        self.bodies[last].shape.center.speed /= scale * SPEED_SCALING_FACTOR;
         self.bodies[last].shape.center.clear_trajectory();
         self.clear_barycenter();
         self

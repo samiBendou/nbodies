@@ -10,6 +10,7 @@ use crate::core::{Config, Status, Step};
 use crate::log::Logger;
 use crate::physics::dynamics;
 use crate::physics::dynamics::orbital;
+use crate::physics::vector::Vector2;
 use crate::shapes::{BLACK, Drawer};
 
 pub mod common;
@@ -30,7 +31,7 @@ pub struct App {
 impl From<dynamics::Cluster> for App {
     fn from(cluster: dynamics::Cluster) -> Self {
         let mut config = Config::default();
-        config.scale.distance = 1. / cluster.max_distance() * config.size.width;
+        config.scale.distance = 0.5 * config.size.width / cluster.max_distance();
         App::new(cluster, config)
     }
 }
@@ -106,6 +107,7 @@ impl App {
             Move => self.do_move(args.dt),
             Reset => self.do_reset(),
             Add => self.do_add(cursor),
+            Remove => self.do_remove(cursor),
             WaitDrop => self.do_wait_drop(cursor),
             WaitSpeed => self.do_wait_speed(cursor),
             CancelDrop => self.do_cancel_drop()
@@ -114,7 +116,6 @@ impl App {
         if self.status.pause {
             return;
         }
-        self.cluster.update_trajectory();
     }
 
     pub fn update_cluster(&mut self, key: &Key) {
@@ -140,7 +141,6 @@ impl App {
         if self.status.pause || self.cluster.is_empty() {
             return;
         }
-
         self.step.update(dt, self.config.scale.time);
         if self.status.translate {
             self.cluster.translate_current(&self.status.direction.as_vector());
@@ -155,6 +155,7 @@ impl App {
         if self.status.bounded {
             self.cluster.bound(&scaled_middle);
         }
+        self.cluster.update_trajectory();
     }
 
     fn do_accelerate(&mut self, dt: f64) {
@@ -179,12 +180,27 @@ impl App {
         };
         let mass = kind.random_mass();
         let color = random_color();
+        let scale = self.config.scale.distance;
         let radius = kind.scaled_radius(kind.random_radius());
-        let circle = ellipse::Circle::at_cursor(cursor, radius, color, self.drawer.middle());
+        let circle = ellipse::Circle::at_cursor(cursor, radius, color, self.drawer.middle(), scale);
         let mut body = dynamics::Body::new(mass, "", circle);
         body.shape.center.scale_position(self.config.scale.distance);
         self.cluster.push(body);
         self.cluster.last_mut().unwrap().name = format!("body {}", self.cluster.count());
+    }
+
+    fn do_remove(&mut self, cursor: &[f64; 2]) {
+        let scale = self.config.scale.distance;
+        let len = self.cluster.count();
+        let cursor_position = Vector2::from(*cursor);
+        let mut position;
+        for i in 0..len {
+            position = self.cluster[i].shape.center.position.left_up(self.drawer.middle(), scale);
+            if cursor_position % position < self.cluster[i].shape.radius {
+                self.cluster.remove(i);
+                break;
+            }
+        }
     }
 
     fn do_wait_drop(&mut self, cursor: &[f64; 2]) {
