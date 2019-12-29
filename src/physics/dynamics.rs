@@ -140,6 +140,36 @@ impl Cluster {
         max_distance
     }
 
+    pub fn stats_distance(&self) -> (f64, f64, Vec<f64>) {
+        let len = self.bodies.len();
+        let mut mean = 0.;
+        let mut sum2 = 0.;
+        let mut distances: Vec<f64> = Vec::with_capacity(len);
+        for i in 0..len {
+            distances.push(self.bodies[i].shape.center % self.origin);
+            mean += distances[i];
+            sum2 += distances[i] * distances[i];
+        }
+        let len = len as f64;
+        mean /= len;
+        (mean, (sum2 / len - mean * mean).sqrt(), distances)
+    }
+
+    pub fn remove_aways(&mut self) -> &mut Self {
+        let len = self.bodies.len();
+        let (mean, deviation, distances) = self.stats_distance();
+        let mut indexes: Vec<usize> = vec![];
+        for i in 0..len {
+            if distances[i] - mean > 2.9 * deviation {
+                indexes.push(i);
+            }
+        }
+        for i in indexes {
+            self.remove(i);
+        }
+        self.clear_barycenter()
+    }
+
     pub fn barycenter(&self) -> &Body {
         &self.barycenter
     }
@@ -340,6 +370,15 @@ impl Cluster {
         let body = self.bodies.pop();
         self.clear_barycenter();
         body
+    }
+
+    pub fn remove(&mut self, index: usize) -> Body {
+        let len = self.bodies.len();
+        if index == len - 1 {
+            self.pop().unwrap()
+        } else {
+            self.bodies.remove(index)
+        }
     }
 
     pub fn wait_drop(&mut self, cursor: &[f64; 2], middle: &Vector2, scale: f64) -> &mut Self {

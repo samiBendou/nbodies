@@ -150,9 +150,8 @@ impl App {
             self.cluster.update_current_trajectory();
             return;
         }
-
+        self.cluster.remove_aways();
         self.do_accelerate(dt / self.config.oversampling as f64 * self.config.scale.time);
-
         if self.status.bounded {
             self.cluster.bound(&scaled_middle);
         }
