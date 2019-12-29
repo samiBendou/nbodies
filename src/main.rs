@@ -11,11 +11,15 @@ use piston_window::{PistonWindow, WindowSettings};
 
 use nbodies::App;
 use nbodies::common::Input;
+use nbodies::core::Arguments;
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
+    let args = Arguments::new(env::args().collect()).unwrap_or_else(|err| {
+        eprintln!("Error during arguments parsing: {}", err);
+        process::exit(1);
+    });
     let mut app = App::from_args(args).unwrap_or_else(|err| {
-        eprintln!("Problem building app: {}", err);
+        eprintln!("Error during application building: {}", err);
         process::exit(1);
     });
     let mut input = Input::new();

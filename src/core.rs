@@ -1,7 +1,13 @@
+use std::{io, process};
 use std::cmp::{max, min};
-use std::fmt::{Debug, Error, Formatter};
+use std::convert::TryFrom;
+use std::error::Error;
+use std::fmt;
+use std::fmt::Debug;
+use std::path::Path;
 use std::time::SystemTime;
 
+use getopts::Options;
 use piston::input::{Key, MouseButton};
 use piston::window::Size;
 
@@ -54,7 +60,7 @@ impl Step {
 }
 
 impl Debug for Step {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         use crate::physics::units::*;
         let framerate = (1. / self.frame).floor() as u8;
         let framerate_system = (1. / self.system).floor() as u8;
@@ -129,7 +135,7 @@ impl Scale {
 }
 
 impl Debug for Scale {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         use crate::physics::units::*;
         write!(f, "time: {} per (second)\ndistance: {} per (meter)",
                self.time_unit.string_of(&self.time),
@@ -188,6 +194,37 @@ impl State {
     }
 }
 
+pub struct Arguments {
+    pub path: Option<String>,
+    pub scale: Scale,
+    pub size: Option<Size>,
+}
+
+impl Arguments {
+    fn print_usage(program: &str, opts: Options) {
+        let brief = format!("Usage: {} FILE [options]", program);
+        print!("{}", opts.usage(&brief));
+    }
+
+    pub fn new(args: Vec<String>) -> Result<Arguments, Box<dyn Error>> {
+        let mut opts = Options::new();
+        opts.optopt("o", "orbital", "Loads an orbital cluster from file", "FILEPATH");
+        opts.optopt("d", "distance", "Sets the distance scale in px/meters", "NUMBER");
+        opts.optopt("t", "time", "Sets the time scale in secs/real sec", "NUMBER");
+        let matches = opts.parse(&args[1..])?;
+        let path = matches.opt_str("o");
+        let mut scale: Scale = Scale::unit();
+        if let Some(distance_str) = matches.opt_str("d") {
+            scale.distance = distance_str.parse()?;
+        }
+        if let Some(time_str) = matches.opt_str("t") {
+            scale.time = time_str.parse()?;
+        }
+        let size: Option<Size> = None;
+        Ok(Arguments { path, scale, size })
+    }
+}
+
 pub struct Config {
     pub size: Size,
     pub scale: Scale,
@@ -229,6 +266,17 @@ impl Config {
 
     fn decrease_oversampling(&mut self) {
         self.oversampling = max(self.oversampling >> 1, std::u32::MIN + 1);
+    }
+}
+
+impl From<Arguments> for Config {
+    fn from(args: Arguments) -> Self {
+        let mut ret = Config::default();
+        ret.scale = args.scale;
+        if let Some(size) = args.size {
+            ret.size = size;
+        }
+        ret
     }
 }
 

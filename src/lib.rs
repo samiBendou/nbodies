@@ -1,3 +1,4 @@
+use std::error::Error;
 use std::io;
 use std::path::Path;
 
@@ -6,7 +7,7 @@ use piston_window;
 use piston_window::{Glyphs, PistonWindow};
 
 use crate::common::*;
-use crate::core::{Config, Status, Step};
+use crate::core::{Arguments, Config, Status, Step};
 use crate::log::Logger;
 use crate::physics::dynamics;
 use crate::physics::dynamics::orbital;
@@ -36,6 +37,12 @@ impl From<dynamics::Cluster> for App {
     }
 }
 
+impl From<Config> for App {
+    fn from(config: Config) -> Self {
+        App::new(dynamics::Cluster::empty(), config)
+    }
+}
+
 impl App {
     pub fn new(cluster: dynamics::Cluster, config: Config) -> App {
         let size = config.size.clone();
@@ -53,13 +60,13 @@ impl App {
         App::new(dynamics::Cluster::empty(), Config::default())
     }
 
-    pub fn from_args(args: Vec<String>) -> Result<App, io::Error> {
-        if args.len() == 1 {
-            Ok(App::default())
-        } else {
-            let cluster = orbital::Cluster::from_file(Path::new(args[1].as_str()))?;
-            Ok(App::from(dynamics::Cluster::from_orbits_at(cluster, 0.)))
+    pub fn from_args(args: Arguments) -> Result<App, Box<dyn Error>> {
+        if let Some(path) = args.path {
+            let cluster = orbital::Cluster::from_file(Path::new(path.as_str()))?;
+
+            return Ok(App::from(dynamics::Cluster::from_orbits_at(cluster, 0.)));
         }
+        Ok(App::from(Config::from(args)))
     }
 
     pub fn on_key(&mut self, key: &Key) {

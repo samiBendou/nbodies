@@ -1,3 +1,4 @@
+use std::error::Error;
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
@@ -156,14 +157,12 @@ pub struct Cluster {
 }
 
 impl Cluster {
-    pub fn from_file(path: &Path) -> Result<Self, io::Error> {
+    pub fn from_file(path: &Path) -> Result<Self, Box<dyn Error>> {
         let mut file = File::open(path)?;
         let mut contents = String::new();
         file.read_to_string(&mut contents)?;
-        match serde_json::from_str(&contents) {
-            Ok(bodies) => Ok(Cluster { bodies }),
-            Err(e) => Err(io::Error::new(io::ErrorKind::InvalidData, e))
-        }
+        let bodies: Vec<Body> = serde_json::from_str(&contents)?;
+        Ok(Cluster { bodies })
     }
 }
 
