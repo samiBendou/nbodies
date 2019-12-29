@@ -40,10 +40,9 @@ impl Circle {
     }
 
     pub fn rounding_rect(&self, middle: &Vector2, scale: f64) -> [f64; 4] {
-        let radius = 2. * (self.radius + scale.log10());
-        let diameter = 2. * radius;
+        let diameter = 2. * self.radius;
         let position_scaled = self.center.position.left_up(middle, scale);
-        [position_scaled.x - radius, position_scaled.y - radius, diameter, diameter]
+        [position_scaled.x - self.radius, position_scaled.y - self.radius, diameter, diameter]
     }
 
     pub fn bound(&mut self, middle: &Vector2) -> &mut Circle {

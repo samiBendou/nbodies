@@ -128,25 +128,35 @@ impl Cluster {
         self.bodies.len()
     }
 
-    pub fn max_distance(&self) -> f64 {
+    pub fn max_distance(&self) -> (f64, usize) {
         let mut max_distance = 0.;
+        let mut max_index: usize = 0;
         let mut distance: f64;
-        for body in self.bodies.iter() {
-            distance = body.shape.center.position % self.origin.position;
+        let len = self.bodies.len();
+        for i in 0..len {
+            distance = self.bodies[i].shape.center % self.barycenter.shape.center;
             if distance > max_distance {
                 max_distance = distance;
+                max_index = i;
             }
         }
-        max_distance
+        (max_distance, max_index)
     }
 
-    pub fn stats_distance(&self) -> (f64, f64, Vec<f64>) {
+    pub fn stats_distance_without(&self, index: Option<usize>) -> (f64, f64, Vec<f64>) {
         let len = self.bodies.len();
         let mut mean = 0.;
         let mut sum2 = 0.;
         let mut distances: Vec<f64> = Vec::with_capacity(len);
+        let index = match index {
+            None => len,
+            Some(index) => index,
+        };
         for i in 0..len {
-            distances.push(self.bodies[i].shape.center % self.origin);
+            distances.push(self.bodies[i].shape.center % self.barycenter.shape.center);
+            if i == index {
+                continue;
+            }
             mean += distances[i];
             sum2 += distances[i] * distances[i];
         }
@@ -156,18 +166,17 @@ impl Cluster {
     }
 
     pub fn remove_aways(&mut self) -> &mut Self {
-        let len = self.bodies.len();
-        let (mean, deviation, distances) = self.stats_distance();
-        let mut indexes: Vec<usize> = vec![];
-        for i in 0..len {
-            if distances[i] - mean > 2.9 * deviation {
-                indexes.push(i);
-            }
+        let (max_distance, max_index) = self.max_distance();
+        let (mean, deviation, _distances) = if self.bodies.len() < 3 {
+            self.stats_distance_without(None)
+        } else {
+            self.stats_distance_without(Some(max_index))
+        };
+        if max_distance > mean + 10e2 * deviation {
+            self.remove(max_index);
+            self.clear_barycenter();
         }
-        for i in indexes {
-            self.remove(i);
-        }
-        self.clear_barycenter()
+        self
     }
 
     pub fn barycenter(&self) -> &Body {

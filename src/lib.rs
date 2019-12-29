@@ -31,7 +31,7 @@ pub struct App {
 impl From<dynamics::Cluster> for App {
     fn from(cluster: dynamics::Cluster) -> Self {
         let mut config = Config::default();
-        config.scale.distance = 0.5 * config.size.width / cluster.max_distance();
+        config.scale.distance = 0.5 * config.size.width / cluster.max_distance().0;
         App::new(cluster, config)
     }
 }
