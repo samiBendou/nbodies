@@ -22,6 +22,15 @@ pub trait Array<T> {
     fn set_array(&mut self, arr: &T) -> &mut Self;
 }
 
+pub trait Split<T> {
+    fn split(&self) -> [T; 2];
+    fn concat(lhs: &T, rhs: &T) -> Self;
+    fn upper(&self) -> T;
+    fn lower(&self) -> T;
+    fn set_upper(&mut self, vector: &T) -> &mut Self;
+    fn set_lower(&mut self, vector: &T) -> &mut Self;
+}
+
 pub mod transforms {
     use crate::physics::vector::Vector2;
 
@@ -64,6 +73,15 @@ pub struct Vector3 {
     pub y: f64,
     pub z: f64,
 }
+
+#[derive(Copy, Clone)]
+pub struct Vector4 {
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
+    pub w: f64,
+}
+
 
 macro_rules! impl_vector {
     ($VectorN:ident { $($field:ident),+ }, $n: expr) => {
@@ -261,6 +279,7 @@ macro_rules! impl_vector {
 
 impl_vector!(Vector2 {x, y}, 2);
 impl_vector!(Vector3 {x, y, z}, 3);
+impl_vector!(Vector4 {x, y, z, w}, 4);
 
 impl coordinates::Cartesian2 for Vector2 {
     fn left() -> Self {
@@ -377,6 +396,36 @@ impl IndexMut<usize> for Vector2 {
         } else {
             &mut self.y
         }
+    }
+}
+
+impl Split<Vector2> for Vector4 {
+    fn split(&self) -> [Vector2; 2] {
+        [self.upper(), self.lower()]
+    }
+
+    fn concat(lhs: &Vector2, rhs: &Vector2) -> Self {
+        Vector4::new(lhs.x, lhs.y, rhs.x, rhs.y)
+    }
+
+    fn upper(&self) -> Vector2 {
+        Vector2::new(self.x, self.y)
+    }
+
+    fn lower(&self) -> Vector2 {
+        Vector2::new(self.z, self.w)
+    }
+
+    fn set_upper(&mut self, vector: &Vector2) -> &mut Self {
+        self.x = vector.x;
+        self.y = vector.y;
+        self
+    }
+
+    fn set_lower(&mut self, vector: &Vector2) -> &mut Self {
+        self.z = vector.x;
+        self.w = vector.y;
+        self
     }
 }
 

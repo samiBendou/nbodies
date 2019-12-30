@@ -4,7 +4,7 @@ use std::ops::{Index, IndexMut};
 use rand::Rng;
 
 use crate::physics::dynamics::point::Point2;
-use crate::physics::vector::Vector2;
+use crate::physics::vector::{Vector2, Vector4};
 use crate::shapes::ellipse::Circle;
 
 pub mod point;
@@ -302,20 +302,16 @@ impl Cluster {
     }
 
     pub fn apply<T>(&mut self, dt: f64, iterations: u32, mut f: T) where
-        T: FnMut(&mut Vector2, &mut Cluster, usize) {
-        let count = self.bodies.len();
-        let mass: Vec<f64> = self.bodies.iter()
-            .map(|body| body.mass)
-            .collect();
-        let mut force = Vector2::zeros();
+        T: FnMut(&mut Cluster, usize) -> Vector4 {
+        let len = self.bodies.len();
+        let mut force;
         self.deframe();
         for _ in 0..iterations {
             self.barycenter.shape.center.acceleration.reset0();
-            for i in 0..count {
-                f(&mut force, self, i);
+            for i in 0..len {
+                force = f(self, i);
                 self.barycenter.shape.center.acceleration += force;
                 self.bodies[i].shape.center.acceleration = force;
-                self.bodies[i].shape.center.acceleration /= mass[i];
             }
             self.barycenter.shape.center.acceleration /= self.barycenter.mass;
             self.accelerate(dt);

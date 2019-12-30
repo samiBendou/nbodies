@@ -1,7 +1,7 @@
 use std::fmt::{Debug, Error, Formatter};
 use std::ops::{AddAssign, DivAssign, Mul, MulAssign, Rem, SubAssign};
 
-use crate::physics::vector::Vector2;
+use crate::physics::vector::{Split, Vector2, Vector4};
 
 pub const TRAJECTORY_SIZE: usize = 256;
 
@@ -10,15 +10,14 @@ pub struct Point2 {
     pub mass: f64,
     pub position: Vector2,
     pub speed: Vector2,
-    pub acceleration: Vector2,
+    pub acceleration: Vector4,
 
     trajectory: [Vector2; TRAJECTORY_SIZE],
     index: usize,
 }
 
 impl Point2 {
-
-    pub fn new(position: Vector2, speed: Vector2, acceleration: Vector2) -> Point2 {
+    pub fn new(position: Vector2, speed: Vector2, acceleration: Vector4) -> Point2 {
         Point2 {
             mass: 1.,
             position,
@@ -30,15 +29,15 @@ impl Point2 {
     }
 
     pub fn inertial(position: Vector2, speed: Vector2) -> Point2 {
-        Point2::new(position, speed, Vector2::zeros())
+        Point2::new(position, speed, Vector4::zeros())
     }
 
     pub fn stationary(position: Vector2) -> Point2 {
-        Point2::new(position, Vector2::zeros(), Vector2::zeros())
+        Point2::new(position, Vector2::zeros(), Vector4::zeros())
     }
 
     pub fn zeros() -> Point2 {
-        Point2::new(Vector2::zeros(), Vector2::zeros(), Vector2::zeros())
+        Point2::new(Vector2::zeros(), Vector2::zeros(), Vector4::zeros())
     }
 
     pub fn reset0(&mut self) -> &mut Self {
@@ -71,8 +70,10 @@ impl Point2 {
     }
 
     pub fn accelerate(&mut self, dt: f64) -> &mut Self {
-        self.speed += self.acceleration * dt;
-        self.position += self.speed * dt;
+        let mut state = Vector4::concat(&self.position, &self.speed);
+        state += self.acceleration * dt;
+        self.position = state.upper();
+        self.speed = state.lower();
         self
     }
 

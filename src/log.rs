@@ -6,6 +6,7 @@ use crate::physics::dynamics;
 use crate::physics::dynamics::point::Point2;
 use crate::physics::units;
 use crate::physics::units::{Compound, Rescale, Serialize, Unit};
+use crate::physics::vector::Split;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum State {
@@ -222,7 +223,7 @@ impl units::Serialize<Point2> for Units {
             "position: {}\nspeed: {}\nacceleration: {}",
             self.distance.string_of(&val.position),
             self.speed.string_of(&val.speed),
-            self.acceleration.string_of(&val.acceleration),
+            self.acceleration.string_of(&val.acceleration.lower()),
         )
     }
 }
@@ -235,7 +236,7 @@ impl units::Serialize<dynamics::Body> for Units {
             self.mass.string_of(&val.mass),
             self.distance.string_of(&val.shape.center.position),
             self.speed.string_of(&val.shape.center.speed),
-            self.acceleration.string_of(&val.shape.center.acceleration),
+            self.acceleration.string_of(&val.shape.center.acceleration.lower()),
         )
     }
 }

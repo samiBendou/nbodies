@@ -167,7 +167,7 @@ impl App {
 
     fn do_accelerate(&mut self, dt: f64) {
         use physics::dynamics::forces;
-        self.cluster.apply(dt, self.config.oversampling, |force, bodies, i| {
+        self.cluster.apply(dt, self.config.oversampling, |bodies, i| {
             /*
             let position = bodies[i].shape.center.position.clone();
             let k1 = forces::gravity(&bodies[i].shape.center, bodies);
@@ -180,7 +180,7 @@ impl App {
             bodies[i].shape.center.position = position;
             *force = (k1 + (k2 + k3) * 2. + k4) / 6.;
             */
-            *force = forces::gravity(&bodies[i].shape.center, bodies);
+            forces::gravity(&bodies[i].shape.center, bodies)
         });
     }
 
