@@ -302,14 +302,30 @@ impl Cluster {
     }
 
     pub fn apply<T>(&mut self, dt: f64, iterations: u32, mut f: T) where
-        T: FnMut(&mut Cluster, usize) -> Vector4 {
+        T: FnMut(&Cluster, usize) -> Vector4 {
         let len = self.bodies.len();
         let mut force;
+
+        let mut state;
+        let mut k1;
+        let mut k2;
+        let mut k3;
+        let mut k4;
+
         self.deframe();
         for _ in 0..iterations {
             self.barycenter.shape.center.acceleration.reset0();
             for i in 0..len {
-                force = f(self, i);
+                k1 = f(self, i);
+                state = self.bodies[i].shape.center.state();
+                self.bodies[i].shape.center.set_state(&(k1 * 0.5 * dt + state));
+                k2 = f(self, i);
+                self.bodies[i].shape.center.set_state(&(k2 * 0.5 * dt + state));
+                k3 = f(self, i);
+                self.bodies[i].shape.center.set_state(&(k3 * dt + state));
+                k4 = f(self, i);
+                self.bodies[i].shape.center.set_state(&state);
+                force = (k1 + (k2 + k3) * 2. + k4) * (dt / 6.);
                 self.barycenter.shape.center.acceleration += force;
                 self.bodies[i].shape.center.acceleration = force;
             }

@@ -40,6 +40,18 @@ impl Point2 {
         Point2::new(Vector2::zeros(), Vector2::zeros(), Vector4::zeros())
     }
 
+    pub fn state(&self) -> Vector4 {
+        Vector4::concat(&self.position, &self.speed)
+    }
+
+    pub fn set_state(&mut self, state: &Vector4) -> &mut Self {
+        self.position.x = state.x;
+        self.position.y = state.y;
+        self.speed.x = state.z;
+        self.speed.y = state.w;
+        self
+    }
+
     pub fn reset0(&mut self) -> &mut Self {
         self.position.reset0();
         self.speed.reset0();
@@ -71,7 +83,7 @@ impl Point2 {
 
     pub fn accelerate(&mut self, dt: f64) -> &mut Self {
         let mut state = Vector4::concat(&self.position, &self.speed);
-        state += self.acceleration * dt;
+        state += self.acceleration;
         self.position = state.upper();
         self.speed = state.lower();
         self
