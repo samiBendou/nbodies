@@ -82,10 +82,9 @@ impl Point2 {
     }
 
     pub fn accelerate(&mut self, dt: f64) -> &mut Self {
-        let mut state = Vector4::concat(&self.position, &self.speed);
-        state += self.acceleration;
-        self.position = state.upper();
-        self.speed = state.lower();
+        let delta = self.acceleration * dt;
+        self.position += delta.upper();
+        self.speed += delta.lower();
         self
     }
 
