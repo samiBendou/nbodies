@@ -214,10 +214,11 @@ impl Cluster {
         self.barycenter.shape.center.reset0();
         for body in self.bodies.iter() {
             self.barycenter.mass += body.mass;
-            self.barycenter.shape.center += body.shape.center * body.mass;
+            self.barycenter.shape.center.position += body.shape.center.position * body.mass;
+            self.barycenter.shape.center.speed += body.shape.center.speed * body.mass;
         }
-        self.barycenter.shape.center /= self.barycenter.mass;
-        self.barycenter.mass = self.barycenter.mass;
+        self.barycenter.shape.center.position /= self.barycenter.mass;
+        self.barycenter.shape.center.speed /= self.barycenter.mass;
         self
     }
 
@@ -362,6 +363,7 @@ impl Cluster {
     }
 
     pub fn update_trajectory(&mut self) -> &mut Self {
+        self.barycenter.shape.center.update_trajectory();
         for body in self.bodies.iter_mut() {
             body.shape.center.update_trajectory();
         }
@@ -369,6 +371,7 @@ impl Cluster {
     }
 
     pub fn clear_trajectory(&mut self) -> &mut Self {
+        self.barycenter.shape.center.clear_trajectory();
         for body in self.bodies.iter_mut() {
             body.shape.center.clear_trajectory();
         }

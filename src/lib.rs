@@ -143,6 +143,7 @@ impl App {
     }
 
     fn do_move(&mut self, dt: f64) {
+        use physics::dynamics::forces;
         let scaled_middle = *self.drawer.middle() / self.config.scale.distance;
 
         if self.status.pause || self.cluster.is_empty() {
@@ -158,18 +159,17 @@ impl App {
             return;
         }
         self.cluster.remove_aways();
-        self.do_accelerate(dt / self.config.oversampling as f64 * self.config.scale.time);
+        self.cluster.apply(
+            dt / self.config.oversampling as f64 * self.config.scale.time,
+            self.config.oversampling,
+            |bodies, i| {
+                forces::gravity(&bodies[i].shape.center, bodies)
+            });
+
         if self.status.bounded {
             self.cluster.bound(&scaled_middle);
         }
         self.cluster.update_trajectory();
-    }
-
-    fn do_accelerate(&mut self, dt: f64) {
-        use physics::dynamics::forces;
-        self.cluster.apply(dt, self.config.oversampling, |bodies, i| {
-            forces::gravity(&bodies[i].shape.center, bodies)
-        });
     }
 
     fn do_reset(&mut self) {
