@@ -165,7 +165,6 @@ impl App {
             |bodies, i| {
                 forces::gravity(&bodies[i].shape.center, bodies)
             });
-
         if self.status.bounded {
             self.cluster.bound(&scaled_middle);
         }

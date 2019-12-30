@@ -48,6 +48,32 @@ pub fn random_color() -> [f32; 4] {
     [rng.gen(), rng.gen(), rng.gen(), 1.]
 }
 
+#[derive(Copy, Clone)]
+pub struct Average {
+    pub count: usize,
+    pub values: [f64; 60],
+}
+
+impl Average {
+    pub fn new() -> Average {
+        Average { count: 0, values: [0.; 60] }
+    }
+
+    pub fn push(&mut self, val: f64) -> &mut Self {
+        self.values[self.count] = val;
+        self.count = (self.count + 1) % 60;
+        self
+    }
+
+    pub fn value(&self) -> f64 {
+        let mut ret = 0.;
+        for val in self.values.iter() {
+            ret += *val;
+        }
+        ret / 60.
+    }
+}
+
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub struct Input {
     pub key: Option<Key>,

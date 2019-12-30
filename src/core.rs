@@ -18,8 +18,8 @@ pub struct Step {
     pub count: u32,
     pub total: Duration,
     pub simulated: Duration,
-    pub frame: f64,
-    pub system: f64,
+    pub frame: Average,
+    pub system: Average,
     time: SystemTime,
     frame_unit: Unit,
 }
@@ -33,8 +33,8 @@ impl Step {
             count: 0,
             total: Duration::from(0.),
             simulated: Duration::from(0.),
-            frame: 0.,
-            system: 0.,
+            frame: Average::new(),
+            system: Average::new(),
             time: SystemTime::now(),
             frame_unit: Unit::new(
                 units::Scale::from(Standard::Base),
@@ -46,30 +46,32 @@ impl Step {
     pub fn update(&mut self, dt: f64, scale: f64) {
         use crate::physics::units::*;
         let time = SystemTime::now();
-        self.system = time.duration_since(self.time).unwrap().as_secs_f64();
+        self.system.push(time.duration_since(self.time).unwrap().as_secs_f64());
         self.time = time;
-        self.frame = dt;
+        self.frame.push(dt);
         self.total += dt;
         self.simulated += dt * scale;
         self.count = (self.count + 1) % std::u32::MAX;
-        self.frame_unit.rescale(&self.frame);
+        self.frame_unit.rescale(&self.frame.value());
     }
 }
 
 impl Debug for Step {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         use crate::physics::units::*;
-        let framerate = (1. / self.frame).floor() as u8;
-        let framerate_system = (1. / self.system).floor() as u8;
+        let frame = self.frame.value();
+        let system = self.system.value();
+        let framerate = (1. / frame).floor() as u8;
+        let framerate_system = (1. / system).floor() as u8;
         write!(f,
                "\
 dt: {} framerate: {} (fps)\n\
 (system) dt: {} framerate: {} (fps)\n\
 total: {:?}\n\
 simulated: {:?}",
-               self.frame_unit.string_of(&self.frame),
+               self.frame_unit.string_of(&frame),
                framerate,
-               self.frame_unit.string_of(&self.system),
+               self.frame_unit.string_of(&system),
                framerate_system,
                self.total,
                self.simulated
