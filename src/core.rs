@@ -1,10 +1,7 @@
-use std::{io, process};
 use std::cmp::{max, min};
-use std::convert::TryFrom;
 use std::error::Error;
 use std::fmt;
 use std::fmt::Debug;
-use std::path::Path;
 use std::time::SystemTime;
 
 use getopts::Options;
@@ -201,10 +198,12 @@ pub struct Arguments {
 }
 
 impl Arguments {
+    /*
     fn print_usage(program: &str, opts: Options) {
         let brief = format!("Usage: {} FILE [options]", program);
         print!("{}", opts.usage(&brief));
     }
+    */
 
     pub fn new(args: Vec<String>) -> Result<Arguments, Box<dyn Error>> {
         let mut opts = Options::new();

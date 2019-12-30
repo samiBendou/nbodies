@@ -46,7 +46,8 @@ impl Body {
         let position = body.orbit.position_at(true_anomaly);
         let speed = body.orbit.speed_at(true_anomaly);
         let center = Point2::inertial(position, speed);
-        let shape = Circle::new(center, 0., body.color);
+        let mut shape = Circle::new(center, 0., body.color);
+        shape.center.mass = body.mass;
         let mut result = Body::new(body.mass, body.name.as_str(), shape);
         result.set_radius_from(body);
         result
@@ -301,7 +302,7 @@ impl Cluster {
     }
 
     pub fn apply<T>(&mut self, dt: f64, iterations: u32, mut f: T) where
-        T: FnMut(&mut Vector2, &Cluster, usize) {
+        T: FnMut(&mut Vector2, &mut Cluster, usize) {
         let count = self.bodies.len();
         let mass: Vec<f64> = self.bodies.iter()
             .map(|body| body.mass)
@@ -311,7 +312,7 @@ impl Cluster {
         for _ in 0..iterations {
             self.barycenter.shape.center.acceleration.reset0();
             for i in 0..count {
-                f(&mut force, &self, i);
+                f(&mut force, self, i);
                 self.barycenter.shape.center.acceleration += force;
                 self.bodies[i].shape.center.acceleration = force;
                 self.bodies[i].shape.center.acceleration /= mass[i];

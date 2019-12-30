@@ -5,7 +5,8 @@ use rand::Rng;
 use crate::common::random_color;
 use crate::physics::dynamics::point::Point2;
 use crate::physics::dynamics::SPEED_SCALING_FACTOR;
-use crate::physics::vector::Vector2;
+use crate::physics::vector::{Array, Vector2};
+use crate::physics::vector::transforms::Cartesian2;
 
 #[derive(Copy, Clone)]
 pub struct Circle {

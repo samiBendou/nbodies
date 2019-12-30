@@ -1,12 +1,12 @@
 use std::error::Error;
 use std::fs::File;
-use std::io;
 use std::io::prelude::*;
 use std::path::Path;
 
 use rand::prelude::*;
 use serde::{Deserialize, Serialize};
 
+use crate::physics::vector::coordinates::Polar;
 use crate::physics::vector::Vector2;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Copy, Clone)]
@@ -128,7 +128,7 @@ impl Orbit {
 
     pub fn position_at(&self, true_anomaly: f64) -> Vector2 {
         let mag = self.radius_at(true_anomaly);
-        Vector2::radial(mag, true_anomaly + self.argument)
+        Vector2::polar(mag, true_anomaly + self.argument)
     }
 
     pub fn speed_at(&self, true_anomaly: f64) -> Vector2 {
@@ -137,7 +137,7 @@ impl Orbit {
         }
         let ang = true_anomaly + std::f64::consts::FRAC_PI_2 - self.flight_angle_at(true_anomaly);
         let mag = (self.mu * (2. / self.radius_at(true_anomaly) - 1. / self.semi_major())).sqrt();
-        Vector2::radial(mag, ang + self.argument)
+        Vector2::polar(mag, ang + self.argument)
     }
 }
 

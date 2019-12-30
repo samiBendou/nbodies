@@ -7,6 +7,7 @@ pub const TRAJECTORY_SIZE: usize = 256;
 
 #[derive(Copy, Clone)]
 pub struct Point2 {
+    pub mass: f64,
     pub position: Vector2,
     pub speed: Vector2,
     pub acceleration: Vector2,
@@ -19,6 +20,7 @@ impl Point2 {
 
     pub fn new(position: Vector2, speed: Vector2, acceleration: Vector2) -> Point2 {
         Point2 {
+            mass: 1.,
             position,
             speed,
             acceleration,

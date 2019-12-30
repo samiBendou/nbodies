@@ -5,7 +5,8 @@ use piston_window::context::Context;
 use crate::physics::dynamics::{Body, Cluster, SPEED_SCALING_FACTOR};
 use crate::physics::units::{Rescale, Scale, Serialize, Unit};
 use crate::physics::units::suffix::*;
-use crate::physics::vector::Vector2;
+use crate::physics::vector::{Array, Vector2};
+use crate::physics::vector::transforms::Cartesian2;
 
 pub mod ellipse;
 
