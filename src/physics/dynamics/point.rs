@@ -1,7 +1,7 @@
 use std::fmt::{Debug, Error, Formatter};
 use std::ops::{AddAssign, DivAssign, Mul, MulAssign, Rem, SubAssign};
 
-use crate::physics::vector::{Split, Vector2, Vector4};
+use crate::physics::vector::{Angle, Split, Vector2, Vector4};
 
 pub const TRAJECTORY_SIZE: usize = 256;
 
@@ -43,6 +43,10 @@ impl Point2 {
     pub fn kinetic_energy(&self) -> f64 {
         let speed = self.speed.magnitude();
         0.5 * self.mass * speed * speed
+    }
+
+    pub fn angular_momentum(&self) -> f64 {
+        self.position.area(&self.speed) * self.mass
     }
 
     pub fn state(&self) -> Vector4 {

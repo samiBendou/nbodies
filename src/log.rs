@@ -124,6 +124,9 @@ updates per frame: {}\n\n\
 
     fn log_physics(&mut self, cluster: &dynamics::Cluster, status: &core::Status) {
         let count = cluster.count();
+        if count == 0 {
+            return;
+        }
         self.log_energy(cluster);
         self.log_body(cluster.current().unwrap());
         if !status.is_waiting_to_add() || count == 1 {
@@ -165,6 +168,7 @@ updates per frame: {}\n\n\
     fn log_energy(&mut self, cluster: &dynamics::Cluster) {
         use crate::physics::dynamics::potentials;
         let kinetic_energy = cluster.kinetic_energy();
+        let angular_momentum = cluster.angular_momentum();
         let potential_energy = cluster.potential_energy(|bodies, i| {
             bodies[i].mass * potentials::gravity(&bodies[i].shape.center, bodies)
         });
@@ -173,11 +177,14 @@ updates per frame: {}\n\n\
         self.buffer += &format!("
 total kinetic energy: {}
 total potential energy: {}
-total energy: {}\
+total energy: {}
+angular momentum: {:.5e}
+\
 ",
                                 self.energy_units.string_of(&kinetic_energy),
                                 self.energy_units.string_of(&potential_energy),
-                                self.energy_units.string_of(&total_energy)
+                                self.energy_units.string_of(&total_energy),
+                                angular_momentum
         );
     }
 }

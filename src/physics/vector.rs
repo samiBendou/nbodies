@@ -31,6 +31,31 @@ pub trait Split<T> {
     fn set_lower(&mut self, vector: &T) -> &mut Self;
 }
 
+pub trait Angle {
+    fn cos(&self, _: &Self) -> f64;
+    fn sin(&self, _: &Self) -> f64;
+    fn angle(&self, _: &Self) -> f64;
+    fn area(&self, _: &Self) -> f64;
+    fn cross(&self, _: &Self) -> Vector3;
+}
+
+pub mod coordinates {
+    pub trait Cartesian2 {
+        fn unit_neg_x() -> Self;
+        fn unit_x() -> Self;
+        fn unit_y() -> Self;
+        fn unit_neg_y() -> Self;
+    }
+
+    pub trait Polar {
+        fn polar(mag: f64, ang: f64) -> Self;
+        fn unit_rho(ang: f64) -> Self;
+        fn unit_phi(ang: f64) -> Self;
+        fn rho(&self) -> f64;
+        fn phi(&self) -> f64;
+    }
+}
+
 pub mod transforms {
     use crate::physics::vector::Vector2;
 
@@ -41,23 +66,6 @@ pub mod transforms {
         fn set_centered(&mut self, middle: &Vector2, scale: f64) -> &mut Self;
         fn rotate(&mut self, angle: f64) -> &mut Self;
         fn rotate_translate(&mut self, angle: f64, direction: &Vector2) -> &mut Self;
-    }
-}
-
-pub mod coordinates {
-    pub trait Cartesian2 {
-        fn left() -> Self;
-        fn right() -> Self;
-        fn up() -> Self;
-        fn down() -> Self;
-    }
-
-    pub trait Polar {
-        fn polar(mag: f64, ang: f64) -> Self;
-        fn radial(ang: f64) -> Self;
-        fn orthoradial(ang: f64) -> Self;
-        fn radius(&self) -> f64;
-        fn angle(&self) -> f64;
     }
 }
 
@@ -125,7 +133,7 @@ macro_rules! impl_vector {
                 self
             }
 
-            pub fn dot(&self, rhs: Self) -> f64 {
+            pub fn dot(&self, rhs: &Self) -> f64 {
                 let mut ret = 0.;
                 $(ret += self.$field * rhs.$field;)+
                 ret
@@ -181,7 +189,7 @@ macro_rules! impl_vector {
             type Output = f64;
 
             fn bitor(self, rhs: $VectorN) -> Self::Output {
-                self.dot(rhs)
+                self.dot(&rhs)
             }
         }
 
@@ -281,20 +289,42 @@ impl_vector!(Vector2 {x, y}, 2);
 impl_vector!(Vector3 {x, y, z}, 3);
 impl_vector!(Vector4 {x, y, z, w}, 4);
 
+impl Angle for Vector2 {
+    fn cos(&self, rhs: &Self) -> f64 {
+        self.dot(rhs) / (self.magnitude() * rhs.magnitude())
+    }
+
+    fn sin(&self, rhs: &Self) -> f64 {
+        self.area(rhs) / (self.magnitude() * rhs.magnitude())
+    }
+
+    fn angle(&self, rhs: &Self) -> f64 {
+        self.cos(rhs).acos()
+    }
+
+    fn area(&self, rhs: &Self) -> f64 {
+        self.x * rhs.y - self.y * rhs.x
+    }
+
+    fn cross(&self, rhs: &Self) -> Vector3 {
+        Vector3::new(0., 0., self.area(rhs))
+    }
+}
+
 impl coordinates::Cartesian2 for Vector2 {
-    fn left() -> Self {
+    fn unit_neg_x() -> Self {
         Vector2 { x: -1., y: 0. }
     }
 
-    fn right() -> Self {
+    fn unit_x() -> Self {
         Vector2 { x: 1., y: 0. }
     }
 
-    fn up() -> Self {
+    fn unit_y() -> Self {
         Vector2 { x: 0., y: 1. }
     }
 
-    fn down() -> Self {
+    fn unit_neg_y() -> Self {
         Vector2 { x: 0., y: -1. }
     }
 }
@@ -304,19 +334,19 @@ impl coordinates::Polar for Vector2 {
         Vector2 { x: mag * ang.cos(), y: mag * ang.sin() }
     }
 
-    fn radial(ang: f64) -> Self {
+    fn unit_rho(ang: f64) -> Self {
         Vector2 { x: ang.cos(), y: ang.sin() }
     }
 
-    fn orthoradial(ang: f64) -> Self {
+    fn unit_phi(ang: f64) -> Self {
         Vector2 { x: -ang.sin(), y: ang.cos() }
     }
 
-    fn radius(&self) -> f64 {
+    fn rho(&self) -> f64 {
         self.magnitude()
     }
 
-    fn angle(&self) -> f64 {
+    fn phi(&self) -> f64 {
         (self.y).atan2(self.x)
     }
 }

@@ -134,6 +134,10 @@ impl Cluster {
         self.bodies.iter().map(|body| body.shape.center.kinetic_energy()).sum()
     }
 
+    pub fn angular_momentum(&self) -> f64 {
+        self.bodies.iter().map(|body| body.shape.center.angular_momentum()).sum()
+    }
+
     pub fn potential_energy<T>(&self, mut f: T) -> f64 where
         T: FnMut(&Cluster, usize) -> f64 {
         let len = self.bodies.len();
@@ -141,7 +145,7 @@ impl Cluster {
         for i in 0..len {
             ret += f(self, i);
         }
-        ret
+        ret * 0.5
     }
 
     pub fn max_distance(&self) -> (f64, usize) {
