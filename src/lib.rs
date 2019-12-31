@@ -1,23 +1,24 @@
 use std::error::Error;
 use std::path::Path;
 
+use physics::common::random_color;
+use physics::dynamics;
+use physics::dynamics::orbital;
+use physics::dynamics::point::Point2;
+use physics::vector::{Array, Vector2};
+use physics::vector::transforms::Cartesian2;
 use piston::input::{Event, Key, MouseButton, UpdateArgs};
 use piston_window;
 use piston_window::{Glyphs, PistonWindow};
 
 use crate::common::*;
 use crate::core::{Arguments, Config, Status, Step};
+use crate::draw::{BLACK, Circle, Drawer};
 use crate::log::Logger;
-use crate::physics::dynamics;
-use crate::physics::dynamics::orbital;
-use crate::physics::vector::transforms::Cartesian2;
-use crate::physics::vector::Vector2;
-use crate::shapes::{BLACK, Drawer};
 
 pub mod common;
-pub mod shapes;
-pub mod physics;
 pub mod core;
+pub mod draw;
 pub mod log;
 
 pub struct App {
@@ -46,13 +47,15 @@ impl From<Config> for App {
 impl App {
     pub fn new(cluster: dynamics::Cluster, config: Config) -> App {
         let size = config.size.clone();
+        let scale = config.scale.distance;
+        let drawer = Drawer::new(&size, &cluster, scale);
         App {
             cluster,
             config,
             status: Status::default(),
             step: Step::new(),
             logger: Logger::new(),
-            drawer: Drawer::new(&size),
+            drawer,
         }
     }
 
@@ -60,10 +63,10 @@ impl App {
         App::new(dynamics::Cluster::empty(), Config::default())
     }
 
+    //noinspection RsTypeCheck
     pub fn from_args(args: Arguments) -> Result<App, Box<dyn Error>> {
         if let Some(path) = args.path {
             let cluster = orbital::Cluster::from_file(Path::new(path.as_str()))?;
-
             return Ok(App::from(dynamics::Cluster::from_orbits_at(cluster, 0.)));
         }
         Ok(App::from(Config::from(args)))
@@ -88,7 +91,7 @@ impl App {
             event,
             |c, g, device| {
                 piston_window::clear(BLACK, g);
-                if self.cluster.count() == 0 {
+                if self.cluster.is_empty() {
                     self.drawer.draw_barycenter(self.cluster.barycenter(), scale, &c, g);
                     self.drawer.draw_scale(scale, &c, g, glyphs);
                     glyphs.factory.encoder.flush(device);
@@ -97,6 +100,7 @@ impl App {
                 if self.status.trajectory {
                     self.drawer.draw_trajectories(&self.cluster, scale, &c, g);
                 }
+
                 if self.status.state == core::State::WaitSpeed {
                     self.drawer.draw_speed(self.cluster.last().unwrap(), self.config.scale.distance, &c, g);
                 }
@@ -119,10 +123,13 @@ impl App {
             WaitSpeed => self.do_wait_speed(cursor),
             CancelDrop => self.do_cancel_drop()
         };
-        self.status.update(&Option::None, &Option::None);
-        if self.status.pause {
-            return;
+        if self.status.clear_circles {
+            self.drawer.clear_circles(&self.cluster, self.config.scale.distance);
+        } else {
+            self.drawer.update_circles(&self.cluster, self.config.scale.distance);
         }
+        self.drawer.update_circles_trajectory();
+        self.status.clear();
     }
 
     pub fn update_cluster(&mut self, key: &Key) {
@@ -138,6 +145,7 @@ impl App {
         }
     }
 
+    //noinspection RsTypeCheck
     pub fn log(&mut self, input: &common::Input) {
         self.logger.log(&self.cluster, &self.status, &self.config, &self.step, input);
     }
@@ -178,7 +186,7 @@ impl App {
     }
 
     fn do_add(&mut self, cursor: &[f64; 2]) {
-        use shapes::ellipse;
+        use physics::shapes::ellipse;
         let kind = if self.cluster.is_empty() {
             orbital::Kind::Star
         } else {
@@ -188,9 +196,11 @@ impl App {
         let color = random_color();
         let scale = self.config.scale.distance;
         let radius = kind.scaled_radius(kind.random_radius());
-        let circle = ellipse::Circle::at_cursor(cursor, radius, color, self.drawer.middle(), scale);
-        let mut body = dynamics::Body::new(mass, "", circle);
+        let circle = Circle::new(Point2::stationary(Vector2::from(*cursor)), radius, color);
+        let ellipse_circle = ellipse::Circle::at_cursor(cursor, radius, color, self.drawer.middle(), scale);
+        let mut body = dynamics::Body::new(mass, "", ellipse_circle);
         body.shape.center.scale_position(self.config.scale.distance);
+        self.drawer.circles.push(circle);
         self.cluster.push(body);
         self.cluster.last_mut().unwrap().name = format!("body {}", self.cluster.count());
     }
@@ -204,6 +214,7 @@ impl App {
             position = self.cluster[i].shape.center.position.left_up(self.drawer.middle(), scale);
             if cursor_position % position < self.cluster[i].shape.radius {
                 self.cluster.remove(i);
+                self.drawer.circles.remove(i);
                 break;
             }
         }
@@ -211,6 +222,8 @@ impl App {
 
     fn do_wait_drop(&mut self, cursor: &[f64; 2]) {
         self.cluster.wait_drop(cursor, self.drawer.middle(), self.config.scale.distance);
+        self.drawer.circles.last_mut().unwrap().center.position.set_array(cursor);
+        self.drawer.circles.last_mut().unwrap().center.clear_trajectory();
     }
 
     fn do_wait_speed(&mut self, cursor: &[f64; 2]) {
@@ -219,5 +232,6 @@ impl App {
 
     fn do_cancel_drop(&mut self) {
         self.cluster.pop();
+        self.drawer.pop();
     }
 }

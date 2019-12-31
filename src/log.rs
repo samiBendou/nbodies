@@ -1,12 +1,12 @@
+use physics::dynamics;
+use physics::dynamics::point::Point2;
+use physics::units;
+use physics::units::{Compound, Rescale, Serialize, Unit};
+use physics::vector::Split;
 use piston::input::Key;
 
 use crate::common::*;
 use crate::core;
-use crate::physics::dynamics;
-use crate::physics::dynamics::point::Point2;
-use crate::physics::units;
-use crate::physics::units::{Compound, Rescale, Serialize, Unit};
-use crate::physics::vector::Split;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum State {
@@ -42,7 +42,7 @@ pub struct Logger {
 
 impl Logger {
     pub fn new() -> Logger {
-        use crate::physics::units::suffix::*;
+        use physics::units::suffix::*;
         Logger {
             state: State::Hide,
             buffer: String::from(""),
@@ -166,7 +166,7 @@ updates per frame: {}\n\n\
     }
 
     fn log_energy(&mut self, cluster: &dynamics::Cluster) {
-        use crate::physics::dynamics::potentials;
+        use physics::dynamics::potentials;
         let kinetic_energy = cluster.kinetic_energy();
         let angular_momentum = cluster.angular_momentum();
         let potential_energy = cluster.potential_energy(|bodies, i| {
@@ -211,7 +211,7 @@ impl Units {
     }
 
     pub fn default() -> Units {
-        use crate::physics::units::suffix::*;
+        use physics::units::suffix::*;
         let time = Unit::from(units::Scale::from(Time::Second));
         let distance = Unit::from(units::Scale::from(Distance::Meter));
         let mass = Unit::from(units::Scale::from(Mass::Kilograms));
@@ -219,7 +219,7 @@ impl Units {
     }
 
     pub fn pixel() -> Units {
-        use crate::physics::units::suffix::*;
+        use physics::units::suffix::*;
         let time = Unit::from(units::Scale::from(Time::Second));
         let distance = Unit::from(units::Scale::from(Distance::Pixel));
         let mass = Unit::from(units::Scale::from(Mass::Kilograms));

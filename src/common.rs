@@ -1,9 +1,7 @@
 use std::fmt::Debug;
 
+use physics::vector::*;
 use piston::input::{Key, MouseButton};
-use rand::Rng;
-
-use crate::physics::vector::*;
 
 pub static KEY_TOGGLE_BOUNDED: Key = Key::B;
 pub static KEY_TOGGLE_TRANSLATE: Key = Key::J;
@@ -41,11 +39,6 @@ macro_rules! toggle {
     ($boolean: expr) => {
     $boolean = !$boolean;
     };
-}
-
-pub fn random_color() -> [f32; 4] {
-    let mut rng = rand::thread_rng();
-    [rng.gen(), rng.gen(), rng.gen(), 1.]
 }
 
 #[derive(Copy, Clone)]

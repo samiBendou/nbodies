@@ -5,12 +5,12 @@ use std::fmt::Debug;
 use std::time::SystemTime;
 
 use getopts::Options;
+use physics::units::{Rescale, Unit};
+use physics::units::date::Duration;
 use piston::input::{Key, MouseButton};
 use piston::window::Size;
 
 use crate::common::*;
-use crate::physics::units::{Rescale, Unit};
-use crate::physics::units::date::Duration;
 use crate::toggle;
 
 #[derive(Clone)]
@@ -26,9 +26,9 @@ pub struct Step {
 
 impl Step {
     pub fn new() -> Step {
-        use crate::physics::units;
-        use crate::physics::units::suffix::Time;
-        use crate::physics::units::prefix::Standard;
+        use physics::units;
+        use physics::units::suffix::Time;
+        use physics::units::prefix::Standard;
         Step {
             count: 0,
             total: Duration::from(0.),
@@ -44,7 +44,7 @@ impl Step {
     }
 
     pub fn update(&mut self, dt: f64, scale: f64) {
-        use crate::physics::units::*;
+        use physics::units::*;
         let time = SystemTime::now();
         self.system.push(time.duration_since(self.time).unwrap().as_secs_f64());
         self.time = time;
@@ -58,7 +58,7 @@ impl Step {
 
 impl Debug for Step {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        use crate::physics::units::*;
+        use physics::units::*;
         let frame = self.frame.value();
         let system = self.system.value();
         let framerate = (1. / frame).floor() as u8;
@@ -88,7 +88,7 @@ pub struct Scale {
 
 impl Scale {
     pub fn new(time: f64, distance: f64) -> Scale {
-        use crate::physics::units;
+        use physics::units;
         use units::suffix::{Distance, Time};
         assert!(time > 0. && distance > 0.);
         Scale {
@@ -135,7 +135,7 @@ impl Scale {
 
 impl Debug for Scale {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        use crate::physics::units::*;
+        use physics::units::*;
         write!(f, "time: {} per (second)\ndistance: {} per (meter)",
                self.time_unit.string_of(&self.time),
                self.distance_unit.string_of(&self.distance),
@@ -288,6 +288,7 @@ pub struct Status {
     pub translate: bool,
     pub trajectory: bool,
     pub pause: bool,
+    pub clear_circles: bool,
     pub state: State,
 }
 
@@ -299,6 +300,7 @@ impl Status {
             translate,
             trajectory: true,
             pause: true,
+            clear_circles: true,
             state: State::Reset,
         }
     }
@@ -329,6 +331,13 @@ impl Status {
                     toggle!(self.trajectory);
                 } else if *key == KEY_TOGGLE_PAUSE {
                     toggle!(self.pause);
+                } else if
+                *key == KEY_INCREASE_CURRENT_INDEX ||
+                    *key == KEY_DECREASE_CURRENT_INDEX ||
+                    *key == KEY_NEXT_FRAME_STATE ||
+                    *key == KEY_INCREASE_DISTANCE ||
+                    *key == KEY_DECREASE_DISTANCE {
+                    self.clear_circles = true;
                 } else {
                     self.direction = Direction::from(key);
                 }
@@ -338,5 +347,11 @@ impl Status {
                 };
             }
         };
+    }
+
+    pub fn clear(&mut self) {
+        self.state.next(&KEY_UNKNOWN, &BUTTON_UNKNOWN);
+        self.direction = Direction::from(&KEY_UNKNOWN);
+        self.clear_circles = false;
     }
 }
