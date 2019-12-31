@@ -40,6 +40,11 @@ impl Point2 {
         Point2::new(Vector2::zeros(), Vector2::zeros(), Vector4::zeros())
     }
 
+    pub fn kinetic_energy(&self) -> f64 {
+        let speed = self.speed.magnitude();
+        0.5 * self.mass * speed * speed
+    }
+
     pub fn state(&self) -> Vector4 {
         Vector4::concat(&self.position, &self.speed)
     }
@@ -82,15 +87,13 @@ impl Point2 {
     }
 
     pub fn accelerate(&mut self, dt: f64) -> &mut Self {
-        let delta = self.acceleration * dt;
-        self.position += delta.upper();
-        self.speed += delta.lower();
+        self.position += self.acceleration.upper() * dt;
+        self.speed += self.acceleration.lower() * dt;
         self
     }
 
     pub fn position(&self, k: usize) -> &Vector2 {
         let index = (k + self.index + 1) % TRAJECTORY_SIZE;
-
         &self.trajectory[index]
     }
 

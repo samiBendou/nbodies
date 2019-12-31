@@ -21,3 +21,7 @@ pub enum Angle {
     Radians,
     Degrees,
 }
+
+pub enum Energy {
+    Joules
+}

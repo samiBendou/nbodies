@@ -9,6 +9,7 @@ use crate::shapes::ellipse::Circle;
 
 pub mod point;
 pub mod forces;
+pub mod potentials;
 pub mod orbital;
 
 pub const SPEED_SCALING_FACTOR: f64 = 2e6;
@@ -127,6 +128,20 @@ impl Cluster {
 
     pub fn count(&self) -> usize {
         self.bodies.len()
+    }
+
+    pub fn kinetic_energy(&self) -> f64 {
+        self.bodies.iter().map(|body| body.shape.center.kinetic_energy()).sum()
+    }
+
+    pub fn potential_energy<T>(&self, mut f: T) -> f64 where
+        T: FnMut(&Cluster, usize) -> f64 {
+        let len = self.bodies.len();
+        let mut ret = 0.;
+        for i in 0..len {
+            ret += f(self, i);
+        }
+        ret
     }
 
     pub fn max_distance(&self) -> (f64, usize) {

@@ -5,7 +5,7 @@ use crate::core;
 use crate::physics::dynamics;
 use crate::physics::dynamics::point::Point2;
 use crate::physics::units;
-use crate::physics::units::{Compound, Rescale, Serialize, Unit};
+use crate::physics::units::{Compound, Rescale, Scale, Serialize, Unit};
 use crate::physics::vector::Split;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -37,6 +37,7 @@ pub struct Logger {
     buffer: String,
     units: Units,
     px_units: Units,
+    energy_units: Unit,
 }
 
 impl Logger {
@@ -46,6 +47,7 @@ impl Logger {
             buffer: String::from(""),
             units: Units::default(),
             px_units: Units::pixel(),
+            energy_units: Unit::from(Scale::from(units::suffix::Energy::Joules))
         }
     }
 
@@ -121,9 +123,7 @@ updates per frame: {}\n\n\
 
     fn log_physics(&mut self, cluster: &dynamics::Cluster, status: &core::Status) {
         let count = cluster.count();
-        if count == 0 {
-            return;
-        }
+        self.log_energy(cluster);
         self.log_body(cluster.current().unwrap());
         if !status.is_waiting_to_add() || count == 1 {
             return;
@@ -158,6 +158,25 @@ updates per frame: {}\n\n\
 {}\n",
                                 body.name,
                                 self.units.string_of(body)
+        );
+    }
+
+    fn log_energy(&mut self, cluster: &dynamics::Cluster) {
+        use crate::physics::dynamics::potentials;
+        let kinetic_energy = cluster.kinetic_energy();
+        let potential_energy = cluster.potential_energy(|bodies, i| {
+            bodies[i].mass * potentials::gravity(&bodies[i].shape.center, bodies)
+        });
+        let total_energy = kinetic_energy + potential_energy;
+        self.energy_units.rescale(&total_energy);
+        self.buffer += &format!("
+total kinetic energy: {}
+total potential energy: {}
+total energy: {}\
+",
+                                self.energy_units.string_of(&kinetic_energy),
+                                self.energy_units.string_of(&potential_energy),
+                                self.energy_units.string_of(&total_energy)
         );
     }
 }

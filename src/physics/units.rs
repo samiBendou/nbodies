@@ -148,6 +148,15 @@ impl From<suffix::Angle> for Scale {
     }
 }
 
+impl From<suffix::Energy> for Scale {
+    fn from(suffix: suffix::Energy) -> Self {
+        use suffix::Energy::*;
+        match suffix {
+            Joules => Scale::new("J", 1., 1),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Unit {
     pub prefix: Scale,
