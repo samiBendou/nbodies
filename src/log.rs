@@ -5,7 +5,7 @@ use crate::core;
 use crate::physics::dynamics;
 use crate::physics::dynamics::point::Point2;
 use crate::physics::units;
-use crate::physics::units::{Compound, Rescale, Scale, Serialize, Unit};
+use crate::physics::units::{Compound, Rescale, Serialize, Unit};
 use crate::physics::vector::Split;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -42,12 +42,13 @@ pub struct Logger {
 
 impl Logger {
     pub fn new() -> Logger {
+        use crate::physics::units::suffix::*;
         Logger {
             state: State::Hide,
             buffer: String::from(""),
             units: Units::default(),
             px_units: Units::pixel(),
-            energy_units: Unit::from(Scale::from(units::suffix::Energy::Joules))
+            energy_units: Unit::from(units::Scale::from(Energy::Joules)),
         }
     }
 
