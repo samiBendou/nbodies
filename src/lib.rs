@@ -123,6 +123,8 @@ impl App {
 
     pub fn update(&mut self, _window: &mut PistonWindow, args: &UpdateArgs, cursor: &[f64; 2]) {
         use crate::core::State::*;
+
+        self.drawer.update_circles_trajectory();
         match self.status.state {
             Move => self.do_move(args.dt),
             Reset => self.do_reset(),
@@ -138,9 +140,6 @@ impl App {
             self.drawer.update_circles(&self.cluster, self.config.scale.distance);
         }
         self.status.clear();
-        if !self.status.pause {
-            self.drawer.update_circles_trajectory();
-        }
     }
 
     pub fn update_cluster(&mut self, key: &Key) {

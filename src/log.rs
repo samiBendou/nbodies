@@ -6,6 +6,7 @@ use piston::input::Key;
 
 use crate::common::*;
 use crate::core;
+use crate::core::Scale;
 use crate::draw::{Circle, Drawer};
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -14,6 +15,7 @@ pub enum State {
     Status,
     Timing,
     Cinematic,
+    Body,
     Physics,
     Bodies,
 }
@@ -25,9 +27,10 @@ impl State {
             Hide => Status,
             Status => Timing,
             Timing => Cinematic,
-            Cinematic => Physics,
-            Physics => Bodies,
-            Bodies => Hide,
+            Cinematic => Body,
+            Body => Bodies,
+            Bodies => Physics,
+            Physics => Hide,
         };
     }
 }
@@ -79,38 +82,39 @@ impl Logger {
         input: &Input,
     ) {
         use crate::log::State::*;
-        if drawer.circles.len() > 0 {
-            println!("TRAJECTORY\n{:?}", drawer.circles[cluster.current_index()].center.trajectory);
-        }
         match self.state {
             Hide => (),
             Status => self.log_status(status, input),
             Timing => self.log_timing(step, config),
             Cinematic => self.log_cinematic(cluster.current_index(), drawer, status),
-            Physics => self.log_physics(cluster, status),
-            Bodies => self.log_cluster(cluster)
+            Body => self.log_bodies(cluster, status),
+            Bodies => self.log_cluster(cluster),
+            Physics => self.log_physics(cluster)
+        };
+        self.buffer += "\n";
+        match self.state {
+            Timing | Body | Cinematic | Physics => self.log_scale(&config.scale),
+            _ => ()
         };
     }
 
     fn log_status(&mut self, status: &core::Status, input: &Input) {
         self.buffer += &format!("\
-*** status info ***\n\
-{:#?}\n\
-pressed mouse button: '{:?}'\n\
-mouse at: {:?} (px)\n\
-pressed keyboard key: '{:?}'\n",
+*** status info ***
+{:#?}
+pressed mouse button: '{:?}'
+mouse at: {:?} (px)
+pressed keyboard key: '{:?}'",
                                 status, input.button, input.cursor, input.key)[..];
     }
 
     fn log_timing(&mut self, step: &core::Step, config: &core::Config) {
         self.buffer += &format!("\
-*** timing info ***\n\
-{:?}\n\
-updates per frame: {}\n\n\
-*** scale ***\n\
-{:?}",
-                                step, config.oversampling, config.scale
-        );
+*** timing info ***
+{:?}
+oversampling: {}
+",
+                                step, config.oversampling);
     }
 
     fn log_cinematic(&mut self, current: usize, drawer: &Drawer, status: &core::Status) {
@@ -123,14 +127,14 @@ updates per frame: {}\n\n\
             return;
         }
         self.log_shape(&drawer.circles.last().unwrap());
+        self.buffer += "\n";
     }
 
-    fn log_physics(&mut self, cluster: &dynamics::Cluster, status: &core::Status) {
+    fn log_bodies(&mut self, cluster: &dynamics::Cluster, status: &core::Status) {
         let len = cluster.len();
         if len == 0 {
             return;
         }
-        self.log_energy(cluster);
         self.log_body(cluster.current().unwrap());
         if !status.is_waiting_to_add() || len == 1 {
             return;
@@ -139,29 +143,28 @@ updates per frame: {}\n\n\
     }
 
     fn log_cluster(&mut self, cluster: &dynamics::Cluster) {
-        self.buffer += &format!("
-*** body list ***\n\
-{:?}\n",
-                                cluster
-        );
+        let barycenter = cluster.barycenter();
+        self.units.rescale(&barycenter.state);
+        self.buffer += &format!("*** barycenter ***\n{}",
+                                self.units.string_of(&barycenter.state));
+        for body in cluster.bodies.iter() {
+            self.buffer += "\n";
+            self.log_body(body)
+        }
     }
+    fn log_physics(&mut self, cluster: &dynamics::Cluster) {
+        self.log_energy(cluster);
+    }
+
     fn log_shape(&mut self, circle: &Circle) {
         self.px_units.rescale(&circle.center);
-        self.buffer += &format!("\
-*** circle ***\n\
-{}\n",
-                                self.px_units.string_of(&circle.center)
-        );
+        self.buffer += &format!("*** circle ***\n{}",
+                                self.px_units.string_of(&circle.center));
     }
 
     fn log_body(&mut self, body: &dynamics::Body) {
         self.units.rescale(body);
-        self.buffer += &format!("
-*** {} ***\n\
-{}\n",
-                                body.name,
-                                self.units.string_of(body)
-        );
+        self.buffer += &format!("{}", self.units.string_of(body));
     }
 
     fn log_energy(&mut self, cluster: &dynamics::Cluster) {
@@ -173,18 +176,20 @@ updates per frame: {}\n\n\
         });
         let total_energy = kinetic_energy + potential_energy;
         self.energy_units.rescale(&total_energy);
-        self.buffer += &format!("
-total kinetic energy: {}
-total potential energy: {}
-total energy: {}
-angular momentum: {:.5e}
-\
-",
+        self.buffer += &format!("\
+kinetic energy: {}
+potential energy: {}
+energy: {}
+angular momentum: {:.5e}",
                                 self.energy_units.string_of(&kinetic_energy),
                                 self.energy_units.string_of(&potential_energy),
                                 self.energy_units.string_of(&total_energy),
                                 angular_momentum
         );
+    }
+
+    fn log_scale(&mut self, scale: &Scale) {
+        self.buffer += &format!("*** scale ***\n{:?}", scale);
     }
 }
 
@@ -255,7 +260,7 @@ impl units::Serialize<Point2> for Units {
 impl units::Serialize<dynamics::Body> for Units {
     fn string_of(&self, val: &dynamics::Body) -> String {
         format!(
-            "name: {}\nmass: {}\nposition: {}\nspeed: {}",
+            "***{}***\nmass: {}\nposition: {}\nspeed: {}",
             val.name,
             self.mass.string_of(&val.center.mass),
             self.distance.string_of(&val.center.state.position),

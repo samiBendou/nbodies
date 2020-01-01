@@ -79,8 +79,8 @@ impl Circle {
     }
 
     pub fn reset(&mut self, body: &Body, middle: &Vector2, scale: f64) -> &mut Self {
+        self.center.trajectory = body.center.state.trajectory;
         for i in 0..TRAJECTORY_SIZE {
-            *self.center.trajectory.position_mut(i) = *body.center.state.trajectory.position(i);
             self.center.trajectory.position_mut(i).set_left_up(middle, scale);
         }
         self.update(body, middle, scale);
