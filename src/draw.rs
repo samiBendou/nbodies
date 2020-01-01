@@ -1,7 +1,6 @@
 use std::fmt;
 use std::fmt::Debug;
 
-use physics::common::random_color;
 use physics::dynamics::{Body, Cluster, orbital};
 use physics::geometry::point::Point2;
 use physics::geometry::trajectory::TRAJECTORY_SIZE;
@@ -12,16 +11,12 @@ use physics::units::suffix::*;
 use piston::window::Size;
 use piston_window::*;
 use piston_window::context::Context;
-use rand::Rng;
 
 const SCALE_LENGTH: f64 = 50.;
-// in px
-const RADIUS_SCALING: f64 = 1.;
 
 pub const BLACK: [f32; 4] = [0., 0., 0., 1.];
 pub const WHITE: [f32; 4] = [1., 1., 1., 1.];
 pub const RED: [f32; 4] = [1., 0., 0., 1.];
-const GREEN: [f32; 4] = [0., 1., 0., 1.];
 const BLUE: [f32; 4] = [0., 0., 1., 1.];
 
 #[derive(Copy, Clone)]
@@ -110,11 +105,8 @@ impl Debug for Circle {
 
 pub struct Drawer {
     pub circles: Vec<Circle>,
-    from: Vector2,
-    to: Vector2,
+    pub middle: Vector2,
     offset: Vector2,
-    pub(crate) middle: Vector2,
-    rect: [f64; 4],
     color: [f32; 4],
     unit: Unit,
 }
@@ -129,11 +121,8 @@ impl Drawer {
         }
         Drawer {
             circles,
-            from: Vector2::zeros(),
-            to: Vector2::zeros(),
-            offset: Vector2::zeros(),
             middle,
-            rect: [0.; 4],
+            offset: Vector2::zeros(),
             color: BLACK,
             unit: Unit::from(Scale::from(Distance::Meter)),
         }
@@ -148,7 +137,7 @@ impl Drawer {
         self
     }
 
-    pub fn update_middle(&mut self, size: &Size) {
+    pub fn set_size(&mut self, size: &Size) {
         self.middle.x = 0.5 * size.width;
         self.middle.y = 0.5 * size.height;
     }
@@ -218,7 +207,7 @@ impl Drawer {
         );
     }
 
-    pub fn draw_bodies(&mut self, scale: f64, c: &Context, g: &mut G2d) {
+    pub fn draw_bodies(&mut self, c: &Context, g: &mut G2d) {
         let len = self.circles.len();
         for i in 0..len {
             piston_window::ellipse(
@@ -229,7 +218,7 @@ impl Drawer {
         }
     }
 
-    pub fn draw_trajectories(&mut self, scale: f64, c: &Context, g: &mut G2d) {
+    pub fn draw_trajectories(&mut self, c: &Context, g: &mut G2d) {
         let len = self.circles.len();
         for i in 0..len {
             self.color = self.circles[i].color;
@@ -246,7 +235,7 @@ impl Drawer {
         }
     }
 
-    pub fn draw_speed(&mut self, cursor: &[f64; 2], scale: f64, c: &Context, g: &mut G2d) {
+    pub fn draw_speed(&mut self, cursor: &[f64; 2], c: &Context, g: &mut G2d) {
         let last = self.circles.last().unwrap();
         piston_window::line_from_to(
             last.color,

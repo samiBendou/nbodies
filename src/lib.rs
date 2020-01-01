@@ -107,13 +107,13 @@ impl App {
                     return;
                 }
                 if self.status.trajectory {
-                    self.drawer.draw_trajectories(scale, &c, g);
+                    self.drawer.draw_trajectories(&c, g);
                 }
 
                 if self.status.state == core::State::WaitSpeed {
-                    self.drawer.draw_speed(cursor, self.config.scale.distance, &c, g);
+                    self.drawer.draw_speed(cursor, &c, g);
                 }
-                self.drawer.draw_bodies(scale, &c, g);
+                self.drawer.draw_bodies(&c, g);
                 self.drawer.draw_barycenter(&self.cluster.barycenter().state.position, scale, &c, g);
                 self.drawer.draw_scale(scale, &c, g, glyphs);
                 glyphs.factory.encoder.flush(device);
@@ -133,8 +133,6 @@ impl App {
             CancelDrop => self.do_cancel_drop()
         };
         if self.status.reset_origin {
-            println!("here");
-            self.cluster.reset_origin();
             self.drawer.reset_circles(&self.cluster, self.config.scale.distance);
         } else {
             self.drawer.update_circles(&self.cluster, self.config.scale.distance);

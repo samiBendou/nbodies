@@ -79,12 +79,14 @@ impl Logger {
         input: &Input,
     ) {
         use crate::log::State::*;
-
+        if drawer.circles.len() > 0 {
+            println!("TRAJECTORY\n{:?}", drawer.circles[cluster.current_index()].center.trajectory);
+        }
         match self.state {
             Hide => (),
             Status => self.log_status(status, input),
             Timing => self.log_timing(step, config),
-            Cinematic => self.log_cinematic(cluster.current_index(), drawer, config, status),
+            Cinematic => self.log_cinematic(cluster.current_index(), drawer, status),
             Physics => self.log_physics(cluster, status),
             Bodies => self.log_cluster(cluster)
         };
@@ -111,16 +113,16 @@ updates per frame: {}\n\n\
         );
     }
 
-    fn log_cinematic(&mut self, current: usize, drawer: &Drawer, config: &core::Config, status: &core::Status) {
+    fn log_cinematic(&mut self, current: usize, drawer: &Drawer, status: &core::Status) {
         let count = drawer.circles.len();
         if count == 0 {
             return;
         }
-        self.log_shape(&drawer.circles[current], config);
+        self.log_shape(&drawer.circles[current]);
         if !status.is_waiting_to_add() || count == 1 {
             return;
         }
-        self.log_shape(&drawer.circles.last().unwrap(), config);
+        self.log_shape(&drawer.circles.last().unwrap());
     }
 
     fn log_physics(&mut self, cluster: &dynamics::Cluster, status: &core::Status) {
@@ -143,7 +145,7 @@ updates per frame: {}\n\n\
                                 cluster
         );
     }
-    fn log_shape(&mut self, circle: &Circle, config: &core::Config) {
+    fn log_shape(&mut self, circle: &Circle) {
         self.px_units.rescale(&circle.center);
         self.buffer += &format!("\
 *** circle ***\n\
