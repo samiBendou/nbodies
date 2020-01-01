@@ -112,8 +112,7 @@ pressed keyboard key: '{:?}'",
         self.buffer += &format!("\
 *** timing info ***
 {:?}
-oversampling: {}
-",
+oversampling: {}",
                                 step, config.oversampling);
     }
 

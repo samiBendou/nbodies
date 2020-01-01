@@ -151,7 +151,6 @@ impl App {
 
     fn do_move(&mut self, dt: f64) {
         use physics::dynamics::forces;
-        let dt = dt / self.config.oversampling as f64 * self.config.scale.time;
         if self.status.pause || self.cluster.is_empty() {
             return;
         }
@@ -163,6 +162,7 @@ impl App {
             return;
         }
         // self.cluster.remove_aways();
+        let dt = dt / self.config.oversampling as f64 * self.config.scale.time;
         self.cluster.apply(dt, self.config.oversampling, |bodies, i| {
             forces::gravity(&bodies[i].center, bodies)
         });
