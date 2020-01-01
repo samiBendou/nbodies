@@ -4,7 +4,6 @@ use std::path::Path;
 use physics::common::random_color;
 use physics::dynamics;
 use physics::dynamics::{orbital, SPEED_SCALING_FACTOR};
-use physics::dynamics::orbital::Cluster;
 use physics::dynamics::point::Point2;
 use physics::geometry;
 use physics::geometry::vector::{Array, Vector2};
@@ -136,7 +135,7 @@ impl App {
         if self.status.reset_origin {
             println!("here");
             self.cluster.reset_origin();
-            self.drawer.clear_circles(&self.cluster, self.config.scale.distance);
+            self.drawer.reset_circles(&self.cluster, self.config.scale.distance);
         } else {
             self.drawer.update_circles(&self.cluster, self.config.scale.distance);
         }
@@ -173,7 +172,6 @@ impl App {
 
     fn do_move(&mut self, dt: f64) {
         use physics::dynamics::forces;
-        let middle = self.drawer.middle / self.config.scale.distance;
         let dt = dt / self.config.oversampling as f64 * self.config.scale.time;
         if self.status.pause || self.cluster.is_empty() {
             return;
@@ -218,7 +216,6 @@ impl App {
 
     //noinspection RsTypeCheck
     fn do_remove(&mut self, cursor: &[f64; 2]) {
-        let scale = self.config.scale.distance;
         let len = self.cluster.len();
         let cursor_position = Vector2::from(*cursor);
         let mut position;

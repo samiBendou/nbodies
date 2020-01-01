@@ -1,6 +1,5 @@
 use physics::dynamics;
 use physics::geometry::point::Point2;
-use physics::geometry::vector::Split;
 use physics::units;
 use physics::units::{Compound, Rescale, Serialize, Unit};
 use piston::input::Key;

@@ -2,7 +2,7 @@ use std::fmt;
 use std::fmt::Debug;
 
 use physics::common::random_color;
-use physics::dynamics::{Body, Cluster, orbital, SPEED_SCALING_FACTOR};
+use physics::dynamics::{Body, Cluster, orbital};
 use physics::geometry::point::Point2;
 use physics::geometry::trajectory::TRAJECTORY_SIZE;
 use physics::geometry::vector::{Array, Vector2, ZERO};
@@ -29,42 +29,37 @@ pub struct Circle {
     pub center: Point2,
     pub color: [f32; 4],
     pub radius: f64,
+    pub rect: [f64; 4],
 }
 
 impl Circle {
+
     pub fn new(center: Point2, radius: f64, color: [f32; 4]) -> Circle {
         Circle {
             center,
             color,
             radius,
+            rect: [0.; 4]
         }
     }
 
+
     pub fn from_body(body: &Body, color: [f32; 4], middle: &Vector2, scale: f64) -> Circle {
         let mut ret = Circle::centered(0., color);
-        *ret.clear_from_body(&body, middle, scale)
+        *ret.reset(&body, middle, scale)
     }
 
     pub fn centered(radius: f64, color: [f32; 4]) -> Circle {
         Circle::new(Point2::zeros(), radius, color)
     }
 
-    //noinspection RsTypeCheck
-    pub fn at_cursor(cursor: &[f64; 2], radius: f64, color: [f32; 4], middle: &Vector2, scale: f64) -> Circle {
-        let position = *Vector2::from(*cursor).set_centered(middle, scale);
-        let center = Point2::from(position);
-        Circle::new(center, radius, color)
-    }
-
-    pub fn at_cursor_random(cursor: &[f64; 2], middle: &Vector2, scale: f64) -> Circle {
-        let mut rng = rand::thread_rng();
-        let radius: f64 = rng.gen();
-        Circle::at_cursor(cursor, 20. * radius + 20., random_color(), middle, scale)
-    }
-
-    pub fn rounding_rect(&self, middle: &Vector2, scale: f64) -> [f64; 4] {
+    pub fn update_rect(&mut self) -> &mut Self {
         let diameter = 2. * self.radius;
-        [self.center.position.x - self.radius, self.center.position.y - self.radius, diameter, diameter]
+        self.rect[0] = self.center.position.x - self.radius;
+        self.rect[1] = self.center.position.y - self.radius;
+        self.rect[2] = diameter;
+        self.rect[3] = diameter;
+        self
     }
 
     pub fn bound(&mut self, middle: &Vector2) -> &mut Circle {
@@ -88,20 +83,21 @@ impl Circle {
         self
     }
 
-    pub fn clear_from_body(&mut self, body: &Body, middle: &Vector2, scale: f64) -> &mut Self {
+    pub fn reset(&mut self, body: &Body, middle: &Vector2, scale: f64) -> &mut Self {
         for i in 0..TRAJECTORY_SIZE {
             *self.center.trajectory.position_mut(i) = *body.center.state.trajectory.position(i);
             self.center.trajectory.position_mut(i).set_left_up(middle, scale);
         }
-        self.update_from_body(body, middle, scale);
+        self.update(body, middle, scale);
         self
     }
 
-    pub fn update_from_body(&mut self, body: &Body, middle: &Vector2, scale: f64) -> &mut Self {
+    pub fn update(&mut self, body: &Body, middle: &Vector2, scale: f64) -> &mut Self {
         self.center.position = body.center.state.position;
         self.center.speed = body.center.state.speed;
         self.center.position.set_left_up(middle, scale);
         self.center.speed.set_left_up(&ZERO, scale);
+        self.update_rect();
         self
     }
 }
@@ -160,7 +156,7 @@ impl Drawer {
     pub fn update_circles(&mut self, cluster: &Cluster, scale: f64) -> &mut Self {
         let len = self.circles.len();
         for i in 0..len {
-            self.circles[i].update_from_body(&cluster[i], &self.middle, scale);
+            self.circles[i].update(&cluster[i], &self.middle, scale);
         }
         self
     }
@@ -172,10 +168,10 @@ impl Drawer {
         self
     }
 
-    pub fn clear_circles(&mut self, cluster: &Cluster, scale: f64) -> &mut Self {
+    pub fn reset_circles(&mut self, cluster: &Cluster, scale: f64) -> &mut Self {
         let len = self.circles.len();
         for i in 0..len {
-            self.circles[i].clear_from_body(&cluster[i], &self.middle, scale);
+            self.circles[i].reset(&cluster[i], &self.middle, scale);
         }
         self
     }
@@ -227,7 +223,7 @@ impl Drawer {
         for i in 0..len {
             piston_window::ellipse(
                 self.circles[i].color,
-                self.circles[i].rounding_rect(&self.middle, scale),
+                self.circles[i].rect,
                 c.transform, g,
             );
         }
