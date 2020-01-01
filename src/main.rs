@@ -55,7 +55,7 @@ fn main() {
         }
 
         if let Some(_args) = event.render_args() {
-            app.render(&mut window, &event, &mut glyphs);
+            app.render(&input.cursor, &mut window, &event, &mut glyphs);
             app.log(&input);
         }
         if let Some(args) = event.update_args() {

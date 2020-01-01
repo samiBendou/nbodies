@@ -1,12 +1,13 @@
 use physics::dynamics;
-use physics::dynamics::point::Point2;
+use physics::geometry::point::Point2;
+use physics::geometry::vector::Split;
 use physics::units;
 use physics::units::{Compound, Rescale, Serialize, Unit};
-use physics::vector::Split;
 use piston::input::Key;
 
 use crate::common::*;
 use crate::core;
+use crate::draw::{Circle, Drawer};
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum State {
@@ -72,6 +73,7 @@ impl Logger {
     pub fn log(
         &mut self,
         cluster: &dynamics::Cluster,
+        drawer: &Drawer,
         status: &core::Status,
         config: &core::Config,
         step: &core::Step,
@@ -83,7 +85,7 @@ impl Logger {
             Hide => (),
             Status => self.log_status(status, input),
             Timing => self.log_timing(step, config),
-            Cinematic => self.log_cinematic(cluster, config, status),
+            Cinematic => self.log_cinematic(cluster.current_index(), drawer, config, status),
             Physics => self.log_physics(cluster, status),
             Bodies => self.log_cluster(cluster)
         };
@@ -110,26 +112,26 @@ updates per frame: {}\n\n\
         );
     }
 
-    fn log_cinematic(&mut self, cluster: &dynamics::Cluster, config: &core::Config, status: &core::Status) {
-        let count = cluster.count();
+    fn log_cinematic(&mut self, current: usize, drawer: &Drawer, config: &core::Config, status: &core::Status) {
+        let count = drawer.circles.len();
         if count == 0 {
             return;
         }
-        self.log_shape(cluster.current().unwrap(), config);
+        self.log_shape(&drawer.circles[current], config);
         if !status.is_waiting_to_add() || count == 1 {
             return;
         }
-        self.log_shape(cluster.last().unwrap(), config);
+        self.log_shape(&drawer.circles.last().unwrap(), config);
     }
 
     fn log_physics(&mut self, cluster: &dynamics::Cluster, status: &core::Status) {
-        let count = cluster.count();
-        if count == 0 {
+        let len = cluster.len();
+        if len == 0 {
             return;
         }
         self.log_energy(cluster);
         self.log_body(cluster.current().unwrap());
-        if !status.is_waiting_to_add() || count == 1 {
+        if !status.is_waiting_to_add() || len == 1 {
             return;
         }
         self.log_body(cluster.last().unwrap());
@@ -142,16 +144,12 @@ updates per frame: {}\n\n\
                                 cluster
         );
     }
-    fn log_shape(&mut self, body: &dynamics::Body, config: &core::Config) {
-        let mut shape = body.shape.center;
-        shape.scale_position(config.scale.distance);
-        shape.scale_speed(config.scale.distance);
-        self.px_units.rescale(&shape);
+    fn log_shape(&mut self, circle: &Circle, config: &core::Config) {
+        self.px_units.rescale(&circle.center);
         self.buffer += &format!("\
-*** {} ***\n\
+*** circle ***\n\
 {}\n",
-                                body.name,
-                                self.px_units.string_of(&shape)
+                                self.px_units.string_of(&circle.center)
         );
     }
 
@@ -170,7 +168,7 @@ updates per frame: {}\n\n\
         let kinetic_energy = cluster.kinetic_energy();
         let angular_momentum = cluster.angular_momentum();
         let potential_energy = cluster.potential_energy(|bodies, i| {
-            bodies[i].mass * potentials::gravity(&bodies[i].shape.center, bodies)
+            bodies[i].center.mass * potentials::gravity(&bodies[i].center, bodies)
         });
         let total_energy = kinetic_energy + potential_energy;
         self.energy_units.rescale(&total_energy);
@@ -231,7 +229,6 @@ impl units::Rescale<Point2> for Units {
     fn rescale(&mut self, val: &Point2) -> &mut Self {
         self.distance.rescale(&val.position.magnitude());
         self.speed.units[0].rescale(&val.speed.magnitude());
-        self.acceleration.units[0].rescale(&val.acceleration.magnitude());
         self
     }
 }
@@ -239,7 +236,7 @@ impl units::Rescale<Point2> for Units {
 
 impl units::Rescale<dynamics::Body> for Units {
     fn rescale(&mut self, val: &dynamics::Body) -> &mut Self {
-        self.rescale(&val.shape.center);
+        self.rescale(&val.center.state);
         self
     }
 }
@@ -247,10 +244,9 @@ impl units::Rescale<dynamics::Body> for Units {
 impl units::Serialize<Point2> for Units {
     fn string_of(&self, val: &Point2) -> String {
         format!(
-            "position: {}\nspeed: {}\nacceleration: {}",
+            "position: {}\nspeed: {}",
             self.distance.string_of(&val.position),
             self.speed.string_of(&val.speed),
-            self.acceleration.string_of(&val.acceleration.lower()),
         )
     }
 }
@@ -258,12 +254,11 @@ impl units::Serialize<Point2> for Units {
 impl units::Serialize<dynamics::Body> for Units {
     fn string_of(&self, val: &dynamics::Body) -> String {
         format!(
-            "name: {}\nmass: {}\nposition: {}\nspeed: {}\nacceleration: {}",
+            "name: {}\nmass: {}\nposition: {}\nspeed: {}",
             val.name,
-            self.mass.string_of(&val.mass),
-            self.distance.string_of(&val.shape.center.position),
-            self.speed.string_of(&val.shape.center.speed),
-            self.acceleration.string_of(&val.shape.center.acceleration.lower()),
+            self.mass.string_of(&val.center.mass),
+            self.distance.string_of(&val.center.state.position),
+            self.speed.string_of(&val.center.state.speed),
         )
     }
 }

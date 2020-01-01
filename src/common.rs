@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use physics::vector::*;
+use physics::geometry::vector::*;
 use piston::input::{Key, MouseButton};
 
 pub static KEY_TOGGLE_BOUNDED: Key = Key::B;

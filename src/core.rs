@@ -288,7 +288,7 @@ pub struct Status {
     pub translate: bool,
     pub trajectory: bool,
     pub pause: bool,
-    pub clear_circles: bool,
+    pub reset_origin: bool,
     pub state: State,
 }
 
@@ -300,7 +300,7 @@ impl Status {
             translate,
             trajectory: true,
             pause: true,
-            clear_circles: true,
+            reset_origin: true,
             state: State::Reset,
         }
     }
@@ -337,7 +337,7 @@ impl Status {
                     *key == KEY_NEXT_FRAME_STATE ||
                     *key == KEY_INCREASE_DISTANCE ||
                     *key == KEY_DECREASE_DISTANCE {
-                    self.clear_circles = true;
+                    self.reset_origin = true;
                 } else {
                     self.direction = Direction::from(key);
                 }
@@ -352,6 +352,6 @@ impl Status {
     pub fn clear(&mut self) {
         self.state.next(&KEY_UNKNOWN, &BUTTON_UNKNOWN);
         self.direction = Direction::from(&KEY_UNKNOWN);
-        self.clear_circles = false;
+        self.reset_origin = false;
     }
 }

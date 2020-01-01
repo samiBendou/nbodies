@@ -3,11 +3,12 @@ use std::fmt::Debug;
 
 use physics::common::random_color;
 use physics::dynamics::{Body, Cluster, SPEED_SCALING_FACTOR};
-use physics::dynamics::point::{Point2, State, TRAJECTORY_SIZE};
+use physics::geometry::point::Point2;
+use physics::geometry::trajectory::TRAJECTORY_SIZE;
+use physics::geometry::vector::{Array, Vector2, ZERO};
+use physics::geometry::vector::transforms::Cartesian2;
 use physics::units::{Rescale, Scale, Serialize, Unit};
 use physics::units::suffix::*;
-use physics::vector::{Array, Vector2};
-use physics::vector::transforms::Cartesian2;
 use piston::window::Size;
 use piston_window::*;
 use piston_window::context::Context;
@@ -41,7 +42,7 @@ impl Circle {
 
     pub fn from_body(body: &Body, color: [f32; 4], middle: &Vector2, scale: f64) -> Circle {
         let mut ret = Circle::centered(0., color);
-        *ret.set_body(&body, middle, scale)
+        *ret.clear_from_body(&body, middle, scale)
     }
 
     pub fn centered(radius: f64, color: [f32; 4]) -> Circle {
@@ -50,7 +51,7 @@ impl Circle {
 
     pub fn at_cursor(cursor: &[f64; 2], radius: f64, color: [f32; 4], middle: &Vector2, scale: f64) -> Circle {
         let position = *Vector2::from(*cursor).set_centered(middle, scale);
-        let center = Point2::stationary(position);
+        let center = Point2::from(position);
         Circle::new(center, radius, color)
     }
 
@@ -86,37 +87,20 @@ impl Circle {
         self
     }
 
-    pub fn set_body(&mut self, body: &Body, middle: &Vector2, scale: f64) -> &mut Self {
-        self.radius = body.shape.radius * RADIUS_SCALING;
-        self.clear_from_body(body, middle, scale)
-    }
-
     pub fn clear_from_body(&mut self, body: &Body, middle: &Vector2, scale: f64) -> &mut Self {
-        self.center.set_state(&body.shape.center);
-        self.center.position.set_left_up(middle, scale);
-        self.center.speed.set_left_up(middle, scale);
         for i in 0..TRAJECTORY_SIZE {
-            *self.center.position_mut(i) = *body.shape.center.position(i);
-            self.center.position_mut(i).set_left_up(middle, scale);
+            *self.center.trajectory.position_mut(i) = *body.center.state.trajectory.position(i);
+            self.center.trajectory.position_mut(i).set_left_up(middle, scale);
         }
+        self.update_from_body(body, middle, scale);
         self
     }
 
     pub fn update_from_body(&mut self, body: &Body, middle: &Vector2, scale: f64) -> &mut Self {
-        self.center.set_state(&body.shape.center);
+        self.center.position = body.center.state.position;
+        self.center.speed = body.center.state.speed;
         self.center.position.set_left_up(middle, scale);
-        self.center.speed.set_left_up(middle, scale);
-        self
-    }
-
-    pub fn set_cursor_pos(&mut self, cursor: &[f64; 2], middle: &Vector2, scale: f64) -> &mut Circle {
-        self.center.position.set_array(&cursor).set_centered(middle, scale);
-        self
-    }
-
-    pub fn set_cursor_speed(&mut self, cursor: &[f64; 2], middle: &Vector2, scale: f64) -> &mut Circle {
-        let cursor_position = *Vector2::from(*cursor).set_centered(middle, scale);
-        self.center.speed = (cursor_position - self.center.position) / SPEED_SCALING_FACTOR;
+        self.center.speed.set_left_up(&ZERO, scale);
         self
     }
 }
@@ -132,7 +116,7 @@ pub struct Drawer {
     from: Vector2,
     to: Vector2,
     offset: Vector2,
-    middle: Vector2,
+    pub(crate) middle: Vector2,
     rect: [f64; 4],
     color: [f32; 4],
     unit: Unit,
@@ -142,7 +126,7 @@ pub struct Drawer {
 impl Drawer {
     pub fn new(size: &Size, cluster: &Cluster, scale: f64) -> Drawer {
         let middle = Vector2::new(size.width, size.height) * 0.5;
-        let mut circles: Vec<Circle> = Vec::with_capacity(cluster.count());
+        let mut circles: Vec<Circle> = Vec::with_capacity(cluster.len());
         for body in cluster.bodies.iter() {
             circles.push(Circle::from_body(body, random_color(), &middle, scale))
         }
@@ -156,10 +140,6 @@ impl Drawer {
             color: [0.; 4],
             unit: Unit::from(Scale::from(Distance::Meter)),
         }
-    }
-
-    pub fn middle(&self) -> &Vector2 {
-        &self.middle
     }
 
     pub fn update_middle(&mut self, size: &Size) {
@@ -177,7 +157,7 @@ impl Drawer {
 
     pub fn update_circles_trajectory(&mut self) -> &mut Self {
         for circle in self.circles.iter_mut() {
-            circle.center.update_trajectory();
+            circle.center.trajectory.push(&circle.center.position)
         }
         self
     }
@@ -185,7 +165,7 @@ impl Drawer {
     pub fn clear_circles(&mut self, cluster: &Cluster, scale: f64) -> &mut Self {
         let len = self.circles.len();
         for i in 0..len {
-            self.circles[i].set_body(&cluster[i], &self.middle, scale);
+            self.circles[i].clear_from_body(&cluster[i], &self.middle, scale);
         }
         self
     }
@@ -223,8 +203,8 @@ impl Drawer {
         ).unwrap();
     }
 
-    pub fn draw_barycenter(&mut self, barycenter: &Body, scale: f64, c: &Context, g: &mut G2d) {
-        let barycenter = barycenter.shape.center.position.left_up(&self.middle, scale);
+    pub fn draw_barycenter(&mut self, position: &Vector2, scale: f64, c: &Context, g: &mut G2d) {
+        let barycenter = position.left_up(&self.middle, scale);
         piston_window::rectangle(
             RED,
             [barycenter.x - 4., barycenter.y - 4., 8., 8.],
@@ -232,49 +212,41 @@ impl Drawer {
         );
     }
 
-    pub fn draw_bodies(&mut self, bodies: &Cluster, scale: f64, c: &Context, g: &mut G2d) {
+    pub fn draw_bodies(&mut self, scale: f64, c: &Context, g: &mut G2d) {
         let len = self.circles.len();
-        self.offset = self.middle * 2.;
         for i in 0..len {
-            self.rect = self.circles[i].rounding_rect(&self.middle, scale);
             piston_window::ellipse(
                 self.circles[i].color,
-                self.rect,
+                self.circles[i].rounding_rect(&self.middle, scale),
                 c.transform, g,
             );
         }
     }
 
-    pub fn draw_trajectories(&mut self, bodies: &Cluster, scale: f64, c: &Context, g: &mut G2d) {
-        use physics::dynamics::point::TRAJECTORY_SIZE;
+    pub fn draw_trajectories(&mut self, scale: f64, c: &Context, g: &mut G2d) {
         let len = self.circles.len();
         for i in 0..len {
             self.color = self.circles[i].color;
             for k in 1..TRAJECTORY_SIZE - 1 {
                 self.color[3] = k as f32 / (TRAJECTORY_SIZE as f32 - 1.);
-                self.from = *self.circles[i].center.position(k - 1);
-                self.to = *self.circles[i].center.position(k);
                 piston_window::line_from_to(
                     self.color,
                     2.5,
-                    self.from.array(),
-                    self.to.array(),
+                    self.circles[i].center.trajectory.position(k - 1).array(),
+                    self.circles[i].center.trajectory.position(k).array(),
                     c.transform, g,
                 );
             }
         }
     }
 
-    pub fn draw_speed(&mut self, body: &Body, scale: f64, c: &Context, g: &mut G2d) {
-        self.from = body.shape.center.position;
-        self.to = body.shape.center.position + body.shape.center.speed * SPEED_SCALING_FACTOR;
-        self.from.set_left_up(&self.middle, scale);
-        self.to.set_left_up(&self.middle, scale);
+    pub fn draw_speed(&mut self, cursor: &[f64; 2], scale: f64, c: &Context, g: &mut G2d) {
+        let last = self.circles.last().unwrap();
         piston_window::line_from_to(
-            body.shape.color,
+            last.color,
             2.5,
-            self.from.array(),
-            self.to.array(),
+            last.center.position.array(),
+            *cursor,
             c.transform, g,
         );
     }
