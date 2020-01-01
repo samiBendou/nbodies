@@ -180,11 +180,10 @@ impl App {
             self.cluster.update_current_trajectory();
             return;
         }
-        self.cluster.remove_aways();
+        // self.cluster.remove_aways();
         self.cluster.apply(dt, self.config.oversampling, |bodies, i| {
             forces::gravity(&bodies[i].center, bodies)
         });
-        self.cluster.update_trajectory();
     }
 
     fn do_reset(&mut self) {

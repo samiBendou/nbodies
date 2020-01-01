@@ -179,13 +179,18 @@ oversampling: {}
         self.buffer += &format!("\
 kinetic energy: {}
 potential energy: {}
-energy: {}
+total energy: {}
 angular momentum: {:.5e}",
                                 self.energy_units.string_of(&kinetic_energy),
                                 self.energy_units.string_of(&potential_energy),
                                 self.energy_units.string_of(&total_energy),
                                 angular_momentum
         );
+
+        let barycenter = cluster.barycenter();
+        self.units.rescale(&barycenter.state);
+        self.buffer += &format!("\n*** barycenter ***\n{}",
+                                self.units.string_of(&barycenter.state));
     }
 
     fn log_scale(&mut self, scale: &Scale) {
