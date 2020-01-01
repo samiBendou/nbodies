@@ -124,7 +124,6 @@ impl App {
     pub fn update(&mut self, _window: &mut PistonWindow, args: &UpdateArgs, cursor: &[f64; 2]) {
         use crate::core::State::*;
 
-        self.drawer.update_circles_trajectory();
         match self.status.state {
             Move => self.do_move(args.dt),
             Reset => self.do_reset(),
@@ -134,25 +133,8 @@ impl App {
             WaitSpeed => self.do_wait_speed(cursor),
             CancelDrop => self.do_cancel_drop()
         };
-        if self.status.reset_origin {
-            self.drawer.reset_circles(&self.cluster, self.config.scale.distance);
-        } else {
-            self.drawer.update_circles(&self.cluster, self.config.scale.distance);
-        }
+        self.update_drawer();
         self.status.clear();
-    }
-
-    pub fn update_cluster(&mut self, key: &Key) {
-        if *key == KEY_INCREASE_CURRENT_INDEX || *key == KEY_DECREASE_CURRENT_INDEX {
-            let increase = *key == KEY_INCREASE_CURRENT_INDEX;
-            let mut bypass_last = false;
-            if self.status.is_waiting_to_add() {
-                bypass_last = true;
-            }
-            self.cluster.update_current_index(increase, bypass_last);
-        } else if *key == KEY_NEXT_FRAME_STATE {
-            self.cluster.update_frame();
-        }
     }
 
     //noinspection RsTypeCheck
@@ -250,5 +232,27 @@ impl App {
     fn do_cancel_drop(&mut self) {
         self.cluster.pop();
         self.drawer.pop();
+    }
+
+    fn update_cluster(&mut self, key: &Key) {
+        if *key == KEY_INCREASE_CURRENT_INDEX || *key == KEY_DECREASE_CURRENT_INDEX {
+            let increase = *key == KEY_INCREASE_CURRENT_INDEX;
+            let mut bypass_last = false;
+            if self.status.is_waiting_to_add() {
+                bypass_last = true;
+            }
+            self.cluster.update_current_index(increase, bypass_last);
+        } else if *key == KEY_NEXT_FRAME_STATE {
+            self.cluster.update_frame();
+        }
+    }
+
+    fn update_drawer(&mut self) {
+        if self.status.reset_origin {
+            self.drawer.reset_circles(&self.cluster, self.config.scale.distance);
+        } else {
+            self.drawer.update_circles(&self.cluster, self.config.scale.distance);
+        }
+        self.drawer.update_circles_trajectory();
     }
 }
