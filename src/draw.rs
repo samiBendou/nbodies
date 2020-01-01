@@ -2,7 +2,7 @@ use std::fmt;
 use std::fmt::Debug;
 
 use physics::common::random_color;
-use physics::dynamics::{Body, Cluster, SPEED_SCALING_FACTOR};
+use physics::dynamics::{Body, Cluster, orbital, SPEED_SCALING_FACTOR};
 use physics::geometry::point::Point2;
 use physics::geometry::trajectory::TRAJECTORY_SIZE;
 use physics::geometry::vector::{Array, Vector2, ZERO};
@@ -21,8 +21,8 @@ const RADIUS_SCALING: f64 = 1.;
 pub const BLACK: [f32; 4] = [0., 0., 0., 1.];
 pub const WHITE: [f32; 4] = [1., 1., 1., 1.];
 pub const RED: [f32; 4] = [1., 0., 0., 1.];
-// const GREEN: [f32; 4] = [0., 1., 0., 1.];
-// const BLUE: [f32; 4] = [0., 0., 1., 1.];
+const GREEN: [f32; 4] = [0., 1., 0., 1.];
+const BLUE: [f32; 4] = [0., 0., 1., 1.];
 
 #[derive(Copy, Clone)]
 pub struct Circle {
@@ -49,6 +49,7 @@ impl Circle {
         Circle::new(Point2::zeros(), radius, color)
     }
 
+    //noinspection RsTypeCheck
     pub fn at_cursor(cursor: &[f64; 2], radius: f64, color: [f32; 4], middle: &Vector2, scale: f64) -> Circle {
         let position = *Vector2::from(*cursor).set_centered(middle, scale);
         let center = Point2::from(position);
@@ -128,7 +129,7 @@ impl Drawer {
         let middle = Vector2::new(size.width, size.height) * 0.5;
         let mut circles: Vec<Circle> = Vec::with_capacity(cluster.len());
         for body in cluster.bodies.iter() {
-            circles.push(Circle::from_body(body, random_color(), &middle, scale))
+            circles.push(Circle::from_body(body, BLUE, &middle, scale))
         }
         Drawer {
             circles,
@@ -137,9 +138,18 @@ impl Drawer {
             offset: Vector2::zeros(),
             middle,
             rect: [0.; 4],
-            color: [0.; 4],
+            color: BLACK,
             unit: Unit::from(Scale::from(Distance::Meter)),
         }
+    }
+
+    pub fn set_appearance(&mut self, cluster: &orbital::Cluster) -> &mut Self {
+        let len = self.circles.len();
+        for i in 0..len {
+            self.circles[i].color = cluster.bodies[i].color;
+            self.circles[i].radius = cluster.bodies[i].kind.scaled_radius(cluster.bodies[i].radius);
+        }
+        self
     }
 
     pub fn update_middle(&mut self, size: &Size) {

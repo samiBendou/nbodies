@@ -4,6 +4,7 @@ use std::path::Path;
 use physics::common::random_color;
 use physics::dynamics;
 use physics::dynamics::{orbital, SPEED_SCALING_FACTOR};
+use physics::dynamics::orbital::Cluster;
 use physics::dynamics::point::Point2;
 use physics::geometry;
 use physics::geometry::vector::{Array, Vector2};
@@ -29,6 +30,14 @@ pub struct App {
     pub step: Step,
     pub logger: Logger,
     pub drawer: Drawer,
+}
+
+impl From<orbital::Cluster> for App {
+    fn from(cluster: orbital::Cluster) -> Self {
+        let mut ret = App::from(dynamics::Cluster::orbital_at(&cluster, 0.));
+        ret.drawer.set_appearance(&cluster);
+        ret
+    }
 }
 
 impl From<dynamics::Cluster> for App {
@@ -68,7 +77,7 @@ impl App {
     pub fn from_args(args: Arguments) -> Result<App, Box<dyn Error>> {
         if let Some(path) = args.path {
             let cluster = orbital::Cluster::from_file(Path::new(path.as_str()))?;
-            return Ok(App::from(dynamics::Cluster::orbital_at(cluster, 0.)));
+            return Ok(App::from(cluster));
         }
         Ok(App::from(Config::from(args)))
     }
@@ -189,6 +198,7 @@ impl App {
         }
     }
 
+    //noinspection RsTypeCheck
     fn do_add(&mut self, cursor: &[f64; 2]) {
         let kind = if self.cluster.is_empty() {
             orbital::Kind::Star
@@ -206,6 +216,7 @@ impl App {
         self.cluster.push(dynamics::Body::new(name, Point2::new(body_state, mass)));
     }
 
+    //noinspection RsTypeCheck
     fn do_remove(&mut self, cursor: &[f64; 2]) {
         let scale = self.config.scale.distance;
         let len = self.cluster.len();
