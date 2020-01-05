@@ -24,6 +24,7 @@ pub static KEY_INCREASE_CURRENT_INDEX: Key = Key::Z;
 pub static KEY_DECREASE_CURRENT_INDEX: Key = Key::X;
 pub static KEY_NEXT_LOGGER_STATE: Key = Key::L;
 pub static KEY_NEXT_FRAME_STATE: Key = Key::K;
+pub static KEY_NEXT_METHOD_STATE: Key = Key::M;
 
 pub static MOUSE_MOVE_ADD: MouseButton = MouseButton::Left;
 pub static MOUSE_MOVE_REMOVE: MouseButton = MouseButton::Right;

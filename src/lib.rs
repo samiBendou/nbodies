@@ -245,6 +245,8 @@ impl App {
             self.cluster.update_current_index(increase, bypass_last);
         } else if *key == KEY_NEXT_FRAME_STATE {
             self.cluster.update_frame();
+        } else if *key == KEY_NEXT_METHOD_STATE {
+            self.cluster.solver.method.next();
         }
     }
 
