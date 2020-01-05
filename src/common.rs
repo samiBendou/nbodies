@@ -1,6 +1,8 @@
 use std::fmt::Debug;
 
+use physics::geometry::common::Initializer;
 use physics::geometry::vector::*;
+use physics::geometry::vector::coordinates::Cartesian2;
 use piston::input::{Key, MouseButton};
 
 pub static KEY_TOGGLE_BOUNDED: Key = Key::B;
@@ -118,13 +120,13 @@ impl Direction {
         }
     }
 
-    pub fn as_vector(&self) -> Vector2 {
+    pub fn as_vector(&self) -> Vector3 {
         match *self {
-            Direction::Left => N_EX,
-            Direction::Right => EX,
-            Direction::Up => EY,
-            Direction::Down => N_EY,
-            Direction::Hold => ZERO
+            Direction::Left => Vector3::unit_neg_x(),
+            Direction::Right => Vector3::unit_x(),
+            Direction::Up => Vector3::unit_y(),
+            Direction::Down => Vector3::unit_neg_x(),
+            Direction::Hold => Vector3::zeros()
         }
     }
 }

@@ -2,10 +2,10 @@ use std::fmt;
 use std::fmt::Debug;
 
 use physics::dynamics::{Body, Cluster, orbital};
-use physics::geometry::common::Array;
-use physics::geometry::point::Point2;
+use physics::geometry::common::{Array, Initializer};
+use physics::geometry::point::Point3;
 use physics::geometry::trajectory::TRAJECTORY_SIZE;
-use physics::geometry::vector::{Vector2, ZERO};
+use physics::geometry::vector::{Vector2, Vector3, ZERO};
 use physics::geometry::vector::transforms::Cartesian2;
 use physics::units::{Rescale, Scale, Serialize, Unit};
 use physics::units::suffix::*;
@@ -22,20 +22,19 @@ const BLUE: [f32; 4] = [0., 0., 1., 1.];
 
 #[derive(Copy, Clone)]
 pub struct Circle {
-    pub center: Point2,
+    pub center: Point3,
     pub color: [f32; 4],
     pub radius: f64,
     pub rect: [f64; 4],
 }
 
 impl Circle {
-
-    pub fn new(center: Point2, radius: f64, color: [f32; 4]) -> Circle {
+    pub fn new(center: Point3, radius: f64, color: [f32; 4]) -> Circle {
         Circle {
             center,
             color,
             radius,
-            rect: [0.; 4]
+            rect: [0.; 4],
         }
     }
 
@@ -46,7 +45,7 @@ impl Circle {
     }
 
     pub fn centered(radius: f64, color: [f32; 4]) -> Circle {
-        Circle::new(Point2::zeros(), radius, color)
+        Circle::new(Point3::zeros(), radius, color)
     }
 
     pub fn update_rect(&mut self) -> &mut Self {
@@ -58,7 +57,7 @@ impl Circle {
         self
     }
 
-    pub fn bound(&mut self, middle: &Vector2) -> &mut Circle {
+    pub fn bound(&mut self, middle: &Vector3) -> &mut Circle {
         let x_left = -self.radius - middle.x;
         let x_right = self.radius + middle.x;
         let y_up = self.radius + middle.y;
@@ -199,7 +198,7 @@ impl Drawer {
         ).unwrap();
     }
 
-    pub fn draw_barycenter(&mut self, position: &Vector2, scale: f64, c: &Context, g: &mut G2d) {
+    pub fn draw_barycenter(&mut self, position: &Vector3, scale: f64, c: &Context, g: &mut G2d) {
         let barycenter = position.left_up(&self.middle, scale);
         piston_window::rectangle(
             RED,
@@ -221,15 +220,19 @@ impl Drawer {
 
     pub fn draw_trajectories(&mut self, c: &Context, g: &mut G2d) {
         let len = self.circles.len();
+        let mut from;
+        let mut to;
         for i in 0..len {
             self.color = self.circles[i].color;
             for k in 1..TRAJECTORY_SIZE - 1 {
+                from = self.circles[i].center.trajectory.position(k - 1).array();
+                to = self.circles[i].center.trajectory.position(k).array();
                 self.color[3] = k as f32 / (TRAJECTORY_SIZE as f32 - 1.);
                 piston_window::line_from_to(
                     self.color,
                     2.5,
-                    self.circles[i].center.trajectory.position(k - 1).array(),
-                    self.circles[i].center.trajectory.position(k).array(),
+                    [from[0], from[1]],
+                    [to[0], to[1]],
                     c.transform, g,
                 );
             }
@@ -238,10 +241,11 @@ impl Drawer {
 
     pub fn draw_speed(&mut self, cursor: &[f64; 2], c: &Context, g: &mut G2d) {
         let last = self.circles.last().unwrap();
+        let last_pos = last.center.position.array();
         piston_window::line_from_to(
             last.color,
             2.5,
-            last.center.position.array(),
+            [last_pos[0], last_pos[1]],
             *cursor,
             c.transform, g,
         );

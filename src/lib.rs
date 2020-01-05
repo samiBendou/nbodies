@@ -4,11 +4,11 @@ use std::path::Path;
 use physics::common::random_color;
 use physics::dynamics;
 use physics::dynamics::{orbital, SPEED_SCALING_FACTOR};
-use physics::dynamics::point::Point2;
+use physics::dynamics::point::Point3;
 use physics::geometry;
-use physics::geometry::common::Array;
+use physics::geometry::common::{Array, Metric, Reset};
 use physics::geometry::vector::transforms::Cartesian2;
-use physics::geometry::vector::Vector2;
+use physics::geometry::vector::Vector3;
 use piston::input::{Event, Key, MouseButton, UpdateArgs};
 use piston_window;
 use piston_window::{Glyphs, PistonWindow};
@@ -34,7 +34,7 @@ pub struct App {
 
 impl From<orbital::Cluster> for App {
     fn from(cluster: orbital::Cluster) -> Self {
-        let mut ret = App::from(dynamics::Cluster::orbital_at(&cluster, 0.));
+        let mut ret = App::from(dynamics::Cluster::orbital_at_random(&cluster));
         ret.drawer.set_appearance(&cluster);
         ret
     }
@@ -185,22 +185,22 @@ impl App {
         let mass = kind.random_mass();
         let radius = kind.scaled_radius(kind.random_radius());
         let name = "";
-        let cursor = Vector2::from(*cursor);
+        let cursor = Vector3::new(cursor[0], cursor[1], 0.);
         let position = cursor.centered(&self.drawer.middle, self.config.scale.distance);
-        let body_state = geometry::point::Point2::from(position);
-        let circle_state = geometry::point::Point2::from(cursor);
+        let body_state = geometry::point::Point3::from(position);
+        let circle_state = geometry::point::Point3::from(cursor);
         self.drawer.circles.push(Circle::new(circle_state, radius, random_color()));
-        self.cluster.push(dynamics::Body::new(name, Point2::new(body_state, mass)));
+        self.cluster.push(dynamics::Body::new(name, Point3::new(body_state, mass)));
     }
 
     //noinspection RsTypeCheck
     fn do_remove(&mut self, cursor: &[f64; 2]) {
         let len = self.cluster.len();
-        let cursor_position = Vector2::from(*cursor);
+        let cursor_position = Vector3::new(cursor[0], cursor[1], 0.);
         let mut position;
         for i in 0..len {
             position = self.drawer.circles[i].center.position;
-            if cursor_position.distance(position) < self.drawer.circles[i].radius {
+            if cursor_position.distance(&position) < self.drawer.circles[i].radius {
                 self.cluster.remove(i);
                 self.drawer.circles.remove(i);
                 break;
@@ -209,21 +209,23 @@ impl App {
     }
 
     fn do_wait_drop(&mut self, cursor: &[f64; 2]) {
+        let cursor = [cursor[0], cursor[1], 0.];
         let last_body = self.cluster.last_mut().unwrap();
         let last_circle = self.drawer.circles.last_mut().unwrap();
         last_body.center.state.position
-            .set_array(cursor)
+            .set_array(&cursor)
             .set_centered(&self.drawer.middle, self.config.scale.distance);
         last_circle.center.position
-            .set_array(cursor);
+            .set_array(&cursor);
         last_circle.center.trajectory.reset(&last_circle.center.position);
         self.cluster.update_barycenter();
     }
 
     fn do_wait_speed(&mut self, cursor: &[f64; 2]) {
+        let cursor = [cursor[0], cursor[1], 0.];
         let last_body = self.cluster.last_mut().unwrap();
         last_body.center.state.speed
-            .set_array(cursor)
+            .set_array(&cursor)
             .set_centered(&self.drawer.middle, self.config.scale.distance);
         last_body.center.state.speed -= last_body.center.state.position;
         last_body.center.state.speed *= SPEED_SCALING_FACTOR;

@@ -1,5 +1,6 @@
 use physics::dynamics;
-use physics::geometry::point::Point2;
+use physics::geometry::common::Metric;
+use physics::geometry::point::Point3;
 use physics::units;
 use physics::units::{Compound, Rescale, Serialize, Unit};
 use piston::input::Key;
@@ -179,7 +180,7 @@ oversampling: {}",
 kinetic energy: {}
 potential energy: {}
 total energy: {}
-angular momentum: {:.5e}",
+angular momentum: {:.10e}",
                                 self.energy_units.string_of(&kinetic_energy),
                                 self.energy_units.string_of(&potential_energy),
                                 self.energy_units.string_of(&total_energy),
@@ -235,8 +236,8 @@ impl Units {
     }
 }
 
-impl units::Rescale<Point2> for Units {
-    fn rescale(&mut self, val: &Point2) -> &mut Self {
+impl units::Rescale<Point3> for Units {
+    fn rescale(&mut self, val: &Point3) -> &mut Self {
         self.distance.rescale(&val.position.magnitude());
         self.speed.units[0].rescale(&val.speed.magnitude());
         self
@@ -251,8 +252,8 @@ impl units::Rescale<dynamics::Body> for Units {
     }
 }
 
-impl units::Serialize<Point2> for Units {
-    fn string_of(&self, val: &Point2) -> String {
+impl units::Serialize<Point3> for Units {
+    fn string_of(&self, val: &Point3) -> String {
         format!(
             "position: {}\nspeed: {}",
             self.distance.string_of(&val.position),
