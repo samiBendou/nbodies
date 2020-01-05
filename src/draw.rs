@@ -2,9 +2,10 @@ use std::fmt;
 use std::fmt::Debug;
 
 use physics::dynamics::{Body, Cluster, orbital};
+use physics::geometry::common::Array;
 use physics::geometry::point::Point2;
 use physics::geometry::trajectory::TRAJECTORY_SIZE;
-use physics::geometry::vector::{Array, Vector2, ZERO};
+use physics::geometry::vector::{Vector2, ZERO};
 use physics::geometry::vector::transforms::Cartesian2;
 use physics::units::{Rescale, Scale, Serialize, Unit};
 use physics::units::suffix::*;
