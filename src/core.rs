@@ -426,6 +426,7 @@ impl Status {
                     *key == KEY_INCREASE_DISTANCE ||
                     *key == KEY_DECREASE_DISTANCE {
                     self.reset_circles = true;
+                    self.update_transform = true
                 } else {
                     self.direction = Direction::from(key);
                 }

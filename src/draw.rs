@@ -2,8 +2,8 @@ use std::fmt;
 use std::fmt::Debug;
 
 use physics::dynamics::{Cluster, orbital};
-use physics::geometry::common::{Array, Initializer};
-use physics::geometry::common::coordinates::Cartesian4;
+use physics::geometry::common::{Array, Initializer, Metric};
+use physics::geometry::common::coordinates::{Cartesian2, Cartesian3, Cartesian4};
 use physics::geometry::common::coordinates::Homogeneous;
 use physics::geometry::common::transforms::{Rotation3, Similarity};
 use physics::geometry::matrix::{Algebra, Matrix3, Matrix4};
@@ -22,6 +22,7 @@ const SCALE_LENGTH: f64 = 50.;
 pub const BLACK: [f32; 4] = [0., 0., 0., 1.];
 pub const WHITE: [f32; 4] = [1., 1., 1., 1.];
 pub const RED: [f32; 4] = [1., 0., 0., 1.];
+pub const GREEN: [f32; 4] = [0., 1., 0., 1.];
 const BLUE: [f32; 4] = [0., 0., 1., 1.];
 
 #[derive(Copy, Clone)]
@@ -91,8 +92,9 @@ pub struct Drawer {
 
 impl Drawer {
     pub fn new(size: &Size, cluster: &Cluster, scale: f64) -> Drawer {
-        let rotation = Matrix3::eye();
+        let rotation = Matrix3::from_rotation_x(std::f64::consts::PI);
         let middle = Vector3::new(size.width * 0.5, size.height * 0.5, 0.);
+        let transform = Matrix4::from_similarity(scale, &rotation, &middle);
         let circles: Vec<Circle> = cluster.bodies.iter()
             .map({ |_body| Circle::centered(0., BLUE) })
             .collect();
@@ -101,8 +103,8 @@ impl Drawer {
             offset: Vector2::zeros(),
             color: BLACK,
             unit: Unit::from(Scale::from(Distance::Meter)),
-            transform: Matrix4::from_similarity(scale, &rotation, &middle),
-            inverse_transform: Matrix4::from_similarity(1. / scale, &rotation.transposed(), &-middle),
+            transform,
+            inverse_transform: transform.inverse(),
         }
     }
 
@@ -117,8 +119,8 @@ impl Drawer {
 
     pub fn update_transform(&mut self, orientation: &Orientation, scale: f64, size: &Size) -> &mut Self {
         let middle = Vector3::new(size.width * 0.5, size.height * 0.5, 0.);
-        let screen_rotation = Matrix3::from_rotation_z(-std::f64::consts::FRAC_PI_2);
-        self.transform.set_similarity(scale, &(screen_rotation * orientation.rotation()), &middle);
+        let rotation = Matrix3::from_rotation_x(std::f64::consts::PI) * orientation.rotation();
+        self.transform.set_similarity(scale, &rotation, &middle);
         self.inverse_transform = self.transform.inverse();
         self
     }
@@ -141,6 +143,10 @@ impl Drawer {
 
     pub fn draw_scale(&mut self, scale: f64, size: &Size, c: &Context, g: &mut G2d, glyphs: &mut Glyphs) {
         let scale_distance = SCALE_LENGTH / scale;
+        let mut unit_x = (self.transform * (Vector3::unit_x() * scale_distance).homogeneous());
+        let mut unit_y = (self.transform * (Vector3::unit_y() * scale_distance).homogeneous());
+        let mut unit_z = (self.transform * (Vector3::unit_z() * scale_distance).homogeneous());
+
         self.offset.x = size.width - 160.;
         self.offset.y = size.height - 48.;
         self.unit.rescale(&scale_distance);
@@ -160,6 +166,33 @@ impl Drawer {
             c.transform.trans(self.offset.x, self.offset.y - 16.),
             g,
         ).unwrap();
+
+        self.offset.x = size.width * 0.5;
+        self.offset.y = size.height * 0.5;
+
+        piston_window::line_from_to(
+            RED,
+            3.,
+            [self.offset.x, self.offset.y],
+            [unit_x.x, unit_x.y],
+            c.transform, g,
+        );
+
+        piston_window::line_from_to(
+            GREEN,
+            3.,
+            [self.offset.x, self.offset.y],
+            [unit_y.x, unit_y.y],
+            c.transform, g,
+        );
+
+        piston_window::line_from_to(
+            BLUE,
+            3.,
+            [self.offset.x, self.offset.y],
+            [unit_z.x, unit_z.y],
+            c.transform, g,
+        );
     }
 
     pub fn draw_barycenter(&mut self, position: &Vector3, c: &Context, g: &mut G2d) {
