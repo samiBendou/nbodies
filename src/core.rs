@@ -5,6 +5,8 @@ use std::fmt::Debug;
 use std::time::SystemTime;
 
 use getopts::Options;
+use physics::geometry::common::transforms::Rotation3;
+use physics::geometry::matrix::Matrix3;
 use physics::units::{Rescale, Unit};
 use physics::units::date::Duration;
 use piston::input::{Key, MouseButton};
@@ -282,14 +284,82 @@ impl From<Arguments> for Config {
 }
 
 #[derive(Clone, Copy, Debug)]
+pub struct Orientation {
+    pub rotation_x: Matrix3,
+    pub rotation_y: Matrix3,
+    pub rotation_z: Matrix3,
+    increment_x: Matrix3,
+    increment_y: Matrix3,
+    increment_z: Matrix3,
+    decrement_x: Matrix3,
+    decrement_y: Matrix3,
+    decrement_z: Matrix3,
+}
+
+impl Orientation {
+    pub fn new(angle_x: f64, angle_y: f64, angle_z: f64) -> Orientation {
+        Orientation {
+            rotation_x: Matrix3::from_rotation_x(angle_x),
+            rotation_y: Matrix3::from_rotation_y(angle_y),
+            rotation_z: Matrix3::from_rotation_z(angle_z),
+            increment_x: Matrix3::from_rotation_x(DEFAULT_ANGLE_INCREMENT),
+            increment_y: Matrix3::from_rotation_y(DEFAULT_ANGLE_INCREMENT),
+            increment_z: Matrix3::from_rotation_z(DEFAULT_ANGLE_INCREMENT),
+            decrement_x: Matrix3::from_rotation_x(-DEFAULT_ANGLE_INCREMENT),
+            decrement_y: Matrix3::from_rotation_y(-DEFAULT_ANGLE_INCREMENT),
+            decrement_z: Matrix3::from_rotation_z(-DEFAULT_ANGLE_INCREMENT),
+        }
+    }
+
+    pub fn zeros() -> Self {
+        Orientation::new(0., 0., 0.)
+    }
+
+    pub fn increment_x(&mut self) -> &mut Self {
+        self.rotation_x *= self.increment_x;
+        self
+    }
+
+    pub fn increment_y(&mut self) -> &mut Self {
+        self.rotation_y *= self.increment_y;
+        self
+    }
+
+    pub fn increment_z(&mut self) -> &mut Self {
+        self.rotation_z *= self.increment_z;
+        self
+    }
+    pub fn decrement_x(&mut self) -> &mut Self {
+        self.rotation_x *= self.decrement_x;
+        self
+    }
+
+    pub fn decrement_y(&mut self) -> &mut Self {
+        self.rotation_y *= self.decrement_y;
+        self
+    }
+
+    pub fn decrement_z(&mut self) -> &mut Self {
+        self.rotation_z *= self.decrement_z;
+        self
+    }
+
+    pub fn rotation(&self) -> Matrix3 {
+        self.rotation_z * self.rotation_y * self.rotation_x
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
 pub struct Status {
     pub direction: Direction,
     pub bounded: bool,
     pub translate: bool,
     pub trajectory: bool,
     pub pause: bool,
-    pub reset_origin: bool,
+    pub reset_circles: bool,
+    pub update_transform: bool,
     pub state: State,
+    pub orientation: Orientation,
 }
 
 impl Status {
@@ -300,8 +370,10 @@ impl Status {
             translate,
             trajectory: true,
             pause: true,
-            reset_origin: true,
+            reset_circles: true,
+            update_transform: false,
             state: State::Reset,
+            orientation: Orientation::new(0., 0., 0.),
         }
     }
 
@@ -331,13 +403,29 @@ impl Status {
                     toggle!(self.trajectory);
                 } else if *key == KEY_TOGGLE_PAUSE {
                     toggle!(self.pause);
+                } else if *key == KEY_ROTATION_DOWN {
+                    self.orientation.increment_x();
+                    self.reset_circles = true;
+                    self.update_transform = true;
+                } else if *key == KEY_ROTATION_UP {
+                    self.orientation.decrement_x();
+                    self.reset_circles = true;
+                    self.update_transform = true;
+                } else if *key == KEY_ROTATION_LEFT {
+                    self.orientation.increment_z();
+                    self.reset_circles = true;
+                    self.update_transform = true;
+                } else if *key == KEY_ROTATION_RIGHT {
+                    self.orientation.decrement_z();
+                    self.reset_circles = true;
+                    self.update_transform = true;
                 } else if
                 *key == KEY_INCREASE_CURRENT_INDEX ||
                     *key == KEY_DECREASE_CURRENT_INDEX ||
                     *key == KEY_NEXT_FRAME_STATE ||
                     *key == KEY_INCREASE_DISTANCE ||
                     *key == KEY_DECREASE_DISTANCE {
-                    self.reset_origin = true;
+                    self.reset_circles = true;
                 } else {
                     self.direction = Direction::from(key);
                 }
@@ -352,6 +440,7 @@ impl Status {
     pub fn clear(&mut self) {
         self.state.next(&KEY_UNKNOWN, &BUTTON_UNKNOWN);
         self.direction = Direction::from(&KEY_UNKNOWN);
-        self.reset_origin = false;
+        self.reset_circles = false;
+        self.update_transform = false;
     }
 }

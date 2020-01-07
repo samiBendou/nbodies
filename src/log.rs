@@ -1,6 +1,8 @@
 use physics::dynamics;
+use physics::geometry::common::coordinates::Homogeneous;
 use physics::geometry::common::Metric;
 use physics::geometry::point::Point3;
+use physics::geometry::vector::Vector3;
 use physics::units;
 use physics::units::{Compound, Rescale, Serialize, Unit};
 use piston::input::Key;
@@ -40,7 +42,7 @@ pub struct Logger {
     state: State,
     buffer: String,
     units: Units,
-    px_units: Units,
+    px_units: Unit,
     energy_units: Unit,
 }
 
@@ -51,7 +53,7 @@ impl Logger {
             state: State::Hide,
             buffer: String::from(""),
             units: Units::default(),
-            px_units: Units::pixel(),
+            px_units: Unit::from(units::Scale::from(Distance::Pixel)),
             energy_units: Unit::from(units::Scale::from(Energy::Joules)),
         }
     }
@@ -157,9 +159,10 @@ oversampling: {}",
     }
 
     fn log_shape(&mut self, circle: &Circle) {
-        self.px_units.rescale(&circle.center);
+        let circle = Vector3::from_homogeneous(circle.trajectory.last());
+        self.px_units.rescale(&circle.magnitude());
         self.buffer += &format!("*** circle ***\n{}",
-                                self.px_units.string_of(&circle.center));
+                                self.px_units.string_of(&circle));
     }
 
     fn log_body(&mut self, body: &dynamics::Body) {

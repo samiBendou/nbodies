@@ -1,8 +1,8 @@
 use std::fmt::Debug;
 
+use physics::geometry::common::coordinates::Cartesian2;
 use physics::geometry::common::Initializer;
 use physics::geometry::vector::*;
-use physics::geometry::vector::coordinates::Cartesian2;
 use piston::input::{Key, MouseButton};
 
 pub static KEY_TOGGLE_BOUNDED: Key = Key::B;
@@ -11,10 +11,10 @@ pub static KEY_TOGGLE_TRAJECTORY: Key = Key::R;
 pub static KEY_TOGGLE_PAUSE: Key = Key::Space;
 pub static KEY_RESET: Key = Key::Backspace;
 
-pub static KEY_MOVE_UP: Key = Key::Up;
-pub static KEY_MOVE_DOWN: Key = Key::Down;
-pub static KEY_MOVE_LEFT: Key = Key::Left;
-pub static KEY_MOVE_RIGHT: Key = Key::Right;
+pub static KEY_ROTATION_UP: Key = Key::Up;
+pub static KEY_ROTATION_DOWN: Key = Key::Down;
+pub static KEY_ROTATION_LEFT: Key = Key::Left;
+pub static KEY_ROTATION_RIGHT: Key = Key::Right;
 
 pub static KEY_INCREASE_OVERSAMPLING: Key = Key::P;
 pub static KEY_DECREASE_OVERSAMPLING: Key = Key::O;
@@ -36,6 +36,7 @@ pub static MOUSE_WAIT_DROP_CANCEL: MouseButton = MouseButton::Right;
 pub static HOLD: Direction = Direction::Hold;
 pub static BUTTON_UNKNOWN: MouseButton = MouseButton::Unknown;
 pub static KEY_UNKNOWN: Key = Key::Unknown;
+pub static DEFAULT_ANGLE_INCREMENT: f64 = std::f64::consts::FRAC_PI_8;
 
 #[macro_export]
 macro_rules! toggle {
@@ -107,13 +108,13 @@ impl Direction {
 
     pub fn from(key: &Key) -> Direction {
         use super::*;
-        if *key == KEY_MOVE_LEFT {
+        if *key == KEY_ROTATION_LEFT {
             Direction::Left
-        } else if *key == KEY_MOVE_RIGHT {
+        } else if *key == KEY_ROTATION_RIGHT {
             Direction::Right
-        } else if *key == KEY_MOVE_UP {
+        } else if *key == KEY_ROTATION_UP {
             Direction::Up
-        } else if *key == KEY_MOVE_DOWN {
+        } else if *key == KEY_ROTATION_DOWN {
             Direction::Down
         } else {
             Direction::Hold

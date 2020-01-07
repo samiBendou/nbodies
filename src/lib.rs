@@ -6,9 +6,11 @@ use physics::dynamics;
 use physics::dynamics::{orbital, SPEED_SCALING_FACTOR};
 use physics::dynamics::point::Point3;
 use physics::geometry;
-use physics::geometry::common::{Array, Metric, Reset};
-use physics::geometry::vector::transforms::Cartesian2;
-use physics::geometry::vector::Vector3;
+use physics::geometry::common::{Metric, Reset};
+use physics::geometry::common::coordinates::Homogeneous;
+use physics::geometry::matrix::Algebra;
+use physics::geometry::trajectory::Trajectory4;
+use physics::geometry::vector::{Vector3, Vector4};
 use piston::input::{Event, Key, MouseButton, UpdateArgs};
 use piston_window;
 use piston_window::{Glyphs, PistonWindow};
@@ -87,6 +89,7 @@ impl App {
         self.logger.update(key);
         self.status.update(&Some(*key), &Option::None);
         self.update_cluster(key);
+        self.update_drawer();
     }
 
     pub fn on_click(&mut self, button: &MouseButton) {
@@ -102,8 +105,8 @@ impl App {
             |c, g, device| {
                 piston_window::clear(BLACK, g);
                 if self.cluster.is_empty() {
-                    self.drawer.draw_barycenter(&self.cluster.barycenter().state.position, scale, &c, g);
-                    self.drawer.draw_scale(scale, &c, g, glyphs);
+                    self.drawer.draw_barycenter(&self.cluster.barycenter().state.position, &c, g);
+                    self.drawer.draw_scale(scale, &self.config.size, &c, g, glyphs);
                     glyphs.factory.encoder.flush(device);
                     return;
                 }
@@ -115,8 +118,8 @@ impl App {
                     self.drawer.draw_speed(cursor, &c, g);
                 }
                 self.drawer.draw_bodies(&c, g);
-                self.drawer.draw_barycenter(&self.cluster.barycenter().state.position, scale, &c, g);
-                self.drawer.draw_scale(scale, &c, g, glyphs);
+                self.drawer.draw_barycenter(&self.cluster.barycenter().state.position, &c, g);
+                self.drawer.draw_scale(scale, &self.config.size, &c, g, glyphs);
                 glyphs.factory.encoder.flush(device);
             },
         );
@@ -134,7 +137,6 @@ impl App {
             WaitSpeed => self.do_wait_speed(cursor),
             CancelDrop => self.do_cancel_drop()
         };
-        self.update_drawer();
         self.status.clear();
     }
 
@@ -167,6 +169,7 @@ impl App {
         self.cluster.apply(dt, self.config.oversampling, |bodies, i| {
             forces::gravity(&bodies[i].center, bodies)
         });
+        self.drawer.update_circles(&self.cluster);
     }
 
     fn do_reset(&mut self) {
@@ -184,13 +187,13 @@ impl App {
         };
         let mass = kind.random_mass();
         let radius = kind.scaled_radius(kind.random_radius());
-        let name = "";
-        let cursor = Vector3::new(cursor[0], cursor[1], 0.);
-        let position = cursor.centered(&self.drawer.middle, self.config.scale.distance);
-        let body_state = geometry::point::Point3::from(position);
-        let circle_state = geometry::point::Point3::from(cursor);
-        self.drawer.circles.push(Circle::new(circle_state, radius, random_color()));
-        self.cluster.push(dynamics::Body::new(name, Point3::new(body_state, mass)));
+        let name = format!("{:?}", kind);
+        let cursor = Vector4::new(cursor[0], cursor[1], 0., 1.);
+        let position = self.drawer.transform.inverse() * cursor;
+        let body_state = geometry::point::Point3::from(Vector3::from_homogeneous(&position));
+        let circle_trajectory = Trajectory4::from(cursor);
+        self.drawer.circles.push(Circle::new(circle_trajectory, radius, random_color()));
+        self.cluster.push(dynamics::Body::new(name.as_str(), Point3::new(body_state, mass)));
     }
 
     //noinspection RsTypeCheck
@@ -199,7 +202,7 @@ impl App {
         let cursor_position = Vector3::new(cursor[0], cursor[1], 0.);
         let mut position;
         for i in 0..len {
-            position = self.drawer.circles[i].center.position;
+            position = Vector3::from_homogeneous(self.drawer.circles[i].trajectory.last());
             if cursor_position.distance(&position) < self.drawer.circles[i].radius {
                 self.cluster.remove(i);
                 self.drawer.circles.remove(i);
@@ -209,32 +212,31 @@ impl App {
     }
 
     fn do_wait_drop(&mut self, cursor: &[f64; 2]) {
-        let cursor = [cursor[0], cursor[1], 0.];
-        let last_body = self.cluster.last_mut().unwrap();
+        let cursor = Vector4::new(cursor[0], cursor[1], 0., 1.);
+        let transformed_cursor = self.drawer.inverse_transform * cursor;
         let last_circle = self.drawer.circles.last_mut().unwrap();
-        last_body.center.state.position
-            .set_array(&cursor)
-            .set_centered(&self.drawer.middle, self.config.scale.distance);
-        last_circle.center.position
-            .set_array(&cursor);
-        last_circle.center.trajectory.reset(&last_circle.center.position);
+        let mut last_body = self.cluster.last_mut().unwrap();
+        last_body.center.state.position = Vector3::from_homogeneous(&transformed_cursor);
+        last_body.center.state.trajectory.reset(&last_body.center.state.position);
+        last_circle.trajectory.reset(&cursor);
         self.cluster.update_barycenter();
     }
 
+    //noinspection RsTypeCheck
     fn do_wait_speed(&mut self, cursor: &[f64; 2]) {
-        let cursor = [cursor[0], cursor[1], 0.];
-        let last_body = self.cluster.last_mut().unwrap();
-        last_body.center.state.speed
-            .set_array(&cursor)
-            .set_centered(&self.drawer.middle, self.config.scale.distance);
+        let cursor = Vector4::new(cursor[0], cursor[1], 0., 1.);
+        let transformed_cursor = self.drawer.inverse_transform * cursor;
+        let mut last_body = self.cluster.last_mut().unwrap();
+        last_body.center.state.speed = Vector3::from_homogeneous(&transformed_cursor);
         last_body.center.state.speed -= last_body.center.state.position;
         last_body.center.state.speed *= SPEED_SCALING_FACTOR;
+
         self.cluster.update_barycenter();
     }
 
     fn do_cancel_drop(&mut self) {
         self.cluster.pop();
-        self.drawer.pop();
+        self.drawer.circles.pop();
     }
 
     fn update_cluster(&mut self, key: &Key) {
@@ -253,11 +255,11 @@ impl App {
     }
 
     fn update_drawer(&mut self) {
-        if self.status.reset_origin {
-            self.drawer.reset_circles(&self.cluster, self.config.scale.distance);
-        } else {
-            self.drawer.update_circles(&self.cluster, self.config.scale.distance);
+        if self.status.update_transform {
+            self.drawer.update_transform(&self.status.orientation, self.config.scale.distance, &self.config.size);
         }
-        self.drawer.update_circles_trajectory();
+        if self.status.reset_circles {
+            self.drawer.reset_circles(&self.cluster);
+        }
     }
 }
