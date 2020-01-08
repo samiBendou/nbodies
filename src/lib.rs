@@ -16,7 +16,6 @@ use piston_window;
 use piston_window::{Glyphs, PistonWindow};
 
 use crate::common::*;
-use crate::common::{BLACK, SPEED_SCALING_FACTOR};
 use crate::core::{Arguments, Config, Status, Step};
 use crate::draw::{Circle, Drawer};
 use crate::log::Logger;
