@@ -58,13 +58,14 @@ impl From<Config> for App {
 
 impl App {
     pub fn new(cluster: dynamics::Cluster, config: Config) -> App {
+        let status = Status::default();
         let size = config.size.clone();
         let scale = config.scale.distance;
-        let drawer = Drawer::new(&size, &cluster, scale);
+        let drawer = Drawer::new(&cluster, &status.orientation, scale, &size);
         App {
             cluster,
             config,
-            status: Status::default(),
+            status,
             step: Step::new(),
             logger: Logger::new(),
             drawer,
@@ -107,6 +108,7 @@ impl App {
                 if self.cluster.is_empty() {
                     self.drawer.draw_barycenter(&self.cluster.barycenter().state.position, &c, g);
                     self.drawer.draw_scale(scale, &self.config.size, &c, g, glyphs);
+                    self.drawer.draw_basis(&self.config.size, &c, g);
                     glyphs.factory.encoder.flush(device);
                     return;
                 }
@@ -120,6 +122,7 @@ impl App {
                 self.drawer.draw_bodies(&c, g);
                 self.drawer.draw_barycenter(&self.cluster.barycenter().state.position, &c, g);
                 self.drawer.draw_scale(scale, &self.config.size, &c, g, glyphs);
+                self.drawer.draw_basis(&self.config.size, &c, g);
                 glyphs.factory.encoder.flush(device);
             },
         );

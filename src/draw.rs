@@ -82,40 +82,36 @@ impl Debug for Circle {
 
 pub struct Drawer {
     pub circles: Vec<Circle>,
-    offset: Vector2,
-    color: [f32; 4],
-    unit: Unit,
-    u_x: Vector4,
-    u_y: Vector4,
-    u_z: Vector4,
+    buffer_offset: Vector2,
+    buffer_color: [f32; 4],
+    distance_unit: Unit,
+    unit_x: Vector4,
+    unit_y: Vector4,
+    unit_z: Vector4,
     pub transform: Matrix4,
     pub inverse_transform: Matrix4,
 }
 
 
 impl Drawer {
-    pub fn new(size: &Size, cluster: &Cluster, scale: f64) -> Drawer {
-        let scale_distance = SCALE_LENGTH / scale;
-        let rotation = Matrix3::from_rotation_x(std::f64::consts::PI);
-        let middle = Vector3::new(size.width * 0.5, size.height * 0.5, 0.);
-        let transform = Matrix4::from_similarity(scale, &rotation, &middle);
-        let u_x = transform * (Vector3::unit_x() * scale_distance).homogeneous();
-        let u_y = transform * (Vector3::unit_y() * scale_distance).homogeneous();
-        let u_z = transform * (Vector3::unit_z() * scale_distance).homogeneous();
+    pub fn new(cluster: &Cluster, orientation: &Orientation, scale: f64, size: &Size) -> Drawer {
         let circles: Vec<Circle> = cluster.bodies.iter()
-            .map({ |_body| Circle::centered(0., BLUE) })
+            .map({ |_body| Circle::centered(10., BLUE) })
             .collect();
-        Drawer {
+        let mut ret = Drawer {
             circles,
-            offset: Vector2::zeros(),
-            color: BLACK,
-            unit: Unit::from(Scale::from(Distance::Meter)),
-            u_x,
-            u_y,
-            u_z,
-            transform,
-            inverse_transform: transform.inverse(),
-        }
+            buffer_offset: Vector2::zeros(),
+            buffer_color: BLACK,
+            distance_unit: Unit::from(Scale::from(Distance::Meter)),
+            unit_x: Vector3::unit_x().homogeneous(),
+            unit_y: Vector3::unit_y().homogeneous(),
+            unit_z: Vector3::unit_z().homogeneous(),
+            transform: Matrix4::eye(),
+            inverse_transform: Matrix4::eye(),
+        };
+        ret.update_transform(orientation, scale, size);
+        ret.reset_circles(cluster);
+        ret
     }
 
     pub fn set_appearance(&mut self, cluster: &orbital::Cluster) -> &mut Self {
@@ -133,9 +129,9 @@ impl Drawer {
         let rotation = Matrix3::from_rotation_x(std::f64::consts::PI) * orientation.rotation();
         self.transform.set_similarity(scale, &rotation, &middle);
         self.inverse_transform = self.transform.inverse();
-        self.u_x = self.transform * (Vector3::unit_x() * scale_distance).homogeneous();
-        self.u_y = self.transform * (Vector3::unit_y() * scale_distance).homogeneous();
-        self.u_z = self.transform * (Vector3::unit_z() * scale_distance).homogeneous();
+        self.unit_x = self.transform * (Vector3::unit_x() * scale_distance).homogeneous();
+        self.unit_y = self.transform * (Vector3::unit_y() * scale_distance).homogeneous();
+        self.unit_z = self.transform * (Vector3::unit_z() * scale_distance).homogeneous();
         self
     }
 
@@ -157,50 +153,52 @@ impl Drawer {
 
     pub fn draw_scale(&mut self, scale: f64, size: &Size, c: &Context, g: &mut G2d, glyphs: &mut Glyphs) {
         let scale_distance = SCALE_LENGTH / scale;
-        self.offset.x = size.width - 160.;
-        self.offset.y = size.height - 48.;
-        self.unit.rescale(&scale_distance);
+        self.buffer_offset.x = size.width - 160.;
+        self.buffer_offset.y = size.height - 48.;
+        self.distance_unit.rescale(&scale_distance);
 
         piston_window::line_from_to(
             WHITE,
             3.,
-            [self.offset.x, self.offset.y],
-            [self.offset.x + SCALE_LENGTH, self.offset.y],
+            [self.buffer_offset.x, self.buffer_offset.y],
+            [self.buffer_offset.x + SCALE_LENGTH, self.buffer_offset.y],
             c.transform, g,
         );
 
         piston_window::text::Text::new_color(WHITE, 16).draw(
-            format!("{}", self.unit.string_of(&scale_distance)).as_str(),
+            format!("{}", self.distance_unit.string_of(&scale_distance)).as_str(),
             glyphs,
             &c.draw_state,
-            c.transform.trans(self.offset.x, self.offset.y - 16.),
+            c.transform.trans(self.buffer_offset.x, self.buffer_offset.y - 16.),
             g,
         ).unwrap();
+    }
 
-        self.offset.x = size.width * 0.5;
-        self.offset.y = size.height * 0.5;
+    pub fn draw_basis(&mut self, size: &Size, c: &Context, g: &mut G2d) {
+        self.buffer_offset.x = size.width * 0.5;
+        self.buffer_offset.y = size.height * 0.5;
 
         piston_window::line_from_to(
             RED,
             3.,
-            [self.offset.x, self.offset.y],
-            [self.u_x.x, self.u_x.y],
+            [self.buffer_offset.x, self.buffer_offset.y],
+            [self.unit_x.x, self.unit_x.y],
             c.transform, g,
         );
 
         piston_window::line_from_to(
             GREEN,
             3.,
-            [self.offset.x, self.offset.y],
-            [self.u_y.x, self.u_y.y],
+            [self.buffer_offset.x, self.buffer_offset.y],
+            [self.unit_y.x, self.unit_y.y],
             c.transform, g,
         );
 
         piston_window::line_from_to(
             BLUE,
             3.,
-            [self.offset.x, self.offset.y],
-            [self.u_z.x, self.u_z.y],
+            [self.buffer_offset.x, self.buffer_offset.y],
+            [self.unit_z.x, self.unit_z.y],
             c.transform, g,
         );
     }
@@ -232,16 +230,16 @@ impl Drawer {
         let mut from;
         let mut to;
         for i in 0..len {
-            self.color = self.circles[i].color;
+            self.buffer_color = self.circles[i].color;
             for k in 1..TRAJECTORY_SIZE - 1 {
-                from = self.circles[i].trajectory.position(k - 1).array();
-                to = self.circles[i].trajectory.position(k).array();
-                self.color[3] = k as f32 / (TRAJECTORY_SIZE as f32 - 1.);
+                from = self.circles[i].trajectory.position(k - 1);
+                to = self.circles[i].trajectory.position(k);
+                self.buffer_color[3] = k as f32 / (TRAJECTORY_SIZE as f32 - 1.);
                 piston_window::line_from_to(
-                    self.color,
+                    self.buffer_color,
                     2.5,
-                    [from[0], from[1]],
-                    [to[0], to[1]],
+                    [from.x, from.y],
+                    [to.x, to.y],
                     c.transform, g,
                 );
             }
@@ -250,11 +248,11 @@ impl Drawer {
 
     pub fn draw_speed(&mut self, cursor: &[f64; 2], c: &Context, g: &mut G2d) {
         let last = self.circles.last().unwrap();
-        let last_pos = last.trajectory.last().array();
+        let last_pos = last.trajectory.last();
         piston_window::line_from_to(
             last.color,
             2.5,
-            [last_pos[0], last_pos[1]],
+            [last_pos.x, last_pos.y],
             *cursor,
             c.transform, g,
         );

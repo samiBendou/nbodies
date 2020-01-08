@@ -36,7 +36,8 @@ pub static MOUSE_WAIT_DROP_CANCEL: MouseButton = MouseButton::Right;
 pub static HOLD: Direction = Direction::Hold;
 pub static BUTTON_UNKNOWN: MouseButton = MouseButton::Unknown;
 pub static KEY_UNKNOWN: Key = Key::Unknown;
-pub static DEFAULT_ANGLE_INCREMENT: f64 = std::f64::consts::FRAC_PI_8;
+
+pub static DEFAULT_ANGLE_INCREMENT: f64 = std::f64::consts::FRAC_PI_8 / 6.;
 
 #[macro_export]
 macro_rules! toggle {

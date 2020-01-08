@@ -371,7 +371,7 @@ impl Status {
             trajectory: true,
             pause: true,
             reset_circles: true,
-            update_transform: false,
+            update_transform: true,
             state: State::Reset,
             orientation: Orientation::new(0., 0., 0.),
         }
