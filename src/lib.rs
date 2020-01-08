@@ -16,7 +16,7 @@ use piston_window;
 use piston_window::{Glyphs, PistonWindow};
 
 use crate::common::*;
-use crate::core::{Arguments, Config, Status, Step};
+use crate::core::{Arguments, Config, Status};
 use crate::draw::{Circle, Drawer};
 use crate::log::Logger;
 
@@ -29,7 +29,6 @@ pub struct App {
     pub cluster: dynamics::Cluster,
     pub config: Config,
     pub status: Status,
-    pub step: Step,
     pub logger: Logger,
     pub drawer: Drawer,
 }
@@ -61,12 +60,11 @@ impl App {
         let status = Status::new();
         let size = config.size.clone();
         let scale = config.scale.distance;
-        let drawer = Drawer::new(&cluster, &status.orientation, scale, &size);
+        let drawer = Drawer::new(&cluster, &config.orientation, scale, &size);
         App {
             cluster,
             config,
             status,
-            step: Step::new(),
             logger: Logger::new(),
             drawer,
         }
@@ -89,7 +87,6 @@ impl App {
         self.config.update(key);
         self.logger.update(key);
         self.status.update(&Some(*key), &Option::None);
-        self.update_cluster(key);
         self.update_drawer();
     }
 
@@ -112,7 +109,7 @@ impl App {
                     glyphs.factory.encoder.flush(device);
                     return;
                 }
-                if self.status.trajectory {
+                if self.config.trajectory {
                     self.drawer.draw_trajectories(&c, g);
                 }
 
@@ -131,6 +128,18 @@ impl App {
     pub fn update(&mut self, _window: &mut PistonWindow, args: &UpdateArgs, cursor: &[f64; 2]) {
         use crate::core::State::*;
 
+        if self.status.update_current {
+            self.cluster.update_current_index(self.status.increase_current, self.status.is_waiting_to_add());
+        }
+
+        if self.status.next_frame {
+            self.cluster.update_frame();
+        }
+
+        if self.status.next_method {
+            self.cluster.solver.method.next();
+        }
+
         match self.status.state {
             Move => self.do_move(args.dt),
             Translate => self.do_translate(),
@@ -141,6 +150,7 @@ impl App {
             WaitSpeed => self.do_wait_speed(cursor),
             CancelDrop => self.do_cancel_drop()
         };
+
         self.drawer.update_circles(&self.cluster);
         self.status.clear();
     }
@@ -152,7 +162,6 @@ impl App {
             &self.drawer,
             &self.status,
             &self.config,
-            &self.step,
             input,
         );
     }
@@ -162,17 +171,17 @@ impl App {
             return;
         }
         let scale = TRANSLATION_SCALING_FACTOR / self.config.scale.distance;
-        let direction = self.status.orientation.rotation().inverse() * (self.status.direction.as_vector() * scale);
+        let direction = self.config.orientation.rotation().inverse() * (self.status.direction.as_vector() * scale);
         self.cluster.translate_current(&direction);
         self.cluster.update_current_trajectory();
     }
 
     fn do_move(&mut self, dt: f64) {
         use physics::dynamics::forces;
-        if self.status.pause || self.cluster.is_empty() {
+        if self.config.pause || self.cluster.is_empty() {
             return;
         }
-        self.step.update(dt, self.config.scale.time);
+        self.status.step.push(dt, self.config.scale.time);
         // self.cluster.remove_aways();
         let dt = dt / self.config.oversampling as f64 * self.config.scale.time;
         self.cluster.apply(dt, self.config.oversampling, |bodies, i| {
@@ -247,24 +256,9 @@ impl App {
         self.drawer.circles.pop();
     }
 
-    fn update_cluster(&mut self, key: &Key) {
-        if *key == KEY_INCREASE_CURRENT_INDEX || *key == KEY_DECREASE_CURRENT_INDEX {
-            let increase = *key == KEY_INCREASE_CURRENT_INDEX;
-            let mut bypass_last = false;
-            if self.status.is_waiting_to_add() {
-                bypass_last = true;
-            }
-            self.cluster.update_current_index(increase, bypass_last);
-        } else if *key == KEY_NEXT_FRAME_STATE {
-            self.cluster.update_frame();
-        } else if *key == KEY_NEXT_METHOD_STATE {
-            self.cluster.solver.method.next();
-        }
-    }
-
     fn update_drawer(&mut self) {
         if self.status.update_transform {
-            self.drawer.update_transform(&self.status.orientation, self.config.scale.distance, &self.config.size);
+            self.drawer.update_transform(&self.config.orientation, self.config.scale.distance, &self.config.size);
         }
         if self.status.reset_circles {
             self.drawer.reset_circles(&self.cluster);

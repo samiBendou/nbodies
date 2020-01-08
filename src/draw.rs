@@ -16,7 +16,7 @@ use piston_window::*;
 use piston_window::context::Context;
 
 use crate::common::{BLACK, BLUE, GREEN, RED, WHITE};
-use crate::core::Orientation;
+use crate::common::Orientation;
 
 const SCALE_LENGTH: f64 = 50.;
 

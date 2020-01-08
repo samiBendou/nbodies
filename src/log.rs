@@ -8,8 +8,8 @@ use physics::units::{Compound, Rescale, Serialize, Unit};
 use piston::input::Key;
 
 use crate::common::*;
+use crate::common::Scale;
 use crate::core;
-use crate::core::Scale;
 use crate::draw::{Circle, Drawer};
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -81,14 +81,13 @@ impl Logger {
         drawer: &Drawer,
         status: &core::Status,
         config: &core::Config,
-        step: &core::Step,
         input: &Input,
     ) {
         use crate::log::State::*;
         match self.state {
             Hide => (),
             Status => self.log_status(status, input),
-            Timing => self.log_timing(step, config),
+            Timing => self.log_timing(status, config),
             Cinematic => self.log_cinematic(cluster.current_index(), drawer, status),
             Body => self.log_bodies(cluster, status),
             Bodies => self.log_cluster(cluster),
@@ -111,12 +110,12 @@ pressed keyboard key: '{:?}'",
                                 status, input.button, input.cursor, input.key)[..];
     }
 
-    fn log_timing(&mut self, step: &core::Step, config: &core::Config) {
+    fn log_timing(&mut self, status: &core::Status, config: &core::Config) {
         self.buffer += &format!("\
 *** timing info ***
 {:?}
 oversampling: {}",
-                                step, config.oversampling);
+                                status.step, config.oversampling);
     }
 
     fn log_cinematic(&mut self, current: usize, drawer: &Drawer, status: &core::Status) {
