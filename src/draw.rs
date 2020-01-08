@@ -85,6 +85,9 @@ pub struct Drawer {
     offset: Vector2,
     color: [f32; 4],
     unit: Unit,
+    u_x: Vector4,
+    u_y: Vector4,
+    u_z: Vector4,
     pub transform: Matrix4,
     pub inverse_transform: Matrix4,
 }
@@ -92,9 +95,13 @@ pub struct Drawer {
 
 impl Drawer {
     pub fn new(size: &Size, cluster: &Cluster, scale: f64) -> Drawer {
+        let scale_distance = SCALE_LENGTH / scale;
         let rotation = Matrix3::from_rotation_x(std::f64::consts::PI);
         let middle = Vector3::new(size.width * 0.5, size.height * 0.5, 0.);
         let transform = Matrix4::from_similarity(scale, &rotation, &middle);
+        let u_x = transform * (Vector3::unit_x() * scale_distance).homogeneous();
+        let u_y = transform * (Vector3::unit_y() * scale_distance).homogeneous();
+        let u_z = transform * (Vector3::unit_z() * scale_distance).homogeneous();
         let circles: Vec<Circle> = cluster.bodies.iter()
             .map({ |_body| Circle::centered(0., BLUE) })
             .collect();
@@ -103,6 +110,9 @@ impl Drawer {
             offset: Vector2::zeros(),
             color: BLACK,
             unit: Unit::from(Scale::from(Distance::Meter)),
+            u_x,
+            u_y,
+            u_z,
             transform,
             inverse_transform: transform.inverse(),
         }
@@ -118,10 +128,14 @@ impl Drawer {
     }
 
     pub fn update_transform(&mut self, orientation: &Orientation, scale: f64, size: &Size) -> &mut Self {
+        let scale_distance = SCALE_LENGTH / scale;
         let middle = Vector3::new(size.width * 0.5, size.height * 0.5, 0.);
         let rotation = Matrix3::from_rotation_x(std::f64::consts::PI) * orientation.rotation();
         self.transform.set_similarity(scale, &rotation, &middle);
         self.inverse_transform = self.transform.inverse();
+        self.u_x = self.transform * (Vector3::unit_x() * scale_distance).homogeneous();
+        self.u_y = self.transform * (Vector3::unit_y() * scale_distance).homogeneous();
+        self.u_z = self.transform * (Vector3::unit_z() * scale_distance).homogeneous();
         self
     }
 
@@ -143,10 +157,6 @@ impl Drawer {
 
     pub fn draw_scale(&mut self, scale: f64, size: &Size, c: &Context, g: &mut G2d, glyphs: &mut Glyphs) {
         let scale_distance = SCALE_LENGTH / scale;
-        let mut unit_x = (self.transform * (Vector3::unit_x() * scale_distance).homogeneous());
-        let mut unit_y = (self.transform * (Vector3::unit_y() * scale_distance).homogeneous());
-        let mut unit_z = (self.transform * (Vector3::unit_z() * scale_distance).homogeneous());
-
         self.offset.x = size.width - 160.;
         self.offset.y = size.height - 48.;
         self.unit.rescale(&scale_distance);
@@ -174,7 +184,7 @@ impl Drawer {
             RED,
             3.,
             [self.offset.x, self.offset.y],
-            [unit_x.x, unit_x.y],
+            [self.u_x.x, self.u_x.y],
             c.transform, g,
         );
 
@@ -182,7 +192,7 @@ impl Drawer {
             GREEN,
             3.,
             [self.offset.x, self.offset.y],
-            [unit_y.x, unit_y.y],
+            [self.u_y.x, self.u_y.y],
             c.transform, g,
         );
 
@@ -190,7 +200,7 @@ impl Drawer {
             BLUE,
             3.,
             [self.offset.x, self.offset.y],
-            [unit_z.x, unit_z.y],
+            [self.u_z.x, self.u_z.y],
             c.transform, g,
         );
     }
