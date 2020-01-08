@@ -3,7 +3,7 @@ use std::path::Path;
 
 use physics::common::random_color;
 use physics::dynamics;
-use physics::dynamics::{orbital, SPEED_SCALING_FACTOR};
+use physics::dynamics::orbital;
 use physics::dynamics::point::Point3;
 use physics::geometry;
 use physics::geometry::common::{Metric, Reset};
@@ -16,8 +16,9 @@ use piston_window;
 use piston_window::{Glyphs, PistonWindow};
 
 use crate::common::*;
+use crate::common::{BLACK, SPEED_SCALING_FACTOR};
 use crate::core::{Arguments, Config, Status, Step};
-use crate::draw::{BLACK, Circle, Drawer};
+use crate::draw::{Circle, Drawer};
 use crate::log::Logger;
 
 pub mod common;

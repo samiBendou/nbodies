@@ -15,15 +15,10 @@ use piston::window::Size;
 use piston_window::*;
 use piston_window::context::Context;
 
+use crate::common::{BLACK, BLUE, GREEN, RED, WHITE};
 use crate::core::Orientation;
 
 const SCALE_LENGTH: f64 = 50.;
-
-pub const BLACK: [f32; 4] = [0., 0., 0., 1.];
-pub const WHITE: [f32; 4] = [1., 1., 1., 1.];
-pub const RED: [f32; 4] = [1., 0., 0., 1.];
-pub const GREEN: [f32; 4] = [0., 1., 0., 1.];
-const BLUE: [f32; 4] = [0., 0., 1., 1.];
 
 #[derive(Copy, Clone)]
 pub struct Circle {
