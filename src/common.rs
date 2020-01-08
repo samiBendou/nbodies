@@ -48,6 +48,7 @@ pub static KEY_UNKNOWN: Key = Key::Unknown;
 
 pub static DEFAULT_ANGLE_INCREMENT: f64 = std::f64::consts::FRAC_PI_8 / 6.;
 pub const SPEED_SCALING_FACTOR: f64 = 5e-7;
+pub const TRANSLATION_SCALING_FACTOR: f64 = 100.;
 
 pub const BLACK: [f32; 4] = [0., 0., 0., 1.];
 pub const WHITE: [f32; 4] = [1., 1., 1., 1.];

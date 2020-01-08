@@ -148,6 +148,7 @@ impl Debug for Scale {
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum State {
     Move,
+    Translate,
     Add,
     Remove,
     WaitDrop,
@@ -160,6 +161,11 @@ impl State {
     pub fn next(&mut self, key: &Key, button: &MouseButton) {
         use State::*;
 
+        if *key == KEY_RESET {
+            *self = Reset;
+            return;
+        }
+
         *self = match self {
             Reset => Move,
             Add => WaitDrop,
@@ -169,6 +175,13 @@ impl State {
                 Add
             } else if *button == MOUSE_MOVE_REMOVE {
                 Remove
+            } else if *key == KEY_TOGGLE_TRANSLATE {
+                Translate
+            } else {
+                *self
+            },
+            Translate => if *key == KEY_TOGGLE_TRANSLATE {
+                Move
             } else {
                 *self
             },
@@ -187,10 +200,6 @@ impl State {
                 *self
             }
         };
-
-        if *key == KEY_RESET {
-            *self = Reset;
-        }
     }
 }
 
@@ -351,8 +360,6 @@ impl Orientation {
 #[derive(Clone, Copy, Debug)]
 pub struct Status {
     pub direction: Direction,
-    pub bounded: bool,
-    pub translate: bool,
     pub trajectory: bool,
     pub pause: bool,
     pub reset_circles: bool,
@@ -362,11 +369,9 @@ pub struct Status {
 }
 
 impl Status {
-    pub fn new(bounded: bool, translate: bool) -> Status {
+    pub fn new() -> Status {
         Status {
             direction: Direction::Hold,
-            bounded,
-            translate,
             trajectory: true,
             pause: true,
             reset_circles: true,
@@ -374,10 +379,6 @@ impl Status {
             state: State::Reset,
             orientation: Orientation::new(0., 0., 0.),
         }
-    }
-
-    pub fn default() -> Status {
-        Status::new(false, false)
     }
 
     pub fn is_waiting_to_add(&self) -> bool {
@@ -394,11 +395,7 @@ impl Status {
                 };
             }
             Some(key) => {
-                if *key == KEY_TOGGLE_BOUNDED {
-                    self.bounded = !self.bounded;
-                } else if *key == KEY_TOGGLE_TRANSLATE {
-                    self.translate = !self.translate;
-                } else if *key == KEY_TOGGLE_TRAJECTORY {
+                if *key == KEY_TOGGLE_TRAJECTORY {
                     self.trajectory = !self.trajectory;
                 } else if *key == KEY_TOGGLE_PAUSE {
                     self.pause = !self.pause;

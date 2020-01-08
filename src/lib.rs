@@ -58,7 +58,7 @@ impl From<Config> for App {
 
 impl App {
     pub fn new(cluster: dynamics::Cluster, config: Config) -> App {
-        let status = Status::default();
+        let status = Status::new();
         let size = config.size.clone();
         let scale = config.scale.distance;
         let drawer = Drawer::new(&cluster, &status.orientation, scale, &size);
@@ -133,6 +133,7 @@ impl App {
 
         match self.status.state {
             Move => self.do_move(args.dt),
+            Translate => self.do_translate(),
             Reset => self.do_reset(),
             Add => self.do_add(cursor),
             Remove => self.do_remove(cursor),
@@ -140,6 +141,7 @@ impl App {
             WaitSpeed => self.do_wait_speed(cursor),
             CancelDrop => self.do_cancel_drop()
         };
+        self.drawer.update_circles(&self.cluster);
         self.status.clear();
     }
 
@@ -155,24 +157,27 @@ impl App {
         );
     }
 
+    fn do_translate(&mut self) {
+        if self.cluster.is_empty() {
+            return;
+        }
+        let scale = TRANSLATION_SCALING_FACTOR / self.config.scale.distance;
+        let direction = self.status.orientation.rotation().inverse() * (self.status.direction.as_vector() * scale);
+        self.cluster.translate_current(&direction);
+        self.cluster.update_current_trajectory();
+    }
+
     fn do_move(&mut self, dt: f64) {
         use physics::dynamics::forces;
         if self.status.pause || self.cluster.is_empty() {
             return;
         }
         self.step.update(dt, self.config.scale.time);
-        if self.status.translate {
-            let translation = self.status.direction.as_vector() / self.config.scale.distance;
-            self.cluster.translate_current(&translation);
-            self.cluster.update_current_trajectory();
-            return;
-        }
         // self.cluster.remove_aways();
         let dt = dt / self.config.oversampling as f64 * self.config.scale.time;
         self.cluster.apply(dt, self.config.oversampling, |bodies, i| {
             forces::gravity(&bodies[i].center, bodies)
         });
-        self.drawer.update_circles(&self.cluster);
     }
 
     fn do_reset(&mut self) {
@@ -192,7 +197,7 @@ impl App {
         let radius = kind.scaled_radius(kind.random_radius());
         let name = format!("{:?}", kind);
         let cursor = Vector4::new(cursor[0], cursor[1], 0., 1.);
-        let position = self.drawer.transform.inverse() * cursor;
+        let position = self.drawer.inverse_transform * cursor;
         let body_state = geometry::point::Point3::from(Vector3::from_homogeneous(&position));
         let circle_trajectory = Trajectory4::from(cursor);
         self.drawer.circles.push(Circle::new(circle_trajectory, radius, random_color()));
