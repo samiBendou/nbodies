@@ -13,7 +13,6 @@ use piston::input::{Key, MouseButton};
 use piston::window::Size;
 
 use crate::common::*;
-use crate::toggle;
 
 #[derive(Clone)]
 pub struct Step {
@@ -396,13 +395,13 @@ impl Status {
             }
             Some(key) => {
                 if *key == KEY_TOGGLE_BOUNDED {
-                    toggle!(self.bounded);
+                    self.bounded = !self.bounded;
                 } else if *key == KEY_TOGGLE_TRANSLATE {
-                    toggle!(self.translate);
+                    self.translate = !self.translate;
                 } else if *key == KEY_TOGGLE_TRAJECTORY {
-                    toggle!(self.trajectory);
+                    self.trajectory = !self.trajectory;
                 } else if *key == KEY_TOGGLE_PAUSE {
-                    toggle!(self.pause);
+                    self.pause = !self.pause;
                 } else if *key == KEY_ROTATION_DOWN {
                     self.orientation.increment_x();
                     self.reset_circles = true;

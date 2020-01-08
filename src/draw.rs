@@ -2,9 +2,9 @@ use std::fmt;
 use std::fmt::Debug;
 
 use physics::dynamics::{Cluster, orbital};
-use physics::geometry::common::{Array, Initializer, Metric};
 use physics::geometry::common::coordinates::{Cartesian2, Cartesian3, Cartesian4};
 use physics::geometry::common::coordinates::Homogeneous;
+use physics::geometry::common::Initializer;
 use physics::geometry::common::transforms::{Rotation3, Similarity};
 use physics::geometry::matrix::{Algebra, Matrix3, Matrix4};
 use physics::geometry::trajectory::{Trajectory3, Trajectory4, TRAJECTORY_SIZE};

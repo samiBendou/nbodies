@@ -39,13 +39,6 @@ pub static KEY_UNKNOWN: Key = Key::Unknown;
 
 pub static DEFAULT_ANGLE_INCREMENT: f64 = std::f64::consts::FRAC_PI_8 / 6.;
 
-#[macro_export]
-macro_rules! toggle {
-    ($boolean: expr) => {
-    $boolean = !$boolean;
-    };
-}
-
 #[derive(Copy, Clone)]
 pub struct Average {
     pub count: usize,
