@@ -5,11 +5,16 @@ use physics::geometry::common::Initializer;
 use physics::geometry::vector::*;
 use piston::input::{Key, MouseButton};
 
-pub static KEY_TOGGLE_BOUNDED: Key = Key::B;
+pub static KEY_RESET: Key = Key::Backspace;
+
 pub static KEY_TOGGLE_TRANSLATE: Key = Key::J;
 pub static KEY_TOGGLE_TRAJECTORY: Key = Key::R;
 pub static KEY_TOGGLE_PAUSE: Key = Key::Space;
-pub static KEY_RESET: Key = Key::Backspace;
+
+pub static KEY_DIRECTION_UP: Key = Key::W;
+pub static KEY_DIRECTION_DOWN: Key = Key::S;
+pub static KEY_DIRECTION_LEFT: Key = Key::A;
+pub static KEY_DIRECTION_RIGHT: Key = Key::D;
 
 pub static KEY_ROTATION_UP: Key = Key::Up;
 pub static KEY_ROTATION_DOWN: Key = Key::Down;
@@ -18,15 +23,19 @@ pub static KEY_ROTATION_RIGHT: Key = Key::Right;
 
 pub static KEY_INCREASE_OVERSAMPLING: Key = Key::P;
 pub static KEY_DECREASE_OVERSAMPLING: Key = Key::O;
+
 pub static KEY_INCREASE_DISTANCE: Key = Key::I;
 pub static KEY_DECREASE_DISTANCE: Key = Key::U;
-pub static KEY_INCREASE_TIME: Key = Key::Y;
-pub static KEY_DECREASE_TIME: Key = Key::T;
-pub static KEY_INCREASE_CURRENT_INDEX: Key = Key::Z;
-pub static KEY_DECREASE_CURRENT_INDEX: Key = Key::X;
+
+pub static KEY_INCREASE_TIME: Key = Key::Comma;
+pub static KEY_DECREASE_TIME: Key = Key::M;
+
+pub static KEY_INCREASE_CURRENT_INDEX: Key = Key::V;
+pub static KEY_DECREASE_CURRENT_INDEX: Key = Key::C;
+
 pub static KEY_NEXT_LOGGER_STATE: Key = Key::L;
 pub static KEY_NEXT_FRAME_STATE: Key = Key::K;
-pub static KEY_NEXT_METHOD_STATE: Key = Key::M;
+pub static KEY_NEXT_METHOD_STATE: Key = Key::Semicolon;
 
 pub static MOUSE_MOVE_ADD: MouseButton = MouseButton::Left;
 pub static MOUSE_MOVE_REMOVE: MouseButton = MouseButton::Right;
@@ -109,13 +118,13 @@ impl Direction {
 
     pub fn from(key: &Key) -> Direction {
         use super::*;
-        if *key == KEY_ROTATION_LEFT {
+        if *key == KEY_DIRECTION_LEFT {
             Direction::Left
-        } else if *key == KEY_ROTATION_RIGHT {
+        } else if *key == KEY_DIRECTION_RIGHT {
             Direction::Right
-        } else if *key == KEY_ROTATION_UP {
+        } else if *key == KEY_DIRECTION_UP {
             Direction::Up
-        } else if *key == KEY_ROTATION_DOWN {
+        } else if *key == KEY_DIRECTION_DOWN {
             Direction::Down
         } else {
             Direction::Hold
@@ -127,7 +136,7 @@ impl Direction {
             Direction::Left => Vector3::unit_neg_x(),
             Direction::Right => Vector3::unit_x(),
             Direction::Up => Vector3::unit_y(),
-            Direction::Down => Vector3::unit_neg_x(),
+            Direction::Down => Vector3::unit_neg_y(),
             Direction::Hold => Vector3::zeros()
         }
     }
