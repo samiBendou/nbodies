@@ -124,6 +124,7 @@ impl Direction {
 #[derive(Clone, Copy)]
 pub struct Orientation {
     rotation: Matrix3,
+    inverse_rotation: Matrix3,
     rotation_x: Matrix3,
     rotation_y: Matrix3,
     rotation_z: Matrix3,
@@ -139,6 +140,7 @@ impl Orientation {
     pub fn new(angle_x: f64, angle_y: f64, angle_z: f64) -> Orientation {
         let mut ret = Orientation {
             rotation: Matrix3::eye(),
+            inverse_rotation: Matrix3::eye(),
             rotation_x: Matrix3::from_rotation_x(angle_x),
             rotation_y: Matrix3::from_rotation_y(angle_y),
             rotation_z: Matrix3::from_rotation_z(angle_z),
@@ -196,8 +198,13 @@ impl Orientation {
         self.rotation
     }
 
+    pub fn inverse_rotation(&self) -> Matrix3 {
+        self.inverse_rotation
+    }
+
     fn update_rotation(&mut self) -> &mut Self {
         self.rotation = self.rotation_z * self.rotation_y * self.rotation_x;
+        self.inverse_rotation = self.rotation.inverse();
         self
     }
 }

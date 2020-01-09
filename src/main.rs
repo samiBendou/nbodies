@@ -14,7 +14,7 @@ use piston_window::{PistonWindow, WindowSettings};
 
 use nbodies::App;
 use nbodies::common::Input;
-use nbodies::core::Config;
+use nbodies::core::{Config, Simulator};
 
 fn main() {
     let config = Config::from_args(env::args().collect()).unwrap_or_else(|err| {
@@ -23,7 +23,7 @@ fn main() {
     });
     let mut app = match &config.path {
         None =>
-            App::new(dynamics::Cluster::empty(), config),
+            App::new(Simulator::from(dynamics::Cluster::empty()), config),
         Some(path) =>
             App::from_orbital(orbital::Cluster::from_file(Path::new(path)).unwrap_or_else(|err| {
                 eprintln!("Error during cluster reading: {}", err);

@@ -84,7 +84,7 @@ impl Logger {
 
     pub fn log(
         &mut self,
-        cluster: &dynamics::Cluster,
+        simulator: &core::Simulator,
         drawer: &Drawer,
         status: &core::Status,
         config: &core::Config,
@@ -96,10 +96,10 @@ impl Logger {
             Status => self.log_status(status, input),
             Config => self.log_config(config),
             Step => self.log_step(&status.step),
-            Cinematic => self.log_cinematic(cluster.current_index(), drawer, status),
-            Body => self.log_bodies(cluster, status),
-            Bodies => self.log_cluster(cluster),
-            Physics => self.log_physics(cluster)
+            Cinematic => self.log_cinematic(simulator.current_index(), drawer, status),
+            Body => self.log_bodies(simulator, status),
+            Bodies => self.log_cluster(&simulator.cluster),
+            Physics => self.log_physics(&simulator.cluster)
         };
         self.buffer += "\n";
         match self.state {
@@ -157,15 +157,15 @@ simulated: {:?}",
         }
     }
 
-    fn log_bodies(&mut self, cluster: &dynamics::Cluster, status: &core::Status) {
-        let len = cluster.len();
+    fn log_bodies(&mut self, simulator: &core::Simulator, status: &core::Status) {
+        let len = simulator.cluster.len();
         if len == 0 {
             return;
         }
-        self.log_body(cluster.current().unwrap());
+        self.log_body(simulator.current().unwrap());
         if status.is_waiting_to_add() && len != 1 {
             self.buffer += "\n";
-            self.log_body(cluster.last().unwrap());
+            self.log_body(simulator.last().unwrap());
         }
     }
 
@@ -193,6 +193,7 @@ simulated: {:?}",
     fn log_body(&mut self, body: &dynamics::Body) {
         self.units.rescale(body);
         self.buffer += &format!("{}", self.units.string_of(body));
+        self.buffer += &format!("{:?}", body.center.state.trajectory);
     }
 
     fn log_energy(&mut self, cluster: &dynamics::Cluster) {
