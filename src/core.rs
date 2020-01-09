@@ -6,6 +6,7 @@ use piston::input::{Key, MouseButton};
 use piston::window::Size;
 
 use crate::common::*;
+use crate::keys::*;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum State {
@@ -65,43 +66,10 @@ impl State {
     }
 }
 
-pub struct Arguments {
-    pub path: Option<String>,
-    pub scale: Scale,
-    pub size: Option<Size>,
-}
-
-impl Arguments {
-    /*
-    fn print_usage(program: &str, opts: Options) {
-        let brief = format!("Usage: {} FILE [options]", program);
-        print!("{}", opts.usage(&brief));
-    }
-    */
-
-    pub fn new(args: Vec<String>) -> Result<Arguments, Box<dyn Error>> {
-        let mut opts = Options::new();
-        opts.optopt("o", "orbital", "Loads an orbital cluster from file", "FILEPATH");
-        opts.optopt("d", "distance", "Sets the distance scale in px/meters", "NUMBER");
-        opts.optopt("t", "time", "Sets the time scale in secs/real sec", "NUMBER");
-        let matches = opts.parse(&args[1..])?;
-        let path = matches.opt_str("o");
-        let mut scale: Scale = Scale::unit();
-        if let Some(distance_str) = matches.opt_str("d") {
-            scale.distance = distance_str.parse()?;
-        }
-        if let Some(time_str) = matches.opt_str("t") {
-            scale.time = time_str.parse()?;
-        }
-        let size: Option<Size> = None;
-        Ok(Arguments { path, scale, size })
-    }
-}
-
 pub struct Config {
+    pub path: Option<String>,
     pub size: Size,
     pub scale: Scale,
-    pub undersampling: u32,
     pub oversampling: u32,
     pub orientation: Orientation,
     pub trajectory: bool,
@@ -109,11 +77,11 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new(size: Size, scale: Scale, undersampling: u32, oversampling: u32) -> Config {
+    pub fn new(path: Option<String>, size: Size, scale: Scale, oversampling: u32) -> Config {
         Config {
+            path,
             size,
             scale,
-            undersampling,
             oversampling,
             orientation: Orientation::new(0., 0., 0.),
             trajectory: true,
@@ -121,12 +89,49 @@ impl Config {
         }
     }
 
+    pub fn from_args(args: Vec<String>) -> Result<Config, Box<dyn Error>> {
+        let mut opts = Options::new();
+        opts.optopt("o", "orbital", "Loads an orbital cluster from file", "FILEPATH");
+        opts.optopt("d", "distance", "Sets the distance scale in px/meters", "NUMBER");
+        opts.optopt("t", "time", "Sets the time scale in secs/real sec", "NUMBER");
+        opts.optopt("s", "oversampling", "Sets oversampling", "NUMBER");
+        opts.optopt("w", "width", "Sets window width", "NUMBER");
+        opts.optopt("h", "height", "Sets window height", "NUMBER");
+        let matches = opts.parse(&args[1..])?;
+
+        let path = matches.opt_str("o");
+        let mut scale = Scale::unit();
+        let mut oversampling: u32 = DEFAULT_OVERSAMPLING;
+        let mut size = Size::from(DEFAULT_WINDOW_SIZE);
+
+        if let Some(distance_str) = matches.opt_str("d") {
+            scale.distance = distance_str.parse()?;
+        }
+        if let Some(time_str) = matches.opt_str("t") {
+            scale.time = time_str.parse()?;
+        }
+        if let Some(oversampling_str) = matches.opt_str("s") {
+            oversampling = oversampling_str.parse()?;
+        }
+        if let Some(width_str) = matches.opt_str("w") {
+            size.width = width_str.parse()?;
+        }
+        if let Some(height_str) = matches.opt_str("h") {
+            size.height = height_str.parse()?;
+        }
+        Ok(Config::new(path, size, scale, oversampling))
+    }
+
     pub fn default() -> Config {
-        Config::new(Size::from([640., 640.]), Scale::unit(), 1, 1024)
+        Config::new(None, Size::from(DEFAULT_WINDOW_SIZE), Scale::unit(), DEFAULT_OVERSAMPLING)
     }
 
     pub fn update(&mut self, key: &Key) {
-        if *key == KEY_INCREASE_OVERSAMPLING {
+        if *key == KEY_TOGGLE_TRAJECTORY {
+            self.trajectory = !self.trajectory;
+        } else if *key == KEY_TOGGLE_PAUSE {
+            self.pause = !self.pause;
+        } else if *key == KEY_INCREASE_OVERSAMPLING {
             self.increase_oversampling();
         } else if *key == KEY_DECREASE_OVERSAMPLING {
             self.decrease_oversampling();
@@ -156,17 +161,6 @@ impl Config {
 
     fn decrease_oversampling(&mut self) {
         self.oversampling = max(self.oversampling >> 1, std::u32::MIN + 1);
-    }
-}
-
-impl From<Arguments> for Config {
-    fn from(args: Arguments) -> Self {
-        let mut ret = Config::default();
-        ret.scale = args.scale;
-        if let Some(size) = args.size {
-            ret.size = size;
-        }
-        ret
     }
 }
 

@@ -11,6 +11,7 @@ use crate::common::*;
 use crate::common::Scale;
 use crate::core;
 use crate::draw::{Circle, Drawer};
+use crate::keys::KEY_NEXT_LOGGER_STATE;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum State {

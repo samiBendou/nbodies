@@ -3,34 +3,42 @@ extern crate opengl_graphics;
 extern crate piston_window;
 
 use std::{env, process};
+use std::path::Path;
 
 use opengl_graphics::OpenGL;
+use physics::dynamics;
+use physics::dynamics::orbital;
 use piston::event_loop::EventLoop;
 use piston::input::{Button, MouseCursorEvent, PressEvent, RenderEvent, UpdateEvent};
 use piston_window::{PistonWindow, WindowSettings};
 
 use nbodies::App;
 use nbodies::common::Input;
-use nbodies::core::Arguments;
+use nbodies::core::Config;
 
 fn main() {
-    let args = Arguments::new(env::args().collect()).unwrap_or_else(|err| {
+    let config = Config::from_args(env::args().collect()).unwrap_or_else(|err| {
         eprintln!("Error during arguments parsing: {}", err);
         process::exit(1);
     });
-    let mut app = App::from_args(args).unwrap_or_else(|err| {
-        eprintln!("Error during application building: {}", err);
-        process::exit(1);
-    });
+    let mut app = match &config.path {
+        None =>
+            App::new(dynamics::Cluster::empty(), config),
+        Some(path) =>
+            App::from_orbital(orbital::Cluster::from_file(Path::new(path)).unwrap_or_else(|err| {
+                eprintln!("Error during cluster reading: {}", err);
+                process::exit(1);
+            }), config),
+    };
     let mut input = Input::new();
     let mut window: PistonWindow =
-        WindowSettings::new("Bodies Keeps Moving Like Rollin' Stones!", app.config.size)
+        WindowSettings::new("Solar System Keeps Rollin'", app.config.size)
             .exit_on_esc(true)
             .resizable(false)
             .graphics_api(OpenGL::V3_2)
             .build()
             .unwrap_or_else(|err| {
-                eprintln!("Problem building window: {}", err);
+                eprintln!("Error during window building: {}", err);
                 process::exit(1);
             });
 

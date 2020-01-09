@@ -1,6 +1,3 @@
-use std::error::Error;
-use std::path::Path;
-
 use physics::common::random_color;
 use physics::dynamics;
 use physics::dynamics::orbital;
@@ -16,7 +13,7 @@ use piston_window;
 use piston_window::{Glyphs, PistonWindow};
 
 use crate::common::*;
-use crate::core::{Arguments, Config, Status};
+use crate::core::{Config, Status};
 use crate::draw::{Circle, Drawer};
 use crate::log::Logger;
 
@@ -24,6 +21,7 @@ pub mod common;
 pub mod core;
 pub mod draw;
 pub mod log;
+pub mod keys;
 
 pub struct App {
     pub cluster: dynamics::Cluster,
@@ -33,22 +31,6 @@ pub struct App {
     pub drawer: Drawer,
 }
 
-impl From<orbital::Cluster> for App {
-    fn from(cluster: orbital::Cluster) -> Self {
-        let mut ret = App::from(dynamics::Cluster::orbital_at_random(&cluster));
-        ret.drawer.set_appearance(&cluster);
-        ret
-    }
-}
-
-impl From<dynamics::Cluster> for App {
-    fn from(cluster: dynamics::Cluster) -> Self {
-        let mut config = Config::default();
-        config.scale.distance = 0.5 * config.size.width / cluster.max_distance().0;
-        App::new(cluster, config)
-    }
-}
-
 impl From<Config> for App {
     fn from(config: Config) -> Self {
         App::new(dynamics::Cluster::empty(), config)
@@ -56,38 +38,30 @@ impl From<Config> for App {
 }
 
 impl App {
-    pub fn new(cluster: dynamics::Cluster, config: Config) -> App {
-        let status = Status::new();
+    pub fn new(cluster: dynamics::Cluster, mut config: Config) -> App {
         let size = config.size.clone();
         let scale = config.scale.distance;
         let drawer = Drawer::new(&cluster, &config.orientation, scale, &size);
+        config.scale.distance = 0.5 * config.size.width / cluster.max_distance().0;
         App {
             cluster,
             config,
-            status,
+            status: Status::new(),
             logger: Logger::new(),
             drawer,
         }
     }
 
-    pub fn default() -> App {
-        App::new(dynamics::Cluster::empty(), Config::default())
-    }
-
-    //noinspection RsTypeCheck
-    pub fn from_args(args: Arguments) -> Result<App, Box<dyn Error>> {
-        if let Some(path) = args.path {
-            let cluster = orbital::Cluster::from_file(Path::new(path.as_str()))?;
-            return Ok(App::from(cluster));
-        }
-        Ok(App::from(Config::from(args)))
+    pub fn from_orbital(cluster: orbital::Cluster, config: Config) -> App {
+        let mut ret = App::new(dynamics::Cluster::orbital_at_random(&cluster), config);
+        ret.drawer.set_appearance(&cluster);
+        ret
     }
 
     pub fn on_key(&mut self, key: &Key) {
         self.config.update(key);
         self.logger.update(key);
         self.status.update(&Some(*key), &Option::None);
-        self.update_drawer();
     }
 
     pub fn on_click(&mut self, button: &MouseButton) {
@@ -151,7 +125,16 @@ impl App {
             CancelDrop => self.do_cancel_drop()
         };
 
+        if self.status.update_transform {
+            self.drawer.update_transform(&self.config.orientation, self.config.scale.distance, &self.config.size);
+        }
+
+        if self.status.reset_circles {
+            self.drawer.reset_circles(&self.cluster);
+        }
+
         self.drawer.update_circles(&self.cluster);
+
         self.status.clear();
     }
 
@@ -254,14 +237,5 @@ impl App {
     fn do_cancel_drop(&mut self) {
         self.cluster.pop();
         self.drawer.circles.pop();
-    }
-
-    fn update_drawer(&mut self) {
-        if self.status.update_transform {
-            self.drawer.update_transform(&self.config.orientation, self.config.scale.distance, &self.config.size);
-        }
-        if self.status.reset_circles {
-            self.drawer.reset_circles(&self.cluster);
-        }
     }
 }
