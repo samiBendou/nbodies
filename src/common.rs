@@ -4,7 +4,7 @@ use std::time::SystemTime;
 use physics::geometry::common::coordinates::Cartesian2;
 use physics::geometry::common::Initializer;
 use physics::geometry::common::transforms::Rotation3;
-use physics::geometry::matrix::Matrix3;
+use physics::geometry::matrix::{Algebra, Matrix3};
 use physics::geometry::vector::*;
 use physics::units::date::Duration;
 use piston::input::{Key, MouseButton};
@@ -121,11 +121,12 @@ impl Direction {
 }
 
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy)]
 pub struct Orientation {
-    pub rotation_x: Matrix3,
-    pub rotation_y: Matrix3,
-    pub rotation_z: Matrix3,
+    rotation: Matrix3,
+    rotation_x: Matrix3,
+    rotation_y: Matrix3,
+    rotation_z: Matrix3,
     increment_x: Matrix3,
     increment_y: Matrix3,
     increment_z: Matrix3,
@@ -136,7 +137,8 @@ pub struct Orientation {
 
 impl Orientation {
     pub fn new(angle_x: f64, angle_y: f64, angle_z: f64) -> Orientation {
-        Orientation {
+        let mut ret = Orientation {
+            rotation: Matrix3::eye(),
             rotation_x: Matrix3::from_rotation_x(angle_x),
             rotation_y: Matrix3::from_rotation_y(angle_y),
             rotation_z: Matrix3::from_rotation_z(angle_z),
@@ -146,7 +148,9 @@ impl Orientation {
             decrement_x: Matrix3::from_rotation_x(-DEFAULT_ANGLE_INCREMENT),
             decrement_y: Matrix3::from_rotation_y(-DEFAULT_ANGLE_INCREMENT),
             decrement_z: Matrix3::from_rotation_z(-DEFAULT_ANGLE_INCREMENT),
-        }
+        };
+        ret.update_rotation();
+        ret
     }
 
     pub fn zeros() -> Self {
@@ -155,35 +159,52 @@ impl Orientation {
 
     pub fn increment_x(&mut self) -> &mut Self {
         self.rotation_x *= self.increment_x;
+        self.update_rotation();
         self
     }
 
     pub fn increment_y(&mut self) -> &mut Self {
         self.rotation_y *= self.increment_y;
+        self.update_rotation();
         self
     }
 
     pub fn increment_z(&mut self) -> &mut Self {
         self.rotation_z *= self.increment_z;
+        self.update_rotation();
         self
     }
     pub fn decrement_x(&mut self) -> &mut Self {
         self.rotation_x *= self.decrement_x;
+        self.update_rotation();
         self
     }
 
     pub fn decrement_y(&mut self) -> &mut Self {
         self.rotation_y *= self.decrement_y;
+        self.update_rotation();
         self
     }
 
     pub fn decrement_z(&mut self) -> &mut Self {
         self.rotation_z *= self.decrement_z;
+        self.update_rotation();
         self
     }
 
     pub fn rotation(&self) -> Matrix3 {
-        self.rotation_z * self.rotation_y * self.rotation_x
+        self.rotation
+    }
+
+    fn update_rotation(&mut self) -> &mut Self {
+        self.rotation = self.rotation_z * self.rotation_y * self.rotation_x;
+        self
+    }
+}
+
+impl Debug for Orientation {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
+        write!(f, "{:?}", self.rotation())
     }
 }
 
