@@ -38,11 +38,10 @@ impl From<Config> for App {
 }
 
 impl App {
-    pub fn new(cluster: dynamics::Cluster, mut config: Config) -> App {
+    pub fn new(cluster: dynamics::Cluster, config: Config) -> App {
         let size = config.size.clone();
         let scale = config.scale.distance;
         let drawer = Drawer::new(&cluster, &config.orientation, scale, &size);
-        config.scale.distance = 0.5 * config.size.width / cluster.max_distance().0;
         App {
             cluster,
             config,

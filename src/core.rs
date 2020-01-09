@@ -66,6 +66,7 @@ impl State {
     }
 }
 
+#[derive(Debug)]
 pub struct Config {
     pub path: Option<String>,
     pub size: Size,
@@ -255,5 +256,6 @@ impl Status {
         self.update_transform = false;
         self.update_current = false;
         self.next_frame = false;
+        self.next_method = false;
     }
 }
