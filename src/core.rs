@@ -2,7 +2,8 @@ use std::cmp::{max, min};
 use std::error::Error;
 
 use getopts::Options;
-use physics::dynamics::{Body, Cluster, orbital};
+use physics::dynamics::{Cluster, orbital};
+use physics::dynamics::point::Point3;
 use physics::dynamics::solver::{Method, Solver};
 use physics::geometry::point;
 use physics::geometry::point::ZERO;
@@ -286,6 +287,7 @@ impl Status {
 
 pub struct Simulator {
     pub cluster: Cluster,
+    pub names: Vec<String>,
     pub current: usize,
     pub origin: point::Point3,
     pub frame: Frame,
@@ -294,34 +296,38 @@ pub struct Simulator {
 
 impl From<Cluster> for Simulator {
     fn from(cluster: Cluster) -> Self {
-        Simulator::new(cluster, Solver::from(Method::RungeKutta4))
+        let names = cluster.points.iter()
+            .map(|_point| String::from("untitled"))
+            .collect();
+        Simulator::new(cluster, Solver::from(Method::RungeKutta4), names)
     }
 }
 
 impl Simulator {
-    pub fn new(cluster: Cluster, solver: Solver) -> Self {
+    pub fn new(cluster: Cluster, solver: Solver, names: Vec<String>) -> Self {
         Simulator {
             cluster,
-            origin: point::ZERO,
+            names,
             current: 0,
+            origin: point::ZERO,
             frame: Frame::Zero,
             solver,
         }
     }
 
     pub fn orbital(cluster: &orbital::Cluster, true_anomalies: Vec<f64>, solver: Solver) -> Self {
-        let mut bodies: Vec<Body> = Vec::with_capacity(cluster.bodies.len());
-        let mut body;
+        let names = cluster.bodies.iter()
+            .map(|point| point.name.clone())
+            .collect();
+        let mut points: Vec<Point3> = Vec::with_capacity(cluster.bodies.len());
         for i in 0..cluster.bodies.len() {
-            body = Body::orbital(
-                &cluster.bodies[i].name,
-                &cluster.bodies[i].orbit,
-                true_anomalies[i],
+            points.push(Point3::inertial(
+                cluster.bodies[i].orbit.position_at(true_anomalies[i]),
+                cluster.bodies[i].orbit.speed_at(true_anomalies[i]),
                 cluster.bodies[i].mass,
-            );
-            bodies.push(body);
+            ));
         }
-        Simulator::new(Cluster::new(bodies), solver)
+        Simulator::new(Cluster::new(points), solver, names)
     }
 
     pub fn orbital_at(cluster: &orbital::Cluster, true_anomaly: f64, solver: Solver) -> Self {
@@ -343,19 +349,22 @@ impl Simulator {
     }
 
     #[inline]
-    pub fn current(&self) -> Option<&Body> { self.cluster.bodies.get(self.current) }
+    pub fn current(&self) -> Option<&Point3> { self.cluster.points.get(self.current) }
 
     #[inline]
-    pub fn current_mut(&mut self) -> Option<&mut Body> { self.cluster.bodies.get_mut(self.current) }
+    pub fn current_mut(&mut self) -> Option<&mut Point3> { self.cluster.points.get_mut(self.current) }
 
     #[inline]
     pub fn current_index(&self) -> usize { self.current }
 
     #[inline]
-    pub fn last(&self) -> Option<&Body> { self.cluster.bodies.last() }
+    pub fn last(&self) -> Option<&Point3> { self.cluster.points.last() }
 
     #[inline]
-    pub fn last_mut(&mut self) -> Option<&mut Body> { self.cluster.bodies.last_mut() }
+    pub fn last_mut(&mut self) -> Option<&mut Point3> { self.cluster.points.last_mut() }
+
+    #[inline]
+    pub fn last_index(&self) -> usize { self.cluster.len() - 1 }
 
     pub fn update(&mut self, key: &Option<Key>, bypass_last: bool) -> &mut Self {
         if let Some(key) = key {
@@ -374,7 +383,7 @@ impl Simulator {
 
     #[inline]
     pub fn apply<T>(&mut self, dt: f64, iterations: u32, f: T) -> &mut Self where
-        T: FnMut(&Vec<Body>, usize) -> Vector6 {
+        T: FnMut(&Vec<Point3>, usize) -> Vector6 {
         self.solver.dt = dt;
         self.solver.iterations = iterations;
         self.cluster.set_absolute(&self.origin);
@@ -386,26 +395,29 @@ impl Simulator {
     }
 
     #[inline]
-    pub fn push(&mut self, body: Body) -> &mut Self {
-        self.cluster.push(body);
+    pub fn push(&mut self, point: Point3, name: &str) -> &mut Self {
+        self.cluster.push(point);
+        self.names.push(String::from(name));
         self
     }
 
     #[inline]
-    pub fn pop(&mut self) -> Option<Body> {
+    pub fn pop(&mut self) -> Option<Point3> {
         if self.current == self.cluster.len() - 1 {
             self.decrement_current();
             self.reset_origin();
         }
+        self.names.pop();
         self.cluster.pop()
     }
 
     #[inline]
-    pub fn remove(&mut self, i: usize) -> Body {
+    pub fn remove(&mut self, i: usize) -> Point3 {
         if self.current == self.cluster.len() - 1 && i == self.current {
             self.decrement_current();
             self.reset_origin();
         }
+        self.names.remove(i);
         self.cluster.remove(i)
     }
 
@@ -453,7 +465,7 @@ impl Simulator {
         }
         match self.frame {
             Frame::Zero => &point::ZERO,
-            Frame::Current => &self.cluster.bodies[self.current].center.state,
+            Frame::Current => &self.cluster.points[self.current].state,
             Frame::Barycenter => &self.cluster.barycenter().state,
         }
     }

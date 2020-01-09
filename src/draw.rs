@@ -90,8 +90,8 @@ pub struct Drawer {
 
 impl Drawer {
     pub fn new(cluster: &Cluster, orientation: &Orientation, scale: f64, size: &Size) -> Drawer {
-        let circles: Vec<Circle> = cluster.bodies.iter()
-            .map({ |_body| Circle::centered(10., BLUE) })
+        let circles: Vec<Circle> = cluster.points.iter()
+            .map({ |_point| Circle::centered(10., BLUE) })
             .collect();
         let mut ret = Drawer {
             circles,
@@ -110,8 +110,7 @@ impl Drawer {
     }
 
     pub fn set_appearance(&mut self, cluster: &orbital::Cluster) -> &mut Self {
-        let len = self.circles.len();
-        for i in 0..len {
+        for i in 0..self.circles.len() {
             self.circles[i].color = cluster.bodies[i].color;
             self.circles[i].radius = cluster.bodies[i].kind.scaled_radius(cluster.bodies[i].radius);
         }
@@ -133,7 +132,7 @@ impl Drawer {
     pub fn update_circles(&mut self, cluster: &Cluster) -> &mut Self {
         let len = self.circles.len();
         for i in 0..len {
-            self.circles[i].update(&cluster[i].center.state.position, &self.transform);
+            self.circles[i].update(&cluster[i].state.position, &self.transform);
         }
         self
     }
@@ -141,7 +140,7 @@ impl Drawer {
     pub fn reset_circles(&mut self, cluster: &Cluster) -> &mut Self {
         let len = self.circles.len();
         for i in 0..len {
-            self.circles[i].reset(&cluster[i].center.state.trajectory, &self.transform);
+            self.circles[i].reset(&cluster[i].state.trajectory, &self.transform);
         }
         self
     }
@@ -208,7 +207,7 @@ impl Drawer {
         );
     }
 
-    pub fn draw_bodies(&mut self, c: &Context, g: &mut G2d) {
+    pub fn draw_points(&mut self, c: &Context, g: &mut G2d) {
         let len = self.circles.len();
         for i in 0..len {
             self.circles[i].update_rect();

@@ -1,12 +1,10 @@
 use physics::common::random_color;
-use physics::dynamics;
 use physics::dynamics::orbital;
 use physics::dynamics::point::Point3;
 use physics::dynamics::solver::{Method, Solver};
-use physics::geometry;
-use physics::geometry::common::{Metric, Reset};
+use physics::geometry::common::*;
 use physics::geometry::common::coordinates::Homogeneous;
-use physics::geometry::matrix::Algebra;
+use physics::geometry::point;
 use physics::geometry::trajectory::Trajectory4;
 use physics::geometry::vector::{Vector3, Vector4};
 use piston::input::{Event, Key, MouseButton, UpdateArgs};
@@ -87,7 +85,7 @@ impl App {
                 if self.status.state == core::State::WaitSpeed {
                     self.drawer.draw_speed(cursor, &c, g);
                 }
-                self.drawer.draw_bodies(&c, g);
+                self.drawer.draw_points(&c, g);
                 self.drawer.draw_barycenter(&self.simulator.cluster.barycenter().state.position, &c, g);
                 self.drawer.draw_scale(scale, &self.config.size, &c, g, glyphs);
                 self.drawer.draw_basis(&self.config.size, &c, g);
@@ -151,8 +149,8 @@ impl App {
         self.status.step.push(dt, self.config.scale.time);
         // self.cluster.remove_aways();
         let dt = dt / self.config.oversampling as f64 * self.config.scale.time;
-        self.simulator.apply(dt, self.config.oversampling, |bodies, i| {
-            forces::gravity(&bodies[i].center, bodies)
+        self.simulator.apply(dt, self.config.oversampling, |points, i| {
+            forces::gravity(&points[i], points)
         });
     }
 
@@ -169,15 +167,13 @@ impl App {
         } else {
             orbital::Kind::random()
         };
-        let mass = kind.random_mass();
-        let radius = kind.scaled_radius(kind.random_radius());
-        let name = format!("{:?}", kind);
         let cursor = Vector4::new(cursor[0], cursor[1], 0., 1.);
-        let position = self.drawer.inverse_transform * cursor;
-        let body_state = geometry::point::Point3::from(Vector3::from_homogeneous(&position));
-        let circle_trajectory = Trajectory4::from(cursor);
-        self.drawer.circles.push(Circle::new(circle_trajectory, radius, random_color()));
-        self.simulator.push(dynamics::Body::new(name.as_str(), Point3::new(body_state, mass)));
+        self.drawer.circles.push(
+            Circle::new(Trajectory4::from(cursor), kind.scaled_radius(kind.random_radius()), random_color())
+        );
+        self.simulator.push(
+            Point3::new(point::Point3::zeros(), kind.random_mass()), &format!("{:?}", kind),
+        );
     }
 
     //noinspection RsTypeCheck
@@ -197,22 +193,21 @@ impl App {
     fn do_wait_drop(&mut self, cursor: &[f64; 2]) {
         let cursor = Vector4::new(cursor[0], cursor[1], 0., 1.);
         let transformed_cursor = self.drawer.inverse_transform * cursor;
-        let last_circle = self.drawer.circles.last_mut().unwrap();
-        let mut last_body = self.simulator.last_mut().unwrap();
-        last_body.center.state.position = Vector3::from_homogeneous(&transformed_cursor);
-        last_body.center.state.trajectory.reset(&last_body.center.state.position);
-        last_circle.trajectory.reset(&cursor);
+        let circle = self.drawer.circles.last_mut().unwrap();
+        let mut point = self.simulator.last_mut().unwrap();
+        circle.trajectory.reset(&cursor);
+        point.state.position = Vector3::from_homogeneous(&transformed_cursor);
+        point.state.trajectory.reset(&point.state.position);
         self.simulator.cluster.update_barycenter();
     }
 
     //noinspection RsTypeCheck
     fn do_wait_speed(&mut self, cursor: &[f64; 2]) {
-        let cursor = Vector4::new(cursor[0], cursor[1], 0., 1.);
-        let transformed_cursor = self.drawer.inverse_transform * cursor;
-        let mut last_body = self.simulator.last_mut().unwrap();
-        last_body.center.state.speed = Vector3::from_homogeneous(&transformed_cursor);
-        last_body.center.state.speed -= last_body.center.state.position;
-        last_body.center.state.speed *= SPEED_SCALING_FACTOR;
+        let cursor = self.drawer.inverse_transform * Vector4::new(cursor[0], cursor[1], 0., 1.);
+        let mut point = self.simulator.last_mut().unwrap();
+        point.state.speed = Vector3::from_homogeneous(&cursor);
+        point.state.speed -= point.state.position;
+        point.state.speed *= SPEED_SCALING_FACTOR;
     }
 
     fn do_cancel_drop(&mut self) {

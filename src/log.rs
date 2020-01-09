@@ -1,7 +1,8 @@
 use physics::dynamics;
+use physics::dynamics::point::Point3;
 use physics::geometry::common::coordinates::Homogeneous;
 use physics::geometry::common::Metric;
-use physics::geometry::point::Point3;
+use physics::geometry::point;
 use physics::geometry::vector::Vector3;
 use physics::units;
 use physics::units::{Compound, Rescale, Serialize, Unit};
@@ -20,7 +21,7 @@ pub enum State {
     Config,
     Step,
     Cinematic,
-    Body,
+    Points,
     Physics,
     Bodies,
 }
@@ -33,8 +34,8 @@ impl State {
             Status => Config,
             Config => Step,
             Step => Cinematic,
-            Cinematic => Body,
-            Body => Bodies,
+            Cinematic => Points,
+            Points => Bodies,
             Bodies => Physics,
             Physics => Hide,
         };
@@ -97,13 +98,13 @@ impl Logger {
             Config => self.log_config(config),
             Step => self.log_step(&status.step),
             Cinematic => self.log_cinematic(simulator.current_index(), drawer, status),
-            Body => self.log_bodies(simulator, status),
+            Points => self.log_points(simulator, status),
             Bodies => self.log_cluster(&simulator.cluster),
             Physics => self.log_physics(&simulator.cluster)
         };
         self.buffer += "\n";
         match self.state {
-            Step | Body | Cinematic | Physics => self.log_scale(&config.scale),
+            Step | Points | Cinematic | Physics => self.log_scale(&config.scale),
             _ => ()
         };
     }
@@ -157,26 +158,25 @@ simulated: {:?}",
         }
     }
 
-    fn log_bodies(&mut self, simulator: &core::Simulator, status: &core::Status) {
+    fn log_points(&mut self, simulator: &core::Simulator, status: &core::Status) {
         let len = simulator.cluster.len();
         if len == 0 {
             return;
         }
-        self.log_body(simulator.current().unwrap());
+        self.log_point(simulator.current().unwrap(), &simulator.names[simulator.current_index()]);
         if status.is_waiting_to_add() && len != 1 {
             self.buffer += "\n";
-            self.log_body(simulator.last().unwrap());
+            self.log_point(simulator.last().unwrap(), &simulator.names[simulator.last_index()]);
         }
     }
 
     fn log_cluster(&mut self, cluster: &dynamics::Cluster) {
         let barycenter = cluster.barycenter();
         self.units.rescale(&barycenter.state);
-        self.buffer += &format!("*** barycenter ***\n{}",
-                                self.units.string_of(&barycenter.state));
-        for body in cluster.bodies.iter() {
+        self.buffer += &format!("*** barycenter ***\n{}", self.units.string_of(&barycenter.state));
+        for point in cluster.points.iter() {
             self.buffer += "\n";
-            self.log_body(body)
+            self.log_point(point, "")
         }
     }
     fn log_physics(&mut self, cluster: &dynamics::Cluster) {
@@ -186,22 +186,21 @@ simulated: {:?}",
     fn log_shape(&mut self, circle: &Circle) {
         let circle = Vector3::from_homogeneous(circle.trajectory.last());
         self.px_unit.rescale(&circle.magnitude());
-        self.buffer += &format!("*** circle ***\n{}",
-                                self.px_unit.string_of(&circle));
+        self.buffer += &format!("*** circle ***\n{}", self.px_unit.string_of(&circle));
     }
 
-    fn log_body(&mut self, body: &dynamics::Body) {
-        self.units.rescale(body);
-        self.buffer += &format!("{}", self.units.string_of(body));
-        self.buffer += &format!("{:?}", body.center.state.trajectory);
+    fn log_point(&mut self, point: &Point3, name: &str) {
+        self.units.rescale(point);
+        self.buffer += &format!("*** {} ***\n", name);
+        self.buffer += &format!("{}", self.units.string_of(point));
     }
 
     fn log_energy(&mut self, cluster: &dynamics::Cluster) {
         use physics::dynamics::potentials;
         let kinetic_energy = cluster.kinetic_energy();
         let angular_momentum = cluster.angular_momentum();
-        let potential_energy = cluster.potential_energy(|bodies, i| {
-            bodies[i].center.mass * potentials::gravity(&bodies[i].center, bodies)
+        let potential_energy = cluster.potential_energy(|points, i| {
+            points[i].mass * potentials::gravity(&points[i], points)
         });
         let total_energy = kinetic_energy + potential_energy;
         self.energy_unit.rescale(&total_energy);
@@ -272,8 +271,8 @@ impl Units {
     }
 }
 
-impl units::Rescale<Point3> for Units {
-    fn rescale(&mut self, val: &Point3) -> &mut Self {
+impl units::Rescale<point::Point3> for Units {
+    fn rescale(&mut self, val: &point::Point3) -> &mut Self {
         self.distance.rescale(&val.position.magnitude());
         self.speed.units[0].rescale(&val.speed.magnitude());
         self
@@ -281,15 +280,15 @@ impl units::Rescale<Point3> for Units {
 }
 
 
-impl units::Rescale<dynamics::Body> for Units {
-    fn rescale(&mut self, val: &dynamics::Body) -> &mut Self {
-        self.rescale(&val.center.state);
+impl units::Rescale<Point3> for Units {
+    fn rescale(&mut self, val: &Point3) -> &mut Self {
+        self.rescale(&val.state);
         self
     }
 }
 
-impl units::Serialize<Point3> for Units {
-    fn string_of(&self, val: &Point3) -> String {
+impl units::Serialize<point::Point3> for Units {
+    fn string_of(&self, val: &point::Point3) -> String {
         format!(
             "position: {}\nspeed: {}",
             self.distance.string_of(&val.position),
@@ -298,14 +297,13 @@ impl units::Serialize<Point3> for Units {
     }
 }
 
-impl units::Serialize<dynamics::Body> for Units {
-    fn string_of(&self, val: &dynamics::Body) -> String {
+impl units::Serialize<Point3> for Units {
+    fn string_of(&self, val: &Point3) -> String {
         format!(
-            "*** {} ***\nmass: {}\nposition: {}\nspeed: {}",
-            val.name,
-            self.mass.string_of(&val.center.mass),
-            self.distance.string_of(&val.center.state.position),
-            self.speed.string_of(&val.center.state.speed),
+            "mass: {}\nposition: {}\nspeed: {}",
+            self.mass.string_of(&val.mass),
+            self.distance.string_of(&val.state.position),
+            self.speed.string_of(&val.state.speed),
         )
     }
 }
