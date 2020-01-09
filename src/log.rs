@@ -17,6 +17,7 @@ use crate::keys::KEY_NEXT_LOGGER_STATE;
 pub enum State {
     Hide,
     Status,
+    Config,
     Timing,
     Cinematic,
     Body,
@@ -29,7 +30,8 @@ impl State {
         use State::*;
         *self = match self {
             Hide => Status,
-            Status => Timing,
+            Status => Config,
+            Config => Timing,
             Timing => Cinematic,
             Cinematic => Body,
             Body => Bodies,
@@ -88,6 +90,7 @@ impl Logger {
         match self.state {
             Hide => (),
             Status => self.log_status(status, input),
+            Config => self.log_config(config),
             Timing => self.log_timing(status, config),
             Cinematic => self.log_cinematic(cluster.current_index(), drawer, status),
             Body => self.log_bodies(cluster, status),
@@ -111,6 +114,10 @@ pressed keyboard key: '{:?}'",
                                 status, input.button, input.cursor, input.key)[..];
     }
 
+    fn log_config(&mut self, config: &core::Config) {
+        self.buffer += &format!("*** config info ***\n{:#?}", config)[..];
+    }
+
     fn log_timing(&mut self, status: &core::Status, config: &core::Config) {
         self.buffer += &format!("\
 *** timing info ***
@@ -120,15 +127,15 @@ oversampling: {}",
     }
 
     fn log_cinematic(&mut self, current: usize, drawer: &Drawer, status: &core::Status) {
-        let count = drawer.circles.len();
-        if count == 0 {
+        let len = drawer.circles.len();
+        if len == 0 {
             return;
         }
         self.log_shape(&drawer.circles[current]);
-        if !status.is_waiting_to_add() || count == 1 {
-            return;
+        if status.is_waiting_to_add() && len == 1 {
+            self.buffer += "\n";
+            self.log_shape(&drawer.circles.last().unwrap());
         }
-        self.log_shape(&drawer.circles.last().unwrap());
         self.buffer += "\n";
     }
 
@@ -138,10 +145,10 @@ oversampling: {}",
             return;
         }
         self.log_body(cluster.current().unwrap());
-        if !status.is_waiting_to_add() || len == 1 {
-            return;
+        if status.is_waiting_to_add() && len == 1 {
+            self.buffer += "\n";
+            self.log_body(cluster.last().unwrap());
         }
-        self.log_body(cluster.last().unwrap());
     }
 
     fn log_cluster(&mut self, cluster: &dynamics::Cluster) {
@@ -180,6 +187,7 @@ oversampling: {}",
         let total_energy = kinetic_energy + potential_energy;
         self.energy_units.rescale(&total_energy);
         self.buffer += &format!("\
+*** energy ***
 kinetic energy: {}
 potential energy: {}
 total energy: {}
