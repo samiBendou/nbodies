@@ -143,8 +143,8 @@ simulated: {:?}",
     }
 
     fn log_cinematic(&mut self, current: usize, drawer: &Drawer, status: &core::Status) {
-        self.buffer += &format!("*** transform *** \n{:?}\n", drawer.transform);
-        self.buffer += &format!("*** inverse transform *** \n{:?}\n", drawer.inverse_transform);
+        self.buffer += &format!("*** transform ***{:?}\n", drawer.transform);
+        self.buffer += &format!("*** inverse transform ***{:?}\n", drawer.inverse_transform);
 
         let len = drawer.circles.len();
         if len == 0 {
