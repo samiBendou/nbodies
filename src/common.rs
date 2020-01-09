@@ -1,4 +1,3 @@
-use std::fmt;
 use std::fmt::Debug;
 use std::time::SystemTime;
 
@@ -7,9 +6,9 @@ use physics::geometry::common::Initializer;
 use physics::geometry::common::transforms::Rotation3;
 use physics::geometry::matrix::Matrix3;
 use physics::geometry::vector::*;
-use physics::units::{Rescale, Unit};
 use physics::units::date::Duration;
 use piston::input::{Key, MouseButton};
+use serde::export::fmt::{Error, Formatter};
 
 use crate::keys::*;
 
@@ -51,6 +50,12 @@ impl Average {
             ret += *val;
         }
         ret / 60.
+    }
+}
+
+impl Debug for Average {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
+        write!(f, "{}", self.value())
     }
 }
 
@@ -182,8 +187,7 @@ impl Orientation {
     }
 }
 
-
-#[derive(Clone)]
+#[derive(Clone, Copy, Debug)]
 pub struct Step {
     pub count: u32,
     pub total: Duration,
@@ -191,14 +195,10 @@ pub struct Step {
     pub frame: Average,
     pub system: Average,
     time: SystemTime,
-    frame_unit: Unit,
 }
 
 impl Step {
     pub fn new() -> Step {
-        use physics::units;
-        use physics::units::suffix::Time;
-        use physics::units::prefix::Standard;
         Step {
             count: 0,
             total: Duration::from(0.),
@@ -206,15 +206,10 @@ impl Step {
             frame: Average::new(),
             system: Average::new(),
             time: SystemTime::now(),
-            frame_unit: Unit::new(
-                units::Scale::from(Standard::Base),
-                units::Scale::from(Time::Second),
-            ),
         }
     }
 
     pub fn push(&mut self, dt: f64, scale: f64) {
-        use physics::units::*;
         let time = SystemTime::now();
         self.system.push(time.duration_since(self.time).unwrap().as_secs_f64());
         self.time = time;
@@ -222,51 +217,18 @@ impl Step {
         self.total += dt;
         self.simulated += dt * scale;
         self.count = (self.count + 1) % std::u32::MAX;
-        self.frame_unit.rescale(&self.frame.value());
     }
 }
 
-impl Debug for Step {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        use physics::units::*;
-        let frame = self.frame.value();
-        let system = self.system.value();
-        let framerate = (1. / frame).floor() as u8;
-        let framerate_system = (1. / system).floor() as u8;
-        write!(f,
-               "\
-dt: {} framerate: {} (fps)\n\
-(system) dt: {} framerate: {} (fps)\n\
-total: {:?}\n\
-simulated: {:?}",
-               self.frame_unit.string_of(&frame),
-               framerate,
-               self.frame_unit.string_of(&system),
-               framerate_system,
-               self.total,
-               self.simulated
-        )
-    }
-}
-
+#[derive(Clone, Copy, Debug)]
 pub struct Scale {
     pub time: f64,
     pub distance: f64,
-    pub time_unit: Unit,
-    pub distance_unit: Unit,
 }
 
 impl Scale {
     pub fn new(time: f64, distance: f64) -> Scale {
-        use physics::units;
-        use units::suffix::{Distance, Time};
-        assert!(time > 0. && distance > 0.);
-        Scale {
-            time,
-            distance,
-            time_unit: Unit::from(units::Scale::from(Time::Second)),
-            distance_unit: Unit::from(units::Scale::from(Distance::Pixel)),
-        }
+        Scale { time, distance }
     }
 
     pub fn unit() -> Scale {
@@ -284,24 +246,9 @@ impl Scale {
     pub fn increase_distance(&mut self) {
         self.distance *= 2.;
     }
+
     pub fn decrease_distance(&mut self) {
         self.distance /= 2.;
     }
-
-    pub fn rescale(&mut self) {
-        self.time_unit.rescale(&self.time);
-        self.distance_unit.rescale(&self.distance);
-    }
 }
-
-impl Debug for Scale {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        use physics::units::*;
-        write!(f, "time: {} per (second)\ndistance: {} per (meter)",
-               self.time_unit.string_of(&self.time),
-               self.distance_unit.string_of(&self.distance),
-        )
-    }
-}
-
 

@@ -18,7 +18,7 @@ pub enum State {
     Hide,
     Status,
     Config,
-    Timing,
+    Step,
     Cinematic,
     Body,
     Physics,
@@ -31,8 +31,8 @@ impl State {
         *self = match self {
             Hide => Status,
             Status => Config,
-            Config => Timing,
-            Timing => Cinematic,
+            Config => Step,
+            Step => Cinematic,
             Cinematic => Body,
             Body => Bodies,
             Bodies => Physics,
@@ -45,8 +45,10 @@ pub struct Logger {
     state: State,
     buffer: String,
     units: Units,
-    px_units: Unit,
-    energy_units: Unit,
+    px_unit: Unit,
+    energy_unit: Unit,
+    time_unit: Unit,
+    distance_unit: Unit,
 }
 
 impl Logger {
@@ -56,8 +58,10 @@ impl Logger {
             state: State::Hide,
             buffer: String::from(""),
             units: Units::default(),
-            px_units: Unit::from(units::Scale::from(Distance::Pixel)),
-            energy_units: Unit::from(units::Scale::from(Energy::Joules)),
+            px_unit: Unit::from(units::Scale::from(Distance::Pixel)),
+            energy_unit: Unit::from(units::Scale::from(Energy::Joules)),
+            time_unit: Unit::from(units::Scale::from(Time::Second)),
+            distance_unit: Unit::from(units::Scale::from(Distance::Meter)),
         }
     }
 
@@ -91,7 +95,7 @@ impl Logger {
             Hide => (),
             Status => self.log_status(status, input),
             Config => self.log_config(config),
-            Timing => self.log_timing(status, config),
+            Step => self.log_step(&status.step),
             Cinematic => self.log_cinematic(cluster.current_index(), drawer, status),
             Body => self.log_bodies(cluster, status),
             Bodies => self.log_cluster(cluster),
@@ -99,7 +103,7 @@ impl Logger {
         };
         self.buffer += "\n";
         match self.state {
-            Timing | Body | Cinematic | Physics => self.log_scale(&config.scale),
+            Step | Body | Cinematic | Physics => self.log_scale(&config.scale),
             _ => ()
         };
     }
@@ -118,25 +122,39 @@ pressed keyboard key: '{:?}'",
         self.buffer += &format!("*** config info ***\n{:#?}", config)[..];
     }
 
-    fn log_timing(&mut self, status: &core::Status, config: &core::Config) {
-        self.buffer += &format!("\
-*** timing info ***
-{:?}
-oversampling: {}",
-                                status.step, config.oversampling);
+    fn log_step(&mut self, step: &Step) {
+        use physics::units::*;
+        let frame = step.frame.value();
+        let system = step.system.value();
+        let framerate = (1. / frame).floor() as u8;
+        let framerate_system = (1. / system).floor() as u8;
+        self.time_unit.rescale(&frame);
+        self.buffer += &format!("*** step info ***
+dt: {} fps: {} (update)
+dt: {} fps: {} (system)
+total: {:?}
+simulated: {:?}",
+                                self.time_unit.string_of(&frame),
+                                framerate,
+                                self.time_unit.string_of(&system),
+                                framerate_system,
+                                step.total,
+                                step.simulated);
     }
 
     fn log_cinematic(&mut self, current: usize, drawer: &Drawer, status: &core::Status) {
+        self.buffer += &format!("*** transform *** \n{:?}\n", drawer.transform);
+        self.buffer += &format!("*** inverse transform *** \n{:?}\n", drawer.inverse_transform);
+
         let len = drawer.circles.len();
         if len == 0 {
             return;
         }
         self.log_shape(&drawer.circles[current]);
-        if status.is_waiting_to_add() && len == 1 {
+        if status.is_waiting_to_add() && len != 1 {
             self.buffer += "\n";
             self.log_shape(&drawer.circles.last().unwrap());
         }
-        self.buffer += "\n";
     }
 
     fn log_bodies(&mut self, cluster: &dynamics::Cluster, status: &core::Status) {
@@ -145,7 +163,7 @@ oversampling: {}",
             return;
         }
         self.log_body(cluster.current().unwrap());
-        if status.is_waiting_to_add() && len == 1 {
+        if status.is_waiting_to_add() && len != 1 {
             self.buffer += "\n";
             self.log_body(cluster.last().unwrap());
         }
@@ -167,9 +185,9 @@ oversampling: {}",
 
     fn log_shape(&mut self, circle: &Circle) {
         let circle = Vector3::from_homogeneous(circle.trajectory.last());
-        self.px_units.rescale(&circle.magnitude());
+        self.px_unit.rescale(&circle.magnitude());
         self.buffer += &format!("*** circle ***\n{}",
-                                self.px_units.string_of(&circle));
+                                self.px_unit.string_of(&circle));
     }
 
     fn log_body(&mut self, body: &dynamics::Body) {
@@ -185,16 +203,16 @@ oversampling: {}",
             bodies[i].center.mass * potentials::gravity(&bodies[i].center, bodies)
         });
         let total_energy = kinetic_energy + potential_energy;
-        self.energy_units.rescale(&total_energy);
+        self.energy_unit.rescale(&total_energy);
         self.buffer += &format!("\
 *** energy ***
 kinetic energy: {}
 potential energy: {}
 total energy: {}
 angular momentum: {:.10e}",
-                                self.energy_units.string_of(&kinetic_energy),
-                                self.energy_units.string_of(&potential_energy),
-                                self.energy_units.string_of(&total_energy),
+                                self.energy_unit.string_of(&kinetic_energy),
+                                self.energy_unit.string_of(&potential_energy),
+                                self.energy_unit.string_of(&total_energy),
                                 angular_momentum
         );
 
@@ -205,7 +223,13 @@ angular momentum: {:.10e}",
     }
 
     fn log_scale(&mut self, scale: &Scale) {
-        self.buffer += &format!("*** scale ***\n{:?}", scale);
+        self.time_unit.rescale(&scale.time);
+        self.distance_unit.rescale(&scale.distance);
+        self.buffer += &format!("*** scale ***
+time: {} per (second)
+distance: {} per (meter)",
+                                self.time_unit.string_of(&scale.time),
+                                self.distance_unit.string_of(&scale.distance));
     }
 }
 
@@ -276,7 +300,7 @@ impl units::Serialize<Point3> for Units {
 impl units::Serialize<dynamics::Body> for Units {
     fn string_of(&self, val: &dynamics::Body) -> String {
         format!(
-            "***{}***\nmass: {}\nposition: {}\nspeed: {}",
+            "*** {} ***\nmass: {}\nposition: {}\nspeed: {}",
             val.name,
             self.mass.string_of(&val.center.mass),
             self.distance.string_of(&val.center.state.position),

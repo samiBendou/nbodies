@@ -153,7 +153,6 @@ impl Config {
         } else if *key == KEY_DECREASE_TIME {
             self.scale.decrease_time();
         }
-        self.scale.rescale();
     }
 
     fn increase_oversampling(&mut self) {
