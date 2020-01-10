@@ -3,6 +3,7 @@ use std::error::Error;
 
 use getopts::Options;
 use physics::dynamics::{Cluster, orbital};
+use physics::dynamics::orbital::Body;
 use physics::dynamics::point::Point3;
 use physics::dynamics::solver::{Method, Solver};
 use physics::geometry::point;
@@ -245,7 +246,7 @@ impl Status {
 
 pub struct Simulator {
     pub cluster: Cluster,
-    pub names: Vec<String>,
+    pub system: orbital::Cluster,
     pub current: usize,
     pub origin: point::Point3,
     pub frame: Frame,
@@ -255,18 +256,18 @@ pub struct Simulator {
 
 impl From<Cluster> for Simulator {
     fn from(cluster: Cluster) -> Self {
-        let names = cluster.points.iter()
-            .map(|_point| String::from("untitled"))
+        let bodies: Vec<Body> = cluster.points.iter()
+            .map(|_point| orbital::Body::new())
             .collect();
-        Simulator::new(cluster, Solver::from(Method::RungeKutta4), names)
+        Simulator::new(cluster, orbital::Cluster::from(bodies), Solver::from(Method::RungeKutta4))
     }
 }
 
 impl Simulator {
-    pub fn new(cluster: Cluster, solver: Solver, names: Vec<String>) -> Self {
+    pub fn new(cluster: Cluster, system: orbital::Cluster, solver: Solver) -> Self {
         Simulator {
             cluster,
-            names,
+            system,
             current: 0,
             origin: point::ZERO,
             frame: Frame::Zero,
@@ -275,37 +276,34 @@ impl Simulator {
         }
     }
 
-    pub fn orbital(cluster: &orbital::Cluster, true_anomalies: Vec<f64>, solver: Solver) -> Self {
-        let names = cluster.bodies.iter()
-            .map(|point| point.name.clone())
-            .collect();
-        let mut points: Vec<Point3> = Vec::with_capacity(cluster.bodies.len());
-        for i in 0..cluster.bodies.len() {
+    pub fn orbital(system: orbital::Cluster, true_anomalies: Vec<f64>, solver: Solver) -> Self {
+        let mut points: Vec<Point3> = Vec::with_capacity(system.bodies.len());
+        for i in 0..system.bodies.len() {
             points.push(Point3::inertial(
-                cluster.bodies[i].orbit.position_at(true_anomalies[i]),
-                cluster.bodies[i].orbit.speed_at(true_anomalies[i]),
-                cluster.bodies[i].mass,
+                system[i].orbit.position_at(true_anomalies[i]),
+                system[i].orbit.speed_at(true_anomalies[i]),
+                system[i].mass,
             ));
         }
-        Simulator::new(Cluster::new(points), solver, names)
+        Simulator::new(Cluster::new(points), system, solver)
     }
 
-    pub fn orbital_at(cluster: &orbital::Cluster, true_anomaly: f64, solver: Solver) -> Self {
-        let mut true_anomalies = Vec::with_capacity(cluster.bodies.len());
-        for _ in cluster.bodies.iter() {
+    pub fn orbital_at(system: orbital::Cluster, true_anomaly: f64, solver: Solver) -> Self {
+        let mut true_anomalies = Vec::with_capacity(system.bodies.len());
+        for _ in system.bodies.iter() {
             true_anomalies.push(true_anomaly)
         }
-        Simulator::orbital(cluster, true_anomalies, solver)
+        Simulator::orbital(system, true_anomalies, solver)
     }
 
-    pub fn orbital_at_random(cluster: &orbital::Cluster, solver: Solver) -> Self {
+    pub fn orbital_at_random(system: orbital::Cluster, solver: Solver) -> Self {
         let two_pi = 2. * std::f64::consts::PI;
         let mut rng = rand::thread_rng();
-        let mut true_anomalies: Vec<f64> = Vec::with_capacity(cluster.bodies.len());
-        for _ in cluster.bodies.iter() {
+        let mut true_anomalies: Vec<f64> = Vec::with_capacity(system.bodies.len());
+        for _ in system.bodies.iter() {
             true_anomalies.push(rng.gen_range(0., two_pi))
         }
-        Simulator::orbital(cluster, true_anomalies, solver)
+        Simulator::orbital(system, true_anomalies, solver)
     }
 
     #[inline]
@@ -370,9 +368,9 @@ impl Simulator {
     }
 
     #[inline]
-    pub fn push(&mut self, point: Point3, name: &str) -> &mut Self {
+    pub fn push(&mut self, point: Point3, body: Body) -> &mut Self {
         self.cluster.push(point);
-        self.names.push(String::from(name));
+        self.system.push(body);
         self
     }
 
@@ -382,7 +380,7 @@ impl Simulator {
             self.decrement_current();
             self.reset_origin();
         }
-        self.names.pop();
+        self.system.pop();
         self.cluster.pop()
     }
 
@@ -392,7 +390,7 @@ impl Simulator {
             self.decrement_current();
             self.reset_origin();
         }
-        self.names.remove(i);
+        self.system.remove(i);
         self.cluster.remove(i)
     }
 

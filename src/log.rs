@@ -163,10 +163,10 @@ simulated: {:?}",
         if len == 0 {
             return;
         }
-        self.log_point(simulator.current().unwrap(), &simulator.names[simulator.current_index()]);
+        self.log_point(simulator.current().unwrap(), &simulator.system[simulator.current_index()].name);
         if status.is_waiting_to_add() && len != 1 {
             self.buffer += "\n";
-            self.log_point(simulator.last().unwrap(), &simulator.names[simulator.last_index()]);
+            self.log_point(simulator.last().unwrap(), &simulator.system[simulator.last_index()].name);
         }
     }
 

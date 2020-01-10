@@ -1,5 +1,6 @@
 use physics::common::random_color;
 use physics::dynamics::orbital;
+use physics::dynamics::orbital::Body;
 use physics::dynamics::point::Point3;
 use physics::dynamics::solver::{Method, Solver};
 use physics::geometry::common::*;
@@ -35,21 +36,21 @@ impl App {
         let size = config.size.clone();
         let scale = config.scale.distance;
         let drawer = Drawer::new(&simulator.cluster, &config.orientation, scale, &size);
-        App {
+        let mut ret = App {
             simulator,
             config,
             status: Status::new(),
             logger: Logger::new(),
-            drawer
-        }
+            drawer,
+        };
+        ret.drawer.set_appearance(&ret.simulator.system);
+        ret
     }
 
-    pub fn from_orbital(cluster: orbital::Cluster, config: Config) -> App {
+    pub fn from_orbital(system: orbital::Cluster, config: Config) -> App {
         let solver = Solver::new(1., 1, Method::RungeKutta4);
-        let simulator = Simulator::orbital_at_random(&cluster, solver);
-        let mut ret = App::new(simulator, config);
-        ret.drawer.set_appearance(&cluster);
-        ret
+        let simulator = Simulator::orbital_at_random(system, solver);
+        App::new(simulator, config)
     }
 
     pub fn on_key(&mut self, key: &Key) {
@@ -165,13 +166,11 @@ impl App {
 
     //noinspection RsTypeCheck
     fn do_add(&mut self) {
-        let kind = orbital::Kind::random();
+        let body = Body::random();
         self.drawer.circles.push(
-            Circle::new(Trajectory4::zeros(), kind.scaled_radius(kind.random_radius()), random_color())
+            Circle::new(Trajectory4::zeros(), body.kind.scaled_radius(body.radius), body.color)
         );
-        self.simulator.push(
-            Point3::new(point::Point3::zeros(), kind.random_mass()), &format!("{:?}", kind),
-        );
+        self.simulator.push(Point3::new(point::Point3::zeros(), body.mass), body);
     }
 
     //noinspection RsTypeCheck
