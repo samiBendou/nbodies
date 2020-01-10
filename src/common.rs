@@ -1,6 +1,7 @@
 use std::fmt::Debug;
 use std::time::SystemTime;
 
+use physics::dynamics::Cluster;
 use physics::geometry::common::coordinates::Cartesian2;
 use physics::geometry::common::Initializer;
 use physics::geometry::common::transforms::Rotation3;
@@ -56,6 +57,55 @@ impl Average {
 impl Debug for Average {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
         write!(f, "{}", self.value())
+    }
+}
+
+pub struct Statistics {
+    pub mean: f64,
+    pub deviation: f64,
+    pub distances: Vec<f64>,
+    pub max_index: usize,
+    pub max_distance: f64,
+}
+
+impl Statistics {
+    pub fn new() -> Statistics {
+        Statistics {
+            mean: 0.,
+            deviation: 0.,
+            distances: vec![],
+            max_index: 0,
+            max_distance: 0.,
+        }
+    }
+
+    pub fn update(&mut self, cluster: &Cluster, exclude: Option<usize>) {
+        let len = cluster.len();
+        let barycenter = cluster.barycenter();
+        self.mean = 0.;
+        self.max_distance = 0.;
+        self.max_index = 0;
+        self.distances = Vec::with_capacity(len);
+        let mut sum2 = 0.;
+        let index = match exclude {
+            None => len,
+            Some(index) => index,
+        };
+        for i in 0..len {
+            self.distances.push(cluster[i].state.position % barycenter.state.position);
+            if i == index {
+                continue;
+            }
+            if self.distances[i] > self.max_distance {
+                self.max_distance = self.distances[i];
+                self.max_index = i;
+            }
+            self.mean += self.distances[i];
+            sum2 += self.distances[i] * self.distances[i];
+        }
+        let len = len as f64;
+        self.mean /= len;
+        self.deviation = (sum2 / len - self.mean * self.mean).sqrt();
     }
 }
 

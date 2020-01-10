@@ -40,7 +40,7 @@ impl App {
             config,
             status: Status::new(),
             logger: Logger::new(),
-            drawer,
+            drawer
         }
     }
 
@@ -147,7 +147,6 @@ impl App {
             return;
         }
         self.status.step.push(dt, self.config.scale.time);
-        // self.cluster.remove_aways();
         let dt = dt / self.config.oversampling as f64 * self.config.scale.time;
         self.simulator.apply(dt, self.config.oversampling, |points, i| {
             forces::gravity(&points[i], points)
@@ -162,14 +161,9 @@ impl App {
 
     //noinspection RsTypeCheck
     fn do_add(&mut self, cursor: &[f64; 2]) {
-        let kind = if self.simulator.cluster.is_empty() {
-            orbital::Kind::Star
-        } else {
-            orbital::Kind::random()
-        };
-        let cursor = Vector4::new(cursor[0], cursor[1], 0., 1.);
+        let kind = orbital::Kind::random();
         self.drawer.circles.push(
-            Circle::new(Trajectory4::from(cursor), kind.scaled_radius(kind.random_radius()), random_color())
+            Circle::new(Trajectory4::zeros(), kind.scaled_radius(kind.random_radius()), random_color())
         );
         self.simulator.push(
             Point3::new(point::Point3::zeros(), kind.random_mass()), &format!("{:?}", kind),
