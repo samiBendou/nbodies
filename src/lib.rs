@@ -97,11 +97,15 @@ impl App {
     pub fn update(&mut self, _window: &mut PistonWindow, args: &UpdateArgs, cursor: &[f64; 2]) {
         use crate::core::State::*;
 
+        if let Some(index) = self.simulator.remove_aways() {
+            self.drawer.circles.remove(index);
+        }
+
         match self.status.state {
             Move => self.do_move(args.dt),
             Translate => self.do_translate(),
             Reset => self.do_reset(),
-            Add => self.do_add(cursor),
+            Add => self.do_add(),
             Remove => self.do_remove(cursor),
             WaitDrop => self.do_wait_drop(cursor),
             WaitSpeed => self.do_wait_speed(cursor),
@@ -160,7 +164,7 @@ impl App {
     }
 
     //noinspection RsTypeCheck
-    fn do_add(&mut self, cursor: &[f64; 2]) {
+    fn do_add(&mut self) {
         let kind = orbital::Kind::random();
         self.drawer.circles.push(
             Circle::new(Trajectory4::zeros(), kind.scaled_radius(kind.random_radius()), random_color())

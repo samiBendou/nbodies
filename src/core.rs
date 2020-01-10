@@ -195,10 +195,6 @@ pub struct Status {
     pub direction: Direction,
     pub reset_circles: bool,
     pub update_transform: bool,
-    pub update_current: bool,
-    pub increase_current: bool,
-    pub next_frame: bool,
-    pub next_method: bool,
     pub state: State,
     pub step: Step,
 }
@@ -209,10 +205,6 @@ impl Status {
             direction: Direction::Hold,
             reset_circles: true,
             update_transform: true,
-            update_current: false,
-            increase_current: false,
-            next_frame: false,
-            next_method: false,
             state: State::Reset,
             step: Step::new(),
         }
@@ -232,40 +224,9 @@ impl Status {
                 };
             }
             Some(key) => {
-                if *key == KEY_ROTATION_DOWN {
-                    self.reset_circles = true;
-                    self.update_transform = true;
-                } else if *key == KEY_ROTATION_UP {
-                    self.reset_circles = true;
-                    self.update_transform = true;
-                } else if *key == KEY_ROTATION_LEFT {
-                    self.reset_circles = true;
-                    self.update_transform = true;
-                } else if *key == KEY_ROTATION_RIGHT {
-                    self.reset_circles = true;
-                    self.update_transform = true;
-                } else if *key == KEY_INCREASE_CURRENT_INDEX {
-                    self.increase_current = true;
-                    self.update_current = true;
-                    self.reset_circles = true;
-                    self.update_transform = true;
-                } else if *key == KEY_DECREASE_CURRENT_INDEX {
-                    self.increase_current = false;
-                    self.update_current = true;
-                    self.reset_circles = true;
-                    self.update_transform = true;
-                } else if *key == KEY_NEXT_FRAME_STATE {
-                    self.next_frame = true;
-                    self.reset_circles = true;
-                    self.update_transform = true;
-                } else if *key == KEY_NEXT_METHOD_STATE {
-                    self.next_method = true;
-                } else if *key == KEY_INCREASE_DISTANCE || *key == KEY_DECREASE_DISTANCE {
-                    self.reset_circles = true;
-                    self.update_transform = true;
-                } else {
-                    self.direction = Direction::from(key);
-                }
+                self.reset_circles = true;
+                self.update_transform = true;
+                self.direction = Direction::from(key);
                 match button {
                     None => self.state.next(key, &BUTTON_UNKNOWN),
                     Some(button) => self.state.next(key, button),
@@ -279,9 +240,6 @@ impl Status {
         self.direction = Direction::from(&KEY_UNKNOWN);
         self.reset_circles = false;
         self.update_transform = false;
-        self.update_current = false;
-        self.next_frame = false;
-        self.next_method = false;
     }
 }
 
@@ -292,6 +250,7 @@ pub struct Simulator {
     pub origin: point::Point3,
     pub frame: Frame,
     pub solver: Solver,
+    pub stats: Statistics,
 }
 
 impl From<Cluster> for Simulator {
@@ -312,6 +271,7 @@ impl Simulator {
             origin: point::ZERO,
             frame: Frame::Zero,
             solver,
+            stats: Statistics::new(),
         }
     }
 
@@ -379,6 +339,21 @@ impl Simulator {
             }
         }
         self
+    }
+
+    pub fn remove_aways(&mut self) -> Option<usize> {
+        self.stats.update(&self.cluster, None);
+        let max_distance = self.stats.max_distance;
+        let max_index = self.stats.max_index;
+        if self.cluster.len() < 3 {
+            return None;
+        }
+        self.stats.update(&self.cluster, Some(self.stats.max_index));
+        if max_distance > self.stats.mean + 10e2 * self.stats.deviation {
+            self.remove(max_index);
+            return Some(max_index);
+        }
+        return None;
     }
 
     #[inline]
