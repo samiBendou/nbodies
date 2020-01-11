@@ -100,7 +100,7 @@ impl Logger {
             Cinematic => self.log_cinematic(simulator.current_index(), drawer, status),
             Points => self.log_points(simulator, status),
             Bodies => self.log_cluster(&simulator.cluster),
-            Physics => self.log_physics(&simulator.cluster)
+            Physics => self.log_physics(simulator)
         };
         self.buffer += "\n";
         match self.state {
@@ -163,7 +163,9 @@ simulated: {:?}",
         if len == 0 {
             return;
         }
-        self.log_point(simulator.current().unwrap(), &simulator.system[simulator.current_index()].name);
+        let point = simulator.current().unwrap();
+        let body = &simulator.system[simulator.current_index()];
+        self.log_point(point, body.name.as_str());
         if status.is_waiting_to_add() && len != 1 {
             self.buffer += "\n";
             self.log_point(simulator.last().unwrap(), &simulator.system[simulator.last_index()].name);
@@ -179,8 +181,9 @@ simulated: {:?}",
             self.log_point(point, "")
         }
     }
-    fn log_physics(&mut self, cluster: &dynamics::Cluster) {
-        self.log_energy(cluster);
+    fn log_physics(&mut self, simulator: &core::Simulator) {
+        self.log_energy(&simulator.cluster);
+        self.buffer += &format!("\n*** orbital ***\n{:#?}", simulator.system[simulator.current_index()].orbit);
     }
 
     fn log_shape(&mut self, circle: &Circle) {

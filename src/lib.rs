@@ -1,4 +1,3 @@
-use physics::common::random_color;
 use physics::dynamics::orbital;
 use physics::dynamics::orbital::Body;
 use physics::dynamics::point::Point3;
@@ -49,7 +48,7 @@ impl App {
 
     pub fn from_orbital(system: orbital::Cluster, config: Config) -> App {
         let solver = Solver::new(1., 1, Method::RungeKutta4);
-        let simulator = Simulator::orbital_at_random(system, solver);
+        let simulator = Simulator::orbital_at(system, 0., solver);
         App::new(simulator, config)
     }
 

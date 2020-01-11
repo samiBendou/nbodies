@@ -343,7 +343,7 @@ impl Simulator {
         self.stats.update(&self.cluster, None);
         let max_distance = self.stats.max_distance;
         let max_index = self.stats.max_index;
-        if self.cluster.len() < 3 {
+        if self.cluster.len() < 4 {
             return None;
         }
         self.stats.update(&self.cluster, Some(self.stats.max_index));
@@ -364,6 +364,7 @@ impl Simulator {
         self.update_origin();
         self.origin.update_trajectory();
         self.cluster.set_relative(&self.origin);
+        self.system.update_orbits(&self.cluster.points, self.cluster.barycenter());
         self
     }
 
