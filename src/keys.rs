@@ -5,6 +5,7 @@ pub static KEY_RESET: Key = Key::Backspace;
 pub static KEY_TOGGLE_TRANSLATE: Key = Key::J;
 pub static KEY_TOGGLE_TRAJECTORY: Key = Key::R;
 pub static KEY_TOGGLE_PAUSE: Key = Key::Space;
+pub static KEY_TOGGLE_ORBITS: Key = Key::Y;
 
 pub static KEY_DIRECTION_UP: Key = Key::W;
 pub static KEY_DIRECTION_DOWN: Key = Key::S;

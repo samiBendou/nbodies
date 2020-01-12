@@ -101,6 +101,7 @@ pub struct Config {
     pub oversampling: u32,
     pub orientation: Orientation,
     pub trajectory: bool,
+    pub orbits: bool,
     pub pause: bool,
 }
 
@@ -112,7 +113,8 @@ impl Config {
             scale,
             oversampling,
             orientation: Orientation::new(0., 0., 0.),
-            trajectory: true,
+            trajectory: false,
+            orbits: true,
             pause: true,
         }
     }
@@ -159,6 +161,8 @@ impl Config {
             self.trajectory = !self.trajectory;
         } else if *key == KEY_TOGGLE_PAUSE {
             self.pause = !self.pause;
+        } else if *key == KEY_TOGGLE_ORBITS {
+            self.orbits = !self.orbits;
         } else if *key == KEY_INCREASE_OVERSAMPLING {
             self.increase_oversampling();
         } else if *key == KEY_DECREASE_OVERSAMPLING {

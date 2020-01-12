@@ -82,6 +82,10 @@ impl App {
                     self.drawer.draw_trajectories(&c, g);
                 }
 
+                if self.config.orbits {
+                    self.drawer.draw_orbits(&self.simulator, &c, g);
+                }
+
                 if self.status.state == core::State::WaitSpeed {
                     self.drawer.draw_speed(cursor, &c, g);
                 }

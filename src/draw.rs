@@ -17,6 +17,7 @@ use piston_window::context::Context;
 
 use crate::common::{BLACK, BLUE, GREEN, RED, WHITE};
 use crate::common::Orientation;
+use crate::core::Simulator;
 
 const SCALE_LENGTH: f64 = 50.;
 
@@ -220,17 +221,37 @@ impl Drawer {
     }
 
     pub fn draw_trajectories(&mut self, c: &Context, g: &mut G2d) {
-        let len = self.circles.len();
         let mut from;
         let mut to;
-        for i in 0..len {
+        for i in 0..self.circles.len() {
             self.buffer_color = self.circles[i].color;
-            for k in 1..TRAJECTORY_SIZE - 1 {
-                from = self.circles[i].trajectory.position(k - 1);
-                to = self.circles[i].trajectory.position(k);
-                self.buffer_color[3] = k as f32 / (TRAJECTORY_SIZE as f32 - 1.);
+            for k in 1..TRAJECTORY_SIZE {
+                from = self.circles[i].trajectory[k - 1];
+                to = self.circles[i].trajectory[k];
                 piston_window::line_from_to(
                     self.buffer_color,
+                    2.5,
+                    [from.x, from.y],
+                    [to.x, to.y],
+                    c.transform, g,
+                );
+            }
+        }
+    }
+
+    pub fn draw_orbits(&mut self, simulator: &Simulator, c: &Context, g: &mut G2d) {
+        let mut from;
+        let mut to;
+        let mut angle;
+        let d_angle = 2. * std::f64::consts::PI / TRAJECTORY_SIZE as f64;
+        for i in 0..self.circles.len() {
+            angle = 0.;
+            for _ in 0..TRAJECTORY_SIZE {
+                from = self.transform * simulator.system[i].orbit.position_at(angle).homogeneous();
+                to = self.transform * simulator.system[i].orbit.position_at(angle + d_angle).homogeneous();
+                angle += d_angle;
+                piston_window::line_from_to(
+                    self.circles[i].color,
                     2.5,
                     [from.x, from.y],
                     [to.x, to.y],
