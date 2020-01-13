@@ -1,6 +1,6 @@
 # nbodies
 
-### A demonstration application for  [dynamics](https://github.com/samiBendou/dynamics) framework
+### A demo app for  [dynamics](https://github.com/samiBendou/dynamics) framework
 This project is an application that can simulate any stellar system configuration and render it in 3D.
 
 ![Demo](assets/demo.png)
