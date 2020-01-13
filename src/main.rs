@@ -5,9 +5,9 @@ extern crate piston_window;
 use std::{env, process};
 use std::path::Path;
 
+use dynamics;
+use dynamics::orbital;
 use opengl_graphics::OpenGL;
-use physics::dynamics;
-use physics::dynamics::orbital;
 use piston::event_loop::EventLoop;
 use piston::input::{Button, MouseCursorEvent, PressEvent, RenderEvent, UpdateEvent};
 use piston_window::{PistonWindow, WindowSettings};

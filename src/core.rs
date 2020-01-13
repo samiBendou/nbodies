@@ -1,14 +1,14 @@
 use std::cmp::{max, min};
 use std::error::Error;
 
+use dynamics::{Cluster, orbital};
+use dynamics::orbital::Body;
+use dynamics::point::Point3;
+use dynamics::solver::{Method, Solver};
 use geomath::point;
 use geomath::point::ZERO;
 use geomath::vector::Vector6;
 use getopts::Options;
-use physics::dynamics::{Cluster, orbital};
-use physics::dynamics::orbital::Body;
-use physics::dynamics::point::Point3;
-use physics::dynamics::solver::{Method, Solver};
 use piston::input::{Key, MouseButton};
 use piston::window::Size;
 use rand::Rng;

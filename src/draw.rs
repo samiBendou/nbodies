@@ -1,6 +1,7 @@
 use std::fmt;
 use std::fmt::Debug;
 
+use dynamics::{Cluster, orbital};
 use geomath::common::coordinates::{Cartesian2, Cartesian3, Cartesian4};
 use geomath::common::coordinates::Homogeneous;
 use geomath::common::Initializer;
@@ -8,12 +9,11 @@ use geomath::common::transforms::{Rotation3, Similarity};
 use geomath::matrix::{Algebra, Matrix3, Matrix4};
 use geomath::trajectory::{Trajectory3, Trajectory4, TRAJECTORY_SIZE};
 use geomath::vector::{Vector2, Vector3, Vector4};
-use physics::dynamics::{Cluster, orbital};
-use physics::units::{Rescale, Scale, Serialize, Unit};
-use physics::units::suffix::*;
 use piston::window::Size;
 use piston_window::*;
 use piston_window::context::Context;
+use unitflow::{Rescale, Scale, Serialize, Unit};
+use unitflow::suffix::*;
 
 use crate::common::{BLACK, BLUE, GREEN, RED, WHITE};
 use crate::common::Orientation;

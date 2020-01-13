@@ -1,12 +1,11 @@
+use dynamics::point::Point3;
 use geomath::common::coordinates::Homogeneous;
 use geomath::common::Metric;
 use geomath::point;
 use geomath::vector::Vector3;
-use physics::dynamics;
-use physics::dynamics::point::Point3;
-use physics::units;
-use physics::units::{Compound, Rescale, Serialize, Unit};
 use piston::input::Key;
+use unitflow;
+use unitflow::{Compound, Rescale, Serialize, Unit};
 
 use crate::common::*;
 use crate::common::Scale;
@@ -54,15 +53,15 @@ pub struct Logger {
 
 impl Logger {
     pub fn new() -> Logger {
-        use physics::units::suffix::*;
+        use unitflow::suffix::*;
         Logger {
             state: State::Hide,
             buffer: String::from(""),
             units: Units::default(),
-            px_unit: Unit::from(units::Scale::from(Distance::Pixel)),
-            energy_unit: Unit::from(units::Scale::from(Energy::Joules)),
-            time_unit: Unit::from(units::Scale::from(Time::Second)),
-            distance_unit: Unit::from(units::Scale::from(Distance::Meter)),
+            px_unit: Unit::from(unitflow::Scale::from(Distance::Pixel)),
+            energy_unit: Unit::from(unitflow::Scale::from(Energy::Joules)),
+            time_unit: Unit::from(unitflow::Scale::from(Time::Second)),
+            distance_unit: Unit::from(unitflow::Scale::from(Distance::Meter)),
         }
     }
 
@@ -124,7 +123,7 @@ pressed keyboard key: '{:?}'",
     }
 
     fn log_step(&mut self, step: &Step) {
-        use physics::units::*;
+        use unitflow::*;
         let frame = step.frame.value();
         let system = step.system.value();
         let framerate = (1. / frame).floor() as u8;
@@ -199,7 +198,7 @@ simulated: {:?}",
     }
 
     fn log_energy(&mut self, cluster: &dynamics::Cluster) {
-        use physics::dynamics::potentials;
+        use dynamics::potentials;
         let kinetic_energy = cluster.kinetic_energy();
         let angular_momentum = cluster.angular_momentum();
         let potential_energy = cluster.potential_energy(|points, i| {
@@ -258,23 +257,23 @@ impl Units {
     }
 
     pub fn default() -> Units {
-        use physics::units::suffix::*;
-        let time = Unit::from(units::Scale::from(Time::Second));
-        let distance = Unit::from(units::Scale::from(Distance::Meter));
-        let mass = Unit::from(units::Scale::from(Mass::Kilograms));
+        use unitflow::suffix::*;
+        let time = Unit::from(unitflow::Scale::from(Time::Second));
+        let distance = Unit::from(unitflow::Scale::from(Distance::Meter));
+        let mass = Unit::from(unitflow::Scale::from(Mass::Kilograms));
         Units::new(distance, mass, time)
     }
 
     pub fn pixel() -> Units {
-        use physics::units::suffix::*;
-        let time = Unit::from(units::Scale::from(Time::Second));
-        let distance = Unit::from(units::Scale::from(Distance::Pixel));
-        let mass = Unit::from(units::Scale::from(Mass::Kilograms));
+        use unitflow::suffix::*;
+        let time = Unit::from(unitflow::Scale::from(Time::Second));
+        let distance = Unit::from(unitflow::Scale::from(Distance::Pixel));
+        let mass = Unit::from(unitflow::Scale::from(Mass::Kilograms));
         Units::new(distance, mass, time)
     }
 }
 
-impl units::Rescale<point::Point3> for Units {
+impl unitflow::Rescale<point::Point3> for Units {
     fn rescale(&mut self, val: &point::Point3) -> &mut Self {
         self.distance.rescale(&val.position.magnitude());
         self.speed.units[0].rescale(&val.speed.magnitude());
@@ -283,14 +282,14 @@ impl units::Rescale<point::Point3> for Units {
 }
 
 
-impl units::Rescale<Point3> for Units {
+impl unitflow::Rescale<Point3> for Units {
     fn rescale(&mut self, val: &Point3) -> &mut Self {
         self.rescale(&val.state);
         self
     }
 }
 
-impl units::Serialize<point::Point3> for Units {
+impl unitflow::Serialize<point::Point3> for Units {
     fn string_of(&self, val: &point::Point3) -> String {
         format!(
             "position: {}\nspeed: {}",
@@ -300,7 +299,7 @@ impl units::Serialize<point::Point3> for Units {
     }
 }
 
-impl units::Serialize<Point3> for Units {
+impl unitflow::Serialize<Point3> for Units {
     fn string_of(&self, val: &Point3) -> String {
         format!(
             "mass: {}\nposition: {}\nspeed: {}",
