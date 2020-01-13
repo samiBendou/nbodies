@@ -14,10 +14,10 @@ This project is an application that can simulate any stellar system configuratio
 Before launching this code you have to clone a few libraries a made specially for this app :
 - [dynamics](https://github.com/samiBendou/dynamics)
 - [unitflow](https://github.com/samiBendou/unitflow)
-- [geomath](https://github.com/samiBendou/unitflow)
+- [geomath](https://github.com/samiBendou/geomath)
 
-Once you are ready, put the root directories of each at the same location of nbodies's root directory so you can make
-a manual binding between the packages and the app.
+Once you are ready, open your Cargo.toml and bind the frameworks using the following syntax `package={path="path/to/repo"}`
+for each package.
 That's the only way to compile for now since I did not put yet the above packages on crates.io
 
 Clone the project and run `cargo build --release`. You can run the application using the following command:
