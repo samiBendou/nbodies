@@ -8,6 +8,7 @@ edition = "2018"
 
 [dependencies]
 physics = {path="../physics"}
+geomath = {path="../geomath"}
 rand = ""
 serde = { version = "0.9", features = ["derive"] }
 serde_json = "0.9"

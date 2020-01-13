@@ -1,12 +1,12 @@
+use geomath::common::*;
+use geomath::common::coordinates::Homogeneous;
+use geomath::point;
+use geomath::trajectory::Trajectory4;
+use geomath::vector::{Vector3, Vector4};
 use physics::dynamics::orbital;
 use physics::dynamics::orbital::Body;
 use physics::dynamics::point::Point3;
 use physics::dynamics::solver::{Method, Solver};
-use physics::geometry::common::*;
-use physics::geometry::common::coordinates::Homogeneous;
-use physics::geometry::point;
-use physics::geometry::trajectory::Trajectory4;
-use physics::geometry::vector::{Vector3, Vector4};
 use piston::input::{Event, Key, MouseButton, UpdateArgs};
 use piston_window;
 use piston_window::{Glyphs, PistonWindow};

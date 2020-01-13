@@ -1,14 +1,14 @@
 use std::fmt;
 use std::fmt::Debug;
 
+use geomath::common::coordinates::{Cartesian2, Cartesian3, Cartesian4};
+use geomath::common::coordinates::Homogeneous;
+use geomath::common::Initializer;
+use geomath::common::transforms::{Rotation3, Similarity};
+use geomath::matrix::{Algebra, Matrix3, Matrix4};
+use geomath::trajectory::{Trajectory3, Trajectory4, TRAJECTORY_SIZE};
+use geomath::vector::{Vector2, Vector3, Vector4};
 use physics::dynamics::{Cluster, orbital};
-use physics::geometry::common::coordinates::{Cartesian2, Cartesian3, Cartesian4};
-use physics::geometry::common::coordinates::Homogeneous;
-use physics::geometry::common::Initializer;
-use physics::geometry::common::transforms::{Rotation3, Similarity};
-use physics::geometry::matrix::{Algebra, Matrix3, Matrix4};
-use physics::geometry::trajectory::{Trajectory3, Trajectory4, TRAJECTORY_SIZE};
-use physics::geometry::vector::{Vector2, Vector3, Vector4};
 use physics::units::{Rescale, Scale, Serialize, Unit};
 use physics::units::suffix::*;
 use piston::window::Size;

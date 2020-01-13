@@ -1,12 +1,12 @@
 use std::fmt::Debug;
 use std::time::SystemTime;
 
+use geomath::common::coordinates::Cartesian2;
+use geomath::common::Initializer;
+use geomath::common::transforms::Rotation3;
+use geomath::matrix::{Algebra, Matrix3};
+use geomath::vector::*;
 use physics::dynamics::Cluster;
-use physics::geometry::common::coordinates::Cartesian2;
-use physics::geometry::common::Initializer;
-use physics::geometry::common::transforms::Rotation3;
-use physics::geometry::matrix::{Algebra, Matrix3};
-use physics::geometry::vector::*;
 use physics::units::date::Duration;
 use piston::input::{Key, MouseButton};
 use serde::export::fmt::{Error, Formatter};

@@ -1,9 +1,9 @@
+use geomath::common::coordinates::Homogeneous;
+use geomath::common::Metric;
+use geomath::point;
+use geomath::vector::Vector3;
 use physics::dynamics;
 use physics::dynamics::point::Point3;
-use physics::geometry::common::coordinates::Homogeneous;
-use physics::geometry::common::Metric;
-use physics::geometry::point;
-use physics::geometry::vector::Vector3;
 use physics::units;
 use physics::units::{Compound, Rescale, Serialize, Unit};
 use piston::input::Key;
