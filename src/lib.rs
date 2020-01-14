@@ -5,7 +5,7 @@ use dynamics::solver::{Method, Solver};
 use geomath::common::*;
 use geomath::common::coordinates::Homogeneous;
 use geomath::point;
-use geomath::trajectory::Trajectory4;
+use geomath::trajectory::Trajectory3;
 use geomath::vector::{Vector3, Vector4};
 use piston::input::{Event, Key, MouseButton, UpdateArgs};
 use piston_window;
@@ -171,7 +171,7 @@ impl App {
     fn do_add(&mut self) {
         let body = Body::random();
         self.drawer.circles.push(
-            Circle::new(Trajectory4::zeros(), body.kind.scaled_radius(body.radius), body.color)
+            Circle::new(Trajectory3::zeros(), body.kind.scaled_radius(body.radius), body.color)
         );
         self.simulator.push(Point3::new(point::Point3::zeros(), body.mass), body);
     }
@@ -181,7 +181,7 @@ impl App {
         let cursor = Vector3::new(cursor[0], cursor[1], 0.);
         let mut position;
         for i in 0..self.simulator.cluster.len() {
-            position = Vector3::from_homogeneous(self.drawer.circles[i].trajectory.last());
+            position = self.drawer.circles[i].trajectory.last();
             if cursor.distance(&position) < self.drawer.circles[i].radius {
                 self.simulator.cluster.remove(i);
                 self.drawer.circles.remove(i);
@@ -191,21 +191,21 @@ impl App {
     }
 
     fn do_wait_drop(&mut self, cursor: &[f64; 2]) {
-        let cursor = Vector4::new(cursor[0], cursor[1], 0., 1.);
+        let cursor = Vector3::new(cursor[0], cursor[1], 0.);
         let transformed_cursor = self.drawer.inverse_transform * cursor;
         let circle = self.drawer.circles.last_mut().unwrap();
         let mut point = self.simulator.last_mut().unwrap();
         circle.trajectory.reset(&cursor);
-        point.state.position = Vector3::from_homogeneous(&transformed_cursor);
-        point.state.trajectory.reset(&point.state.position);
+        point.state.position = transformed_cursor;
+        point.state.trajectory.reset(&transformed_cursor);
         self.simulator.cluster.update_barycenter();
     }
 
     //noinspection RsTypeCheck
     fn do_wait_speed(&mut self, cursor: &[f64; 2]) {
-        let cursor = self.drawer.inverse_transform * Vector4::new(cursor[0], cursor[1], 0., 1.);
+        let cursor = self.drawer.inverse_transform * Vector3::new(cursor[0], cursor[1], 0.);
         let mut point = self.simulator.last_mut().unwrap();
-        point.state.speed = Vector3::from_homogeneous(&cursor);
+        point.state.speed = cursor;
         point.state.speed -= point.state.position;
         point.state.speed *= SPEED_SCALING_FACTOR;
     }

@@ -23,14 +23,14 @@ const SCALE_LENGTH: f64 = 50.;
 
 #[derive(Copy, Clone)]
 pub struct Circle {
-    pub trajectory: Trajectory4,
+    pub trajectory: Trajectory3,
     pub color: [f32; 4],
     pub radius: f64,
     pub rect: [f64; 4],
 }
 
 impl Circle {
-    pub fn new(trajectory: Trajectory4, radius: f64, color: [f32; 4]) -> Circle {
+    pub fn new(trajectory: Trajectory3, radius: f64, color: [f32; 4]) -> Circle {
         Circle {
             trajectory,
             color,
@@ -40,21 +40,20 @@ impl Circle {
     }
 
     pub fn centered(radius: f64, color: [f32; 4]) -> Circle {
-        Circle::new(Trajectory4::from(Vector4::unit_w()), radius, color)
+        Circle::new(Trajectory3::from(Vector3::zeros()), radius, color)
     }
 
     pub fn reset(&mut self, trajectory: &Trajectory3, transform: &Matrix4) -> &mut Self {
         let mut position;
         for i in 0..TRAJECTORY_SIZE {
             position = self.trajectory.position_mut(i);
-            *position = trajectory.position(i).to_homogeneous();
             *position *= *transform;
         }
         self
     }
 
     pub fn update(&mut self, position: &Vector3, transform: &Matrix4) -> &mut Self {
-        self.trajectory.push(&position.to_homogeneous());
+        self.trajectory.push(&position);
         *self.trajectory.last_mut() *= *transform;
         self
     }
@@ -81,9 +80,9 @@ pub struct Drawer {
     buffer_offset: Vector2,
     buffer_color: [f32; 4],
     distance_unit: Unit,
-    unit_x: Vector4,
-    unit_y: Vector4,
-    unit_z: Vector4,
+    unit_x: Vector3,
+    unit_y: Vector3,
+    unit_z: Vector3,
     pub transform: Matrix4,
     pub inverse_transform: Matrix4,
 }
@@ -99,9 +98,9 @@ impl Drawer {
             buffer_offset: Vector2::zeros(),
             buffer_color: BLACK,
             distance_unit: Unit::from(Scale::from(Distance::Meter)),
-            unit_x: Vector3::unit_x().to_homogeneous(),
-            unit_y: Vector3::unit_y().to_homogeneous(),
-            unit_z: Vector3::unit_z().to_homogeneous(),
+            unit_x: Vector3::unit_x(),
+            unit_y: Vector3::unit_y(),
+            unit_z: Vector3::unit_z(),
             transform: Matrix4::eye(),
             inverse_transform: Matrix4::eye(),
         };
@@ -124,9 +123,9 @@ impl Drawer {
         let rotation = Matrix3::from_rotation_x(std::f64::consts::PI) * orientation.rotation();
         self.transform.set_similarity(scale, &rotation, &middle);
         self.inverse_transform = self.transform.inverse();
-        self.unit_x = self.transform * (Vector3::unit_x() * scale_distance).to_homogeneous();
-        self.unit_y = self.transform * (Vector3::unit_y() * scale_distance).to_homogeneous();
-        self.unit_z = self.transform * (Vector3::unit_z() * scale_distance).to_homogeneous();
+        self.unit_x = self.transform * (Vector3::unit_x() * scale_distance);
+        self.unit_y = self.transform * (Vector3::unit_y() * scale_distance);
+        self.unit_z = self.transform * (Vector3::unit_z() * scale_distance);
         self
     }
 
@@ -199,7 +198,7 @@ impl Drawer {
     }
 
     pub fn draw_barycenter(&mut self, position: &Vector3, c: &Context, g: &mut G2d) {
-        let mut barycenter = position.to_homogeneous();
+        let mut barycenter = *position;
         barycenter *= self.transform;
         piston_window::rectangle(
             RED,
@@ -226,8 +225,8 @@ impl Drawer {
         for i in 0..self.circles.len() {
             self.buffer_color = self.circles[i].color;
             for k in 1..TRAJECTORY_SIZE {
-                from = self.circles[i].trajectory[k - 1];
-                to = self.circles[i].trajectory[k];
+                from = &self.circles[i].trajectory[k - 1];
+                to = &self.circles[i].trajectory[k];
                 piston_window::line_from_to(
                     self.buffer_color,
                     2.5,
@@ -247,8 +246,8 @@ impl Drawer {
         for i in 0..self.circles.len() {
             angle = 0.;
             for _ in 0..TRAJECTORY_SIZE {
-                from = self.transform * simulator.system[i].orbit.position_at(angle).to_homogeneous();
-                to = self.transform * simulator.system[i].orbit.position_at(angle + d_angle).to_homogeneous();
+                from = self.transform * simulator.system[i].orbit.position_at(angle);
+                to = self.transform * simulator.system[i].orbit.position_at(angle + d_angle);
                 angle += d_angle;
                 piston_window::line_from_to(
                     self.circles[i].color,

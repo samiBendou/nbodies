@@ -186,9 +186,9 @@ simulated: {:?}",
     }
 
     fn log_shape(&mut self, circle: &Circle) {
-        let circle = Vector3::from_homogeneous(circle.trajectory.last());
+        let circle = circle.trajectory.last();
         self.px_unit.rescale(&circle.magnitude());
-        self.buffer += &format!("*** circle ***\n{}", self.px_unit.string_of(&circle));
+        self.buffer += &format!("*** circle ***\n{}", self.px_unit.string_of(circle));
     }
 
     fn log_point(&mut self, point: &Point3, name: &str) {
