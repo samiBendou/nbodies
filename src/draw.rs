@@ -43,18 +43,17 @@ impl Circle {
         Circle::new(Trajectory3::from(Vector3::zeros()), radius, color)
     }
 
+    #[inline]
     pub fn reset(&mut self, trajectory: &Trajectory3, transform: &Matrix4) -> &mut Self {
-        let mut position;
         for i in 0..TRAJECTORY_SIZE {
-            position = self.trajectory.position_mut(i);
-            *position *= *transform;
+            self.trajectory[i] = *transform * trajectory[i];
         }
         self
     }
 
+    #[inline]
     pub fn update(&mut self, position: &Vector3, transform: &Matrix4) -> &mut Self {
-        self.trajectory.push(&position);
-        *self.trajectory.last_mut() *= *transform;
+        self.trajectory.push(&(*transform * *position));
         self
     }
 
@@ -130,16 +129,14 @@ impl Drawer {
     }
 
     pub fn update_circles(&mut self, cluster: &Cluster) -> &mut Self {
-        let len = self.circles.len();
-        for i in 0..len {
+        for i in 0..self.circles.len() {
             self.circles[i].update(&cluster[i].state.position, &self.transform);
         }
         self
     }
 
     pub fn reset_circles(&mut self, cluster: &Cluster) -> &mut Self {
-        let len = self.circles.len();
-        for i in 0..len {
+        for i in 0..self.circles.len() {
             self.circles[i].reset(&cluster[i].state.trajectory, &self.transform);
         }
         self
