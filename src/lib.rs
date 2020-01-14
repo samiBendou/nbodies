@@ -193,21 +193,18 @@ impl App {
     fn do_wait_drop(&mut self, cursor: &[f64; 2]) {
         let cursor = Vector3::new(cursor[0], cursor[1], 0.);
         let transformed_cursor = self.drawer.inverse_transform * cursor;
-        let circle = self.drawer.circles.last_mut().unwrap();
-        let mut point = self.simulator.last_mut().unwrap();
-        circle.trajectory.reset(&cursor);
-        point.state.position = transformed_cursor;
-        point.state.trajectory.reset(&transformed_cursor);
-        self.simulator.cluster.update_barycenter();
+        let last_index = self.simulator.cluster.len() - 1;
+        self.drawer.circles[last_index].trajectory.reset(&cursor);
+        self.simulator.cluster.reset_position_at(last_index, &transformed_cursor);
     }
 
     //noinspection RsTypeCheck
     fn do_wait_speed(&mut self, cursor: &[f64; 2]) {
         let cursor = self.drawer.inverse_transform * Vector3::new(cursor[0], cursor[1], 0.);
-        let mut point = self.simulator.last_mut().unwrap();
-        point.state.speed = cursor;
-        point.state.speed -= point.state.position;
-        point.state.speed *= SPEED_SCALING_FACTOR;
+        let last_index = self.simulator.cluster.len() - 1;
+        let point = &self.simulator.cluster[last_index];
+        let speed = (cursor - point.state.position) * SPEED_SCALING_FACTOR;
+        self.simulator.cluster.reset_speed_at(last_index, &speed);
     }
 
     fn do_cancel_drop(&mut self) {
