@@ -136,6 +136,23 @@ pub enum Direction {
     Hold = 0,
 }
 
+impl From<Key> for Direction {
+    fn from(key: Key) -> Self {
+        use Direction::*;
+        if key == KEY_DIRECTION_LEFT {
+            Left
+        } else if key == KEY_DIRECTION_RIGHT {
+            Right
+        } else if key == KEY_DIRECTION_UP {
+            Up
+        } else if key == KEY_DIRECTION_DOWN {
+            Down
+        } else {
+            Hold
+        }
+    }
+}
+
 impl Direction {
     pub fn opposite(&self, other: &Direction) -> bool {
         let self_val = *self as i8;
@@ -144,22 +161,7 @@ impl Direction {
         self_val == -other_val
     }
 
-    pub fn from(key: &Key) -> Direction {
-        use super::*;
-        if *key == KEY_DIRECTION_LEFT {
-            Direction::Left
-        } else if *key == KEY_DIRECTION_RIGHT {
-            Direction::Right
-        } else if *key == KEY_DIRECTION_UP {
-            Direction::Up
-        } else if *key == KEY_DIRECTION_DOWN {
-            Direction::Down
-        } else {
-            Direction::Hold
-        }
-    }
-
-    pub fn as_vector(&self) -> Vector3 {
+    pub fn to_vector(&self) -> Vector3 {
         match *self {
             Direction::Left => Vector3::unit_neg_x(),
             Direction::Right => Vector3::unit_x(),

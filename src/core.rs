@@ -231,7 +231,7 @@ impl Status {
             Some(key) => {
                 self.reset_circles = true;
                 self.update_transform = true;
-                self.direction = Direction::from(key);
+                self.direction = Direction::from(*key);
                 match button {
                     None => self.state.next(key, &BUTTON_UNKNOWN),
                     Some(button) => self.state.next(key, button),
@@ -242,7 +242,7 @@ impl Status {
 
     pub fn clear(&mut self) {
         self.state.next(&KEY_UNKNOWN, &BUTTON_UNKNOWN);
-        self.direction = Direction::from(&KEY_UNKNOWN);
+        self.direction = Direction::from(KEY_UNKNOWN);
         self.reset_circles = false;
         self.update_transform = false;
     }

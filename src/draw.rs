@@ -2,13 +2,12 @@ use std::fmt;
 use std::fmt::Debug;
 
 use dynamics::{Cluster, orbital};
-use geomath::common::coordinates::{Cartesian2, Cartesian3, Cartesian4};
-use geomath::common::coordinates::Homogeneous;
+use geomath::common::coordinates::{Cartesian2, Cartesian3};
 use geomath::common::Initializer;
 use geomath::common::transforms::{Rotation3, Similarity};
 use geomath::matrix::{Algebra, Matrix3, Matrix4};
-use geomath::trajectory::{Trajectory3, Trajectory4, TRAJECTORY_SIZE};
-use geomath::vector::{Vector2, Vector3, Vector4};
+use geomath::trajectory::{Trajectory3, TRAJECTORY_SIZE};
+use geomath::vector::{Vector2, Vector3};
 use piston::window::Size;
 use piston_window::*;
 use piston_window::context::Context;

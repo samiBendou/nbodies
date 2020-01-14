@@ -3,10 +3,9 @@ use dynamics::orbital::Body;
 use dynamics::point::Point3;
 use dynamics::solver::{Method, Solver};
 use geomath::common::*;
-use geomath::common::coordinates::Homogeneous;
 use geomath::point;
 use geomath::trajectory::Trajectory3;
-use geomath::vector::{Vector3, Vector4};
+use geomath::vector::Vector3;
 use piston::input::{Event, Key, MouseButton, UpdateArgs};
 use piston_window;
 use piston_window::{Glyphs, PistonWindow};
@@ -145,7 +144,7 @@ impl App {
             return;
         }
         let scale = TRANSLATION_SCALING_FACTOR / self.config.scale.distance;
-        let direction = self.config.orientation.inverse_rotation() * (self.status.direction.as_vector() * scale);
+        let direction = self.config.orientation.inverse_rotation() * (self.status.direction.to_vector() * scale);
         self.simulator.cluster.translate_at(self.simulator.current, &direction);
     }
 
@@ -179,10 +178,8 @@ impl App {
     //noinspection RsTypeCheck
     fn do_remove(&mut self, cursor: &[f64; 2]) {
         let cursor = Vector3::new(cursor[0], cursor[1], 0.);
-        let mut position;
         for i in 0..self.simulator.cluster.len() {
-            position = self.drawer.circles[i].trajectory.last();
-            if cursor.distance(&position) < self.drawer.circles[i].radius {
+            if cursor.distance(self.drawer.circles[i].trajectory.last()) < self.drawer.circles[i].radius {
                 self.simulator.cluster.remove(i);
                 self.drawer.circles.remove(i);
                 break;
