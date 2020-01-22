@@ -40,7 +40,7 @@ impl Circle {
     }
 
     pub fn centered(radius: f64, color: [f32; 4]) -> Circle {
-        Circle::new(Trajectory3::from(Vector3::zeros()), radius, color)
+        Circle::new(Trajectory3::from(vector::consts::ZEROS_3), radius, color)
     }
 
     #[inline]
