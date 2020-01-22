@@ -6,7 +6,6 @@ use dynamics::orbital::Body;
 use dynamics::point::Point3;
 use dynamics::solver::{Method, Solver};
 use geomath::point;
-use geomath::point::ZERO;
 use geomath::vector::Vector6;
 use getopts::Options;
 use piston::input::{Key, MouseButton};
@@ -252,7 +251,6 @@ pub struct Simulator {
     pub cluster: Cluster,
     pub system: orbital::Cluster,
     pub current: usize,
-    pub origin: point::Point3,
     pub frame: Frame,
     pub solver: Solver,
     pub stats: Statistics,
@@ -273,7 +271,6 @@ impl Simulator {
             cluster,
             system,
             current: 0,
-            origin: point::ZERO,
             frame: Frame::Zero,
             solver,
             stats: Statistics::new(),
@@ -328,12 +325,31 @@ impl Simulator {
     #[inline]
     pub fn last_index(&self) -> usize { self.cluster.len() - 1 }
 
+    #[inline]
+    pub fn origin(&self) -> &point::Point3 {
+        if self.cluster.is_empty() {
+            return &point::ZERO;
+        }
+        match self.frame {
+            Frame::Zero => &point::ZERO,
+            Frame::Current => &self.cluster.points[self.current].state,
+            Frame::Barycenter => &self.cluster.barycenter().state,
+        }
+    }
+
+    pub fn origin_index(&self) -> Option<usize> {
+        if self.cluster.is_empty() || self.frame == Frame::Zero || self.frame == Frame::Barycenter {
+            return None;
+        }
+        Some(self.current)
+    }
+
     pub fn update(&mut self, key: &Option<Key>, bypass_last: bool) -> &mut Self {
         if let Some(key) = key {
             if *key == KEY_NEXT_METHOD_STATE {
                 self.solver.method.next();
             } else if *key == KEY_NEXT_FRAME_STATE {
-                self.next_frame();
+                self.frame.next();
             } else if *key == KEY_INCREASE_CURRENT_INDEX {
                 self.increment_current(bypass_last);
             } else if *key == KEY_DECREASE_CURRENT_INDEX {
@@ -363,11 +379,7 @@ impl Simulator {
         T: FnMut(&Vec<Point3>, usize) -> Vector6 {
         self.solver.dt = dt;
         self.solver.iterations = iterations;
-        self.cluster.set_absolute(&self.origin);
         self.cluster.apply(&mut self.solver, f);
-        self.update_origin();
-        self.origin.update_trajectory();
-        self.cluster.set_relative(&self.origin);
         self.system.update_orbits(&self.cluster.points, self.cluster.barycenter());
         self
     }
@@ -383,7 +395,6 @@ impl Simulator {
     pub fn pop(&mut self) -> Option<Point3> {
         if self.current == self.cluster.len() - 1 {
             self.decrement_current();
-            self.reset_origin();
         }
         self.system.pop();
         self.cluster.pop()
@@ -393,26 +404,15 @@ impl Simulator {
     pub fn remove(&mut self, i: usize) -> Point3 {
         if self.current == self.cluster.len() - 1 && i == self.current {
             self.decrement_current();
-            self.reset_origin();
         }
         self.system.remove(i);
         self.cluster.remove(i)
     }
 
     #[inline]
-    fn next_frame(&mut self) -> &mut Self {
-        self.frame.next();
-        self.reset_origin();
-        self
-    }
-
-    #[inline]
     fn decrement_current(&mut self) -> &mut Self {
         if self.current > 0 {
             self.current -= 1;
-        }
-        if self.frame == Frame::Current {
-            self.reset_origin();
         }
         self
     }
@@ -423,39 +423,6 @@ impl Simulator {
         if self.current < self.cluster.len() - offset {
             self.current += 1;
         }
-        if self.frame == Frame::Current {
-            self.reset_origin();
-        }
-        self
-    }
-
-    #[inline]
-    fn update_origin(&mut self) -> &mut Self {
-        self.origin.position = self.current_origin().position;
-        self.origin.speed = self.current_origin().speed;
-        self
-    }
-
-    #[inline]
-    fn current_origin(&mut self) -> &point::Point3 {
-        if self.cluster.is_empty() {
-            return &point::ZERO;
-        }
-        match self.frame {
-            Frame::Zero => &point::ZERO,
-            Frame::Current => &self.cluster.points[self.current].state,
-            Frame::Barycenter => &self.cluster.barycenter().state,
-        }
-    }
-
-    #[inline]
-    fn reset_origin(&mut self) -> &mut Self {
-        if self.cluster.is_empty() {
-            return self;
-        }
-        let origin = *self.current_origin();
-        self.cluster.reset_origin(&origin, &ZERO);
-        self.origin = origin;
         self
     }
 }

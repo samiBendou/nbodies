@@ -1,7 +1,8 @@
 use std::fmt;
 use std::fmt::Debug;
 
-use dynamics::{Cluster, orbital};
+use dynamics::orbital;
+use dynamics::orbital::Orbit;
 use geomath::common::coordinates::{Cartesian2, Cartesian3};
 use geomath::common::Initializer;
 use geomath::common::transforms::{Rotation3, Similarity};
@@ -43,16 +44,16 @@ impl Circle {
     }
 
     #[inline]
-    pub fn reset(&mut self, trajectory: &Trajectory3, transform: &Matrix4) -> &mut Self {
+    pub fn reset(&mut self, trajectory: &Trajectory3, origin: &Trajectory3, transform: &Matrix4) -> &mut Self {
         for i in 0..TRAJECTORY_SIZE {
-            self.trajectory[i] = *transform * trajectory[i];
+            self.trajectory[i] = *transform * (trajectory[i] - origin[i]);
         }
         self
     }
 
     #[inline]
-    pub fn update(&mut self, position: &Vector3, transform: &Matrix4) -> &mut Self {
-        self.trajectory.push(&(*transform * *position));
+    pub fn update(&mut self, position: &Vector3, origin: &Vector3, transform: &Matrix4) -> &mut Self {
+        self.trajectory.push(&(*transform * (*position - *origin)));
         self
     }
 
@@ -87,8 +88,8 @@ pub struct Drawer {
 
 
 impl Drawer {
-    pub fn new(cluster: &Cluster, orientation: &Orientation, scale: f64, size: &Size) -> Drawer {
-        let circles: Vec<Circle> = cluster.points.iter()
+    pub fn new(simulator: &Simulator, orientation: &Orientation, scale: f64, size: &Size) -> Drawer {
+        let circles: Vec<Circle> = simulator.cluster.points.iter()
             .map({ |_point| Circle::centered(10., BLUE) })
             .collect();
         let mut ret = Drawer {
@@ -103,7 +104,7 @@ impl Drawer {
             inverse_transform: Matrix4::eye(),
         };
         ret.update_transform(orientation, scale, size);
-        ret.reset_circles(cluster);
+        ret.reset_circles(simulator);
         ret
     }
 
@@ -127,16 +128,23 @@ impl Drawer {
         self
     }
 
-    pub fn update_circles(&mut self, cluster: &Cluster) -> &mut Self {
+    pub fn update_circles(&mut self, simulator: &Simulator) -> &mut Self {
         for i in 0..self.circles.len() {
-            self.circles[i].update(&cluster[i].state.position, &self.transform);
+            self.circles[i].update(
+                &simulator.cluster[i].state.position,
+                &simulator.origin().position,
+                &self.transform,
+            );
         }
         self
     }
 
-    pub fn reset_circles(&mut self, cluster: &Cluster) -> &mut Self {
+    pub fn reset_circles(&mut self, simulator: &Simulator) -> &mut Self {
         for i in 0..self.circles.len() {
-            self.circles[i].reset(&cluster[i].state.trajectory, &self.transform);
+            self.circles[i].reset(
+                &simulator.cluster[i].state.trajectory,
+                &simulator.origin().trajectory,
+                &self.transform);
         }
         self
     }
@@ -193,8 +201,8 @@ impl Drawer {
         );
     }
 
-    pub fn draw_barycenter(&mut self, position: &Vector3, c: &Context, g: &mut G2d) {
-        let mut barycenter = *position;
+    pub fn draw_barycenter(&mut self, simulator: &Simulator, c: &Context, g: &mut G2d) {
+        let mut barycenter = simulator.cluster.barycenter().state.position - simulator.origin().position;
         barycenter *= self.transform;
         piston_window::rectangle(
             RED,
@@ -239,11 +247,15 @@ impl Drawer {
         let mut to;
         let mut angle;
         let d_angle = 2. * std::f64::consts::PI / TRAJECTORY_SIZE as f64;
+        let origin = match simulator.origin_index() {
+            None => Orbit::zeros(),
+            Some(index) => simulator.system[index].orbit,
+        };
         for i in 0..self.circles.len() {
             angle = 0.;
             for _ in 0..TRAJECTORY_SIZE {
-                from = self.transform * simulator.system[i].orbit.position_at(angle);
-                to = self.transform * simulator.system[i].orbit.position_at(angle + d_angle);
+                from = self.transform * (simulator.system[i].orbit.position_at(angle) - origin.position_at(angle));
+                to = self.transform * (simulator.system[i].orbit.position_at(angle + d_angle) - origin.position_at(angle + d_angle));
                 angle += d_angle;
                 piston_window::line_from_to(
                     self.circles[i].color,

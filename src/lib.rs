@@ -33,7 +33,7 @@ impl App {
     pub fn new(simulator: Simulator, config: Config) -> App {
         let size = config.size.clone();
         let scale = config.scale.distance;
-        let drawer = Drawer::new(&simulator.cluster, &config.orientation, scale, &size);
+        let drawer = Drawer::new(&simulator, &config.orientation, scale, &size);
         let mut ret = App {
             simulator,
             config,
@@ -71,7 +71,7 @@ impl App {
             |c, g, device| {
                 piston_window::clear(BLACK, g);
                 if self.simulator.cluster.is_empty() {
-                    self.drawer.draw_barycenter(&self.simulator.cluster.barycenter().state.position, &c, g);
+                    self.drawer.draw_barycenter(&self.simulator, &c, g);
                     self.drawer.draw_scale(scale, &self.config.size, &c, g, glyphs);
                     self.drawer.draw_basis(&self.config.size, &c, g);
                     glyphs.factory.encoder.flush(device);
@@ -89,7 +89,7 @@ impl App {
                     self.drawer.draw_speed(cursor, &c, g);
                 }
                 self.drawer.draw_points(&c, g);
-                self.drawer.draw_barycenter(&self.simulator.cluster.barycenter().state.position, &c, g);
+                self.drawer.draw_barycenter(&self.simulator, &c, g);
                 self.drawer.draw_scale(scale, &self.config.size, &c, g, glyphs);
                 self.drawer.draw_basis(&self.config.size, &c, g);
                 glyphs.factory.encoder.flush(device);
@@ -120,10 +120,10 @@ impl App {
         }
 
         if self.status.reset_circles {
-            self.drawer.reset_circles(&self.simulator.cluster);
+            self.drawer.reset_circles(&self.simulator);
         }
 
-        self.drawer.update_circles(&self.simulator.cluster);
+        self.drawer.update_circles(&self.simulator);
 
         self.status.clear();
     }
