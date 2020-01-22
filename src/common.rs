@@ -2,8 +2,7 @@ use std::fmt::Debug;
 use std::time::SystemTime;
 
 use dynamics::Cluster;
-use geomath::common::coordinates::Cartesian2;
-use geomath::common::Initializer;
+use geomath::{matrix, vector};
 use geomath::common::transforms::Rotation3;
 use geomath::matrix::{Algebra, Matrix3};
 use geomath::vector::*;
@@ -163,11 +162,11 @@ impl Direction {
 
     pub fn to_vector(&self) -> Vector3 {
         match *self {
-            Direction::Left => Vector3::unit_neg_x(),
-            Direction::Right => Vector3::unit_x(),
-            Direction::Up => Vector3::unit_y(),
-            Direction::Down => Vector3::unit_neg_y(),
-            Direction::Hold => Vector3::zeros()
+            Direction::Left => vector::consts::N_EX_3,
+            Direction::Right => vector::consts::EX_3,
+            Direction::Up => vector::consts::EY_3,
+            Direction::Down => vector::consts::N_EY_3,
+            Direction::Hold => vector::consts::ZEROS_3
         }
     }
 }
@@ -191,8 +190,8 @@ pub struct Orientation {
 impl Orientation {
     pub fn new(angle_x: f64, angle_y: f64, angle_z: f64) -> Orientation {
         let mut ret = Orientation {
-            rotation: Matrix3::eye(),
-            inverse_rotation: Matrix3::eye(),
+            rotation: matrix::consts::EYE_3,
+            inverse_rotation: matrix::consts::EYE_3,
             rotation_x: Matrix3::from_rotation_x(angle_x),
             rotation_y: Matrix3::from_rotation_y(angle_y),
             rotation_z: Matrix3::from_rotation_z(angle_z),

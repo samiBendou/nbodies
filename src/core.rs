@@ -328,10 +328,10 @@ impl Simulator {
     #[inline]
     pub fn origin(&self) -> &point::Point3 {
         if self.cluster.is_empty() {
-            return &point::ZERO;
+            return &point::consts::ZEROS_3;
         }
         match self.frame {
-            Frame::Zero => &point::ZERO,
+            Frame::Zero => &point::consts::ZEROS_3,
             Frame::Current => &self.cluster.points[self.current].state,
             Frame::Barycenter => &self.cluster.barycenter().state,
         }

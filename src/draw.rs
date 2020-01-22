@@ -3,12 +3,12 @@ use std::fmt::Debug;
 
 use dynamics::orbital;
 use dynamics::orbital::Orbit;
-use geomath::common::coordinates::{Cartesian2, Cartesian3};
+use geomath::{matrix, vector};
 use geomath::common::Initializer;
 use geomath::common::transforms::{Rotation3, Similarity};
 use geomath::matrix::{Algebra, Matrix3, Matrix4};
-use geomath::trajectory::{Trajectory3, TRAJECTORY_SIZE};
-use geomath::vector::{Vector2, Vector3};
+use geomath::trajectory::{consts::TRAJECTORY_SIZE, Trajectory3};
+use geomath::vector::{vec3, Vector2, Vector3};
 use piston::window::Size;
 use piston_window::*;
 use piston_window::context::Context;
@@ -94,14 +94,14 @@ impl Drawer {
             .collect();
         let mut ret = Drawer {
             circles,
-            buffer_offset: Vector2::zeros(),
+            buffer_offset: vector::consts::ZEROS_2,
             buffer_color: BLACK,
             distance_unit: Unit::from(Scale::from(Distance::Meter)),
-            unit_x: Vector3::unit_x(),
-            unit_y: Vector3::unit_y(),
-            unit_z: Vector3::unit_z(),
-            transform: Matrix4::eye(),
-            inverse_transform: Matrix4::eye(),
+            unit_x: vector::consts::EX_3,
+            unit_y: vector::consts::EY_3,
+            unit_z: vector::consts::EZ_3,
+            transform: matrix::consts::EYE_4,
+            inverse_transform: matrix::consts::EYE_4,
         };
         ret.update_transform(orientation, scale, size);
         ret.reset_circles(simulator);
@@ -118,13 +118,13 @@ impl Drawer {
 
     pub fn update_transform(&mut self, orientation: &Orientation, scale: f64, size: &Size) -> &mut Self {
         let scale_distance = SCALE_LENGTH / scale;
-        let middle = Vector3::new(size.width * 0.5, size.height * 0.5, 0.);
+        let middle = vec3(size.width * 0.5, size.height * 0.5, 0.);
         let rotation = Matrix3::from_rotation_x(std::f64::consts::PI) * orientation.rotation();
         self.transform.set_similarity(scale, &rotation, &middle);
         self.inverse_transform = self.transform.inverse();
-        self.unit_x = self.transform * (Vector3::unit_x() * scale_distance);
-        self.unit_y = self.transform * (Vector3::unit_y() * scale_distance);
-        self.unit_z = self.transform * (Vector3::unit_z() * scale_distance);
+        self.unit_x = self.transform * (vector::consts::EX_3 * scale_distance);
+        self.unit_y = self.transform * (vector::consts::EY_3 * scale_distance);
+        self.unit_z = self.transform * (vector::consts::EZ_3 * scale_distance);
         self
     }
 

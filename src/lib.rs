@@ -5,7 +5,7 @@ use dynamics::solver::{Method, Solver};
 use geomath::common::*;
 use geomath::point;
 use geomath::trajectory::Trajectory3;
-use geomath::vector::Vector3;
+use geomath::vector::vec3;
 use piston::input::{Event, Key, MouseButton, UpdateArgs};
 use piston_window;
 use piston_window::{Glyphs, PistonWindow};
@@ -177,7 +177,7 @@ impl App {
 
     //noinspection RsTypeCheck
     fn do_remove(&mut self, cursor: &[f64; 2]) {
-        let cursor = Vector3::new(cursor[0], cursor[1], 0.);
+        let cursor = vec3(cursor[0], cursor[1], 0.);
         for i in 0..self.simulator.cluster.len() {
             if cursor.distance(self.drawer.circles[i].trajectory.last()) < self.drawer.circles[i].radius {
                 self.simulator.cluster.remove(i);
@@ -188,7 +188,7 @@ impl App {
     }
 
     fn do_wait_drop(&mut self, cursor: &[f64; 2]) {
-        let cursor = Vector3::new(cursor[0], cursor[1], 0.);
+        let cursor = vec3(cursor[0], cursor[1], 0.);
         let transformed_cursor = self.drawer.inverse_transform * cursor;
         let last_index = self.simulator.cluster.len() - 1;
         self.drawer.circles[last_index].trajectory.reset(&cursor);
@@ -197,7 +197,7 @@ impl App {
 
     //noinspection RsTypeCheck
     fn do_wait_speed(&mut self, cursor: &[f64; 2]) {
-        let cursor = self.drawer.inverse_transform * Vector3::new(cursor[0], cursor[1], 0.);
+        let cursor = self.drawer.inverse_transform * vec3(cursor[0], cursor[1], 0.);
         let last_index = self.simulator.cluster.len() - 1;
         let point = &self.simulator.cluster[last_index];
         let speed = (cursor - point.state.position) * SPEED_SCALING_FACTOR;
