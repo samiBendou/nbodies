@@ -3,8 +3,8 @@ use std::time::SystemTime;
 
 use dynamics::Cluster;
 use geomath::{matrix, vector};
-use geomath::common::transforms::Rotation3;
 use geomath::matrix::{Algebra, Matrix3};
+use geomath::prelude::transforms::Rotation3;
 use geomath::vector::*;
 use piston::input::{Key, MouseButton};
 use serde::export::fmt::{Error, Formatter};

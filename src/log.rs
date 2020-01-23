@@ -1,6 +1,6 @@
 use dynamics::point::Point3;
-use geomath::common::Metric;
 use geomath::point;
+use geomath::prelude::Metric;
 use piston::input::Key;
 use unitflow;
 use unitflow::{Compound, Rescale, Serialize, Unit};
