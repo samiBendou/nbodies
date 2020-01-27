@@ -3,7 +3,8 @@ use std::time::SystemTime;
 
 use dynamics::Cluster;
 use geomath::{matrix, vector};
-use geomath::matrix::{Algebra, Matrix3};
+use geomath::matrix::Matrix3;
+use geomath::prelude::Algebra;
 use geomath::prelude::transforms::Rotation3;
 use geomath::vector::*;
 use piston::input::{Key, MouseButton};

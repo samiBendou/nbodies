@@ -9,7 +9,7 @@ edition = "2018"
 [dependencies]
 dynamics = {path="../dynamics"}
 unitflow = {path="../unitflow"}
-geomath = {path="../geomath"}
+geomath = ""
 rand = ""
 serde = { version = "0.9", features = ["derive"] }
 serde_json = "0.9"

@@ -14,7 +14,6 @@ This project is a game that can simulate any stellar system configuration and re
 Before launching this code you have to clone a few libraries a made specially for this app :
 - [dynamics](https://github.com/samiBendou/dynamics)
 - [unitflow](https://github.com/samiBendou/unitflow)
-- [geomath](https://github.com/samiBendou/geomath)
 
 Clone the repos above and modify your Cargo.toml to match the path of each with the path of each cloned repo.
 That's the only way to compile for now since I did not put yet the above packages on crates.io
