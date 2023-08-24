@@ -2,11 +2,11 @@ use std::fmt::Debug;
 use std::time::SystemTime;
 
 use dynamics::Cluster;
-use geomath::{matrix, vector};
 use geomath::matrix::Matrix3;
-use geomath::prelude::Algebra;
 use geomath::prelude::transforms::Rotation3;
+use geomath::prelude::Algebra;
 use geomath::vector::*;
+use geomath::{matrix, vector};
 use piston::input::{Key, MouseButton};
 use serde::export::fmt::{Error, Formatter};
 use unitflow::date::Duration;
@@ -36,7 +36,10 @@ pub struct Average {
 
 impl Average {
     pub fn new() -> Average {
-        Average { count: 0, values: [0.; 60] }
+        Average {
+            count: 0,
+            values: [0.; 60],
+        }
     }
 
     pub fn push(&mut self, val: f64) -> &mut Self {
@@ -92,7 +95,8 @@ impl Statistics {
             Some(index) => index,
         };
         for i in 0..len {
-            self.distances.push(cluster[i].state.position % barycenter.state.position);
+            self.distances
+                .push(cluster[i].state.position % barycenter.state.position);
             if i == index {
                 continue;
             }
@@ -125,7 +129,6 @@ impl Input {
         }
     }
 }
-
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum Direction {
@@ -167,11 +170,10 @@ impl Direction {
             Direction::Right => vector::consts::EX_3,
             Direction::Up => vector::consts::EY_3,
             Direction::Down => vector::consts::N_EY_3,
-            Direction::Hold => vector::consts::ZEROS_3
+            Direction::Hold => vector::consts::ZEROS_3,
         }
     }
 }
-
 
 #[derive(Clone, Copy)]
 pub struct Orientation {
@@ -291,7 +293,8 @@ impl Step {
 
     pub fn push(&mut self, dt: f64, scale: f64) {
         let time = SystemTime::now();
-        self.system.push(time.duration_since(self.time).unwrap().as_secs_f64());
+        self.system
+            .push(time.duration_since(self.time).unwrap().as_secs_f64());
         self.time = time;
         self.frame.push(dt);
         self.total += dt;
@@ -331,4 +334,3 @@ impl Scale {
         self.distance /= 2.;
     }
 }
-
