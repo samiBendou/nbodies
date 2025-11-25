@@ -1,10 +1,10 @@
 use std::cmp::{max, min};
 use std::error::Error;
 
-use dynamics::{Cluster, orbital};
 use dynamics::orbital::Body;
 use dynamics::point::Point3;
 use dynamics::solver::{Method, Solver};
+use dynamics::{orbital, Cluster};
 use geomath::point;
 use geomath::vector::Vector6;
 use getopts::Options;
@@ -41,33 +41,41 @@ impl State {
             Add => WaitDrop,
             Remove => Move,
             CancelDrop => Move,
-            Move => if *button == MOUSE_MOVE_ADD {
-                Add
-            } else if *button == MOUSE_MOVE_REMOVE {
-                Remove
-            } else if *key == KEY_TOGGLE_TRANSLATE {
-                Translate
-            } else {
-                *self
-            },
-            Translate => if *key == KEY_TOGGLE_TRANSLATE {
-                Move
-            } else {
-                *self
-            },
-            WaitDrop => if *button == MOUSE_WAIT_DROP_DO {
-                WaitSpeed
-            } else if *button == MOUSE_WAIT_DROP_CANCEL {
-                CancelDrop
-            } else {
-                *self
+            Move => {
+                if *button == MOUSE_MOVE_ADD {
+                    Add
+                } else if *button == MOUSE_MOVE_REMOVE {
+                    Remove
+                } else if *key == KEY_TOGGLE_TRANSLATE {
+                    Translate
+                } else {
+                    *self
+                }
             }
-            WaitSpeed => if *button == MOUSE_WAIT_DROP_DO {
-                Move
-            } else if *button == MOUSE_WAIT_DROP_CANCEL {
-                WaitDrop
-            } else {
-                *self
+            Translate => {
+                if *key == KEY_TOGGLE_TRANSLATE {
+                    Move
+                } else {
+                    *self
+                }
+            }
+            WaitDrop => {
+                if *button == MOUSE_WAIT_DROP_DO {
+                    WaitSpeed
+                } else if *button == MOUSE_WAIT_DROP_CANCEL {
+                    CancelDrop
+                } else {
+                    *self
+                }
+            }
+            WaitSpeed => {
+                if *button == MOUSE_WAIT_DROP_DO {
+                    Move
+                } else if *button == MOUSE_WAIT_DROP_CANCEL {
+                    WaitDrop
+                } else {
+                    *self
+                }
             }
         };
     }
@@ -90,7 +98,6 @@ impl Frame {
         }
     }
 }
-
 
 #[derive(Debug)]
 pub struct Config {
@@ -120,9 +127,24 @@ impl Config {
 
     pub fn from_args(args: Vec<String>) -> Result<Config, Box<dyn Error>> {
         let mut opts = Options::new();
-        opts.optopt("o", "orbital", "Loads an orbital cluster from file", "FILEPATH");
-        opts.optopt("d", "distance", "Sets the distance scale in px/meters", "NUMBER");
-        opts.optopt("t", "time", "Sets the time scale in secs/real sec", "NUMBER");
+        opts.optopt(
+            "o",
+            "orbital",
+            "Loads an orbital cluster from file",
+            "FILEPATH",
+        );
+        opts.optopt(
+            "d",
+            "distance",
+            "Sets the distance scale in px/meters",
+            "NUMBER",
+        );
+        opts.optopt(
+            "t",
+            "time",
+            "Sets the time scale in secs/real sec",
+            "NUMBER",
+        );
         opts.optopt("s", "oversampling", "Sets oversampling", "NUMBER");
         opts.optopt("w", "width", "Sets window width", "NUMBER");
         opts.optopt("h", "height", "Sets window height", "NUMBER");
@@ -152,7 +174,12 @@ impl Config {
     }
 
     pub fn default() -> Config {
-        Config::new(None, Size::from(DEFAULT_WINDOW_SIZE), Scale::unit(), DEFAULT_OVERSAMPLING)
+        Config::new(
+            None,
+            Size::from(DEFAULT_WINDOW_SIZE),
+            Scale::unit(),
+            DEFAULT_OVERSAMPLING,
+        )
     }
 
     pub fn update(&mut self, key: &Key) {
@@ -258,10 +285,16 @@ pub struct Simulator {
 
 impl From<Cluster> for Simulator {
     fn from(cluster: Cluster) -> Self {
-        let bodies: Vec<Body> = cluster.points.iter()
+        let bodies: Vec<Body> = cluster
+            .points
+            .iter()
             .map(|_point| orbital::Body::new())
             .collect();
-        Simulator::new(cluster, orbital::Cluster::from(bodies), Solver::from(Method::RungeKutta4))
+        Simulator::new(
+            cluster,
+            orbital::Cluster::from(bodies),
+            Solver::from(Method::RungeKutta4),
+        )
     }
 }
 
@@ -299,31 +332,43 @@ impl Simulator {
 
     pub fn orbital_at_random(system: orbital::Cluster, solver: Solver) -> Self {
         let two_pi = 2. * std::f64::consts::PI;
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         let mut true_anomalies: Vec<f64> = Vec::with_capacity(system.bodies.len());
         for _ in system.bodies.iter() {
-            true_anomalies.push(rng.gen_range(0., two_pi))
+            true_anomalies.push(rng.random_range(0.0..two_pi))
         }
         Simulator::orbital(system, true_anomalies, solver)
     }
 
     #[inline]
-    pub fn current(&self) -> Option<&Point3> { self.cluster.points.get(self.current) }
+    pub fn current(&self) -> Option<&Point3> {
+        self.cluster.points.get(self.current)
+    }
 
     #[inline]
-    pub fn current_mut(&mut self) -> Option<&mut Point3> { self.cluster.points.get_mut(self.current) }
+    pub fn current_mut(&mut self) -> Option<&mut Point3> {
+        self.cluster.points.get_mut(self.current)
+    }
 
     #[inline]
-    pub fn current_index(&self) -> usize { self.current }
+    pub fn current_index(&self) -> usize {
+        self.current
+    }
 
     #[inline]
-    pub fn last(&self) -> Option<&Point3> { self.cluster.points.last() }
+    pub fn last(&self) -> Option<&Point3> {
+        self.cluster.points.last()
+    }
 
     #[inline]
-    pub fn last_mut(&mut self) -> Option<&mut Point3> { self.cluster.points.last_mut() }
+    pub fn last_mut(&mut self) -> Option<&mut Point3> {
+        self.cluster.points.last_mut()
+    }
 
     #[inline]
-    pub fn last_index(&self) -> usize { self.cluster.len() - 1 }
+    pub fn last_index(&self) -> usize {
+        self.cluster.len() - 1
+    }
 
     #[inline]
     pub fn origin(&self) -> &point::Point3 {
@@ -375,12 +420,15 @@ impl Simulator {
     }
 
     #[inline]
-    pub fn apply<T>(&mut self, dt: f64, iterations: u32, f: T) -> &mut Self where
-        T: FnMut(&Vec<Point3>, usize) -> Vector6 {
+    pub fn apply<T>(&mut self, dt: f64, iterations: u32, f: T) -> &mut Self
+    where
+        T: FnMut(&Vec<Point3>, usize) -> Vector6,
+    {
         self.solver.dt = dt;
         self.solver.iterations = iterations;
         self.cluster.apply(&mut self.solver, f);
-        self.system.update_orbits(&self.cluster.points, self.cluster.barycenter());
+        self.system
+            .update_orbits(&self.cluster.points, self.cluster.barycenter());
         self
     }
 
@@ -426,3 +474,4 @@ impl Simulator {
         self
     }
 }
+

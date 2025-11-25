@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::fmt::{Debug, Formatter};
 use std::time::SystemTime;
 
 use dynamics::Cluster;
@@ -8,7 +8,6 @@ use geomath::prelude::Algebra;
 use geomath::vector::*;
 use geomath::{matrix, vector};
 use piston::input::{Key, MouseButton};
-use serde::export::fmt::{Error, Formatter};
 use unitflow::date::Duration;
 
 use crate::keys::*;
@@ -58,7 +57,7 @@ impl Average {
 }
 
 impl Debug for Average {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.value())
     }
 }
@@ -264,7 +263,7 @@ impl Orientation {
 }
 
 impl Debug for Orientation {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self.rotation())
     }
 }

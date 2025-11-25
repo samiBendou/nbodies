@@ -5,8 +5,8 @@ use piston::input::Key;
 use unitflow;
 use unitflow::{Compound, Rescale, Serialize, Unit};
 
-use crate::common::*;
 use crate::common::Scale;
+use crate::common::*;
 use crate::core;
 use crate::draw::{Circle, Drawer};
 use crate::keys::KEY_NEXT_LOGGER_STATE;
@@ -97,23 +97,25 @@ impl Logger {
             Cinematic => self.log_cinematic(simulator.current_index(), drawer, status),
             Points => self.log_points(simulator, status),
             Bodies => self.log_cluster(&simulator.cluster),
-            Physics => self.log_physics(simulator)
+            Physics => self.log_physics(simulator),
         };
         self.buffer += "\n";
         match self.state {
             Step | Points | Cinematic | Physics => self.log_scale(&config.scale),
-            _ => ()
+            _ => (),
         };
     }
 
     fn log_status(&mut self, status: &core::Status, input: &Input) {
-        self.buffer += &format!("\
+        self.buffer += &format!(
+            "\
 *** status info ***
 {:#?}
 pressed mouse button: '{:?}'
 mouse at: {:?} (px)
 pressed keyboard key: '{:?}'",
-                                status, input.button, input.cursor, input.key)[..];
+            status, input.button, input.cursor, input.key
+        )[..];
     }
 
     fn log_config(&mut self, config: &core::Config) {
@@ -127,17 +129,19 @@ pressed keyboard key: '{:?}'",
         let framerate = (1. / frame).floor() as u8;
         let framerate_system = (1. / system).floor() as u8;
         self.time_unit.rescale(&frame);
-        self.buffer += &format!("*** step info ***
+        self.buffer += &format!(
+            "*** step info ***
 dt: {} fps: {} (update)
 dt: {} fps: {} (system)
 total: {:?}
 simulated: {:?}",
-                                self.time_unit.string_of(&frame),
-                                framerate,
-                                self.time_unit.string_of(&system),
-                                framerate_system,
-                                step.total,
-                                step.simulated);
+            self.time_unit.string_of(&frame),
+            framerate,
+            self.time_unit.string_of(&system),
+            framerate_system,
+            step.total,
+            step.simulated
+        );
     }
 
     fn log_cinematic(&mut self, current: usize, drawer: &Drawer, status: &core::Status) {
@@ -165,14 +169,20 @@ simulated: {:?}",
         self.log_point(point, body.name.as_str());
         if status.is_waiting_to_add() && len != 1 {
             self.buffer += "\n";
-            self.log_point(simulator.last().unwrap(), &simulator.system[simulator.last_index()].name);
+            self.log_point(
+                simulator.last().unwrap(),
+                &simulator.system[simulator.last_index()].name,
+            );
         }
     }
 
     fn log_cluster(&mut self, cluster: &dynamics::Cluster) {
         let barycenter = cluster.barycenter();
         self.units.rescale(&barycenter.state);
-        self.buffer += &format!("*** barycenter ***\n{}", self.units.string_of(&barycenter.state));
+        self.buffer += &format!(
+            "*** barycenter ***\n{}",
+            self.units.string_of(&barycenter.state)
+        );
         for point in cluster.points.iter() {
             self.buffer += "\n";
             self.log_point(point, "")
@@ -180,7 +190,10 @@ simulated: {:?}",
     }
     fn log_physics(&mut self, simulator: &core::Simulator) {
         self.log_energy(&simulator.cluster);
-        self.buffer += &format!("\n*** orbital ***\n{:#?}", simulator.system[simulator.current_index()].orbit);
+        self.buffer += &format!(
+            "\n*** orbital ***\n{:#?}",
+            simulator.system[simulator.current_index()].orbit
+        );
     }
 
     fn log_shape(&mut self, circle: &Circle) {
@@ -200,36 +213,41 @@ simulated: {:?}",
         let kinetic_energy = cluster.kinetic_energy();
         let angular_momentum = cluster.angular_momentum();
         let potential_energy = cluster.potential_energy(|points, i| {
-            points[i].mass * potentials::gravity(&points[i], points)
+            points[i].mass * potentials::newton_gravity(&points[i], points)
         });
         let total_energy = kinetic_energy + potential_energy;
         self.energy_unit.rescale(&total_energy);
-        self.buffer += &format!("\
+        self.buffer += &format!(
+            "\
 *** energy ***
 kinetic energy: {}
 potential energy: {}
 total energy: {}
 angular momentum: {:.10e}",
-                                self.energy_unit.string_of(&kinetic_energy),
-                                self.energy_unit.string_of(&potential_energy),
-                                self.energy_unit.string_of(&total_energy),
-                                angular_momentum
+            self.energy_unit.string_of(&kinetic_energy),
+            self.energy_unit.string_of(&potential_energy),
+            self.energy_unit.string_of(&total_energy),
+            angular_momentum
         );
 
         let barycenter = cluster.barycenter();
         self.units.rescale(&barycenter.state);
-        self.buffer += &format!("\n*** barycenter ***\n{}",
-                                self.units.string_of(&barycenter.state));
+        self.buffer += &format!(
+            "\n*** barycenter ***\n{}",
+            self.units.string_of(&barycenter.state)
+        );
     }
 
     fn log_scale(&mut self, scale: &Scale) {
         self.time_unit.rescale(&scale.time);
         self.distance_unit.rescale(&scale.distance);
-        self.buffer += &format!("*** scale ***
+        self.buffer += &format!(
+            "*** scale ***
 time: {} per (second)
 distance: {} per (meter)",
-                                self.time_unit.string_of(&scale.time),
-                                self.distance_unit.string_of(&scale.distance));
+            self.time_unit.string_of(&scale.time),
+            self.distance_unit.string_of(&scale.distance)
+        );
     }
 }
 
@@ -279,7 +297,6 @@ impl unitflow::Rescale<point::Point3> for Units {
     }
 }
 
-
 impl unitflow::Rescale<Point3> for Units {
     fn rescale(&mut self, val: &Point3) -> &mut Self {
         self.rescale(&val.state);
@@ -307,3 +324,4 @@ impl unitflow::Serialize<Point3> for Units {
         )
     }
 }
+

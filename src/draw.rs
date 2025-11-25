@@ -3,20 +3,20 @@ use std::fmt::Debug;
 
 use dynamics::orbital;
 use dynamics::orbital::Orbit;
-use geomath::{matrix, vector};
 use geomath::matrix::{Matrix3, Matrix4};
-use geomath::prelude::Algebra;
 use geomath::prelude::transforms::{Rotation3, Similarity};
+use geomath::prelude::Algebra;
 use geomath::trajectory::{consts::TRAJECTORY_SIZE, Trajectory3};
 use geomath::vector::{vec3, Vector2, Vector3};
+use geomath::{matrix, vector};
 use piston::window::Size;
-use piston_window::*;
 use piston_window::context::Context;
-use unitflow::{Rescale, Scale, Serialize, Unit};
+use piston_window::*;
 use unitflow::suffix::*;
+use unitflow::{Rescale, Scale, Serialize, Unit};
 
-use crate::common::{BLACK, BLUE, GREEN, RED, WHITE};
 use crate::common::Orientation;
+use crate::common::{BLACK, BLUE, GREEN, RED, WHITE};
 use crate::core::Simulator;
 
 const SCALE_LENGTH: f64 = 50.;
@@ -44,7 +44,12 @@ impl Circle {
     }
 
     #[inline]
-    pub fn reset(&mut self, trajectory: &Trajectory3, origin: &Trajectory3, transform: &Matrix4) -> &mut Self {
+    pub fn reset(
+        &mut self,
+        trajectory: &Trajectory3,
+        origin: &Trajectory3,
+        transform: &Matrix4,
+    ) -> &mut Self {
         for i in 0..TRAJECTORY_SIZE {
             self.trajectory[i] = *transform * (trajectory[i] - origin[i]);
         }
@@ -52,7 +57,12 @@ impl Circle {
     }
 
     #[inline]
-    pub fn update(&mut self, position: &Vector3, origin: &Vector3, transform: &Matrix4) -> &mut Self {
+    pub fn update(
+        &mut self,
+        position: &Vector3,
+        origin: &Vector3,
+        transform: &Matrix4,
+    ) -> &mut Self {
         self.trajectory.push(&(*transform * (*position - *origin)));
         self
     }
@@ -86,11 +96,18 @@ pub struct Drawer {
     pub inverse_transform: Matrix4,
 }
 
-
 impl Drawer {
-    pub fn new(simulator: &Simulator, orientation: &Orientation, scale: f64, size: &Size) -> Drawer {
-        let circles: Vec<Circle> = simulator.cluster.points.iter()
-            .map({ |_point| Circle::centered(10., BLUE) })
+    pub fn new(
+        simulator: &Simulator,
+        orientation: &Orientation,
+        scale: f64,
+        size: &Size,
+    ) -> Drawer {
+        let circles: Vec<Circle> = simulator
+            .cluster
+            .points
+            .iter()
+            .map(|_point| Circle::centered(10., BLUE))
             .collect();
         let mut ret = Drawer {
             circles,
@@ -111,12 +128,19 @@ impl Drawer {
     pub fn set_appearance(&mut self, cluster: &orbital::Cluster) -> &mut Self {
         for i in 0..self.circles.len() {
             self.circles[i].color = cluster.bodies[i].color;
-            self.circles[i].radius = cluster.bodies[i].kind.scaled_radius(cluster.bodies[i].radius);
+            self.circles[i].radius = cluster.bodies[i]
+                .kind
+                .scaled_radius(cluster.bodies[i].radius);
         }
         self
     }
 
-    pub fn update_transform(&mut self, orientation: &Orientation, scale: f64, size: &Size) -> &mut Self {
+    pub fn update_transform(
+        &mut self,
+        orientation: &Orientation,
+        scale: f64,
+        size: &Size,
+    ) -> &mut Self {
         let scale_distance = SCALE_LENGTH / scale;
         let middle = vec3(size.width * 0.5, size.height * 0.5, 0.);
         let rotation = Matrix3::from_rotation_x(std::f64::consts::PI) * orientation.rotation();
@@ -144,12 +168,20 @@ impl Drawer {
             self.circles[i].reset(
                 &simulator.cluster[i].state.trajectory,
                 &simulator.origin().trajectory,
-                &self.transform);
+                &self.transform,
+            );
         }
         self
     }
 
-    pub fn draw_scale(&mut self, scale: f64, size: &Size, c: &Context, g: &mut G2d, glyphs: &mut Glyphs) {
+    pub fn draw_scale(
+        &mut self,
+        scale: f64,
+        size: &Size,
+        c: &Context,
+        g: &mut G2d,
+        glyphs: &mut Glyphs,
+    ) {
         let scale_distance = SCALE_LENGTH / scale;
         self.buffer_offset.x = size.width - 160.;
         self.buffer_offset.y = size.height - 48.;
@@ -160,16 +192,20 @@ impl Drawer {
             3.,
             [self.buffer_offset.x, self.buffer_offset.y],
             [self.buffer_offset.x + SCALE_LENGTH, self.buffer_offset.y],
-            c.transform, g,
+            c.transform,
+            g,
         );
 
-        piston_window::text::Text::new_color(WHITE, 16).draw(
-            format!("{}", self.distance_unit.string_of(&scale_distance)).as_str(),
-            glyphs,
-            &c.draw_state,
-            c.transform.trans(self.buffer_offset.x, self.buffer_offset.y - 16.),
-            g,
-        ).unwrap();
+        piston_window::text::Text::new_color(WHITE, 16)
+            .draw(
+                format!("{}", self.distance_unit.string_of(&scale_distance)).as_str(),
+                glyphs,
+                &c.draw_state,
+                c.transform
+                    .trans(self.buffer_offset.x, self.buffer_offset.y - 16.),
+                g,
+            )
+            .unwrap();
     }
 
     pub fn draw_basis(&mut self, size: &Size, c: &Context, g: &mut G2d) {
@@ -181,7 +217,8 @@ impl Drawer {
             3.,
             [self.buffer_offset.x, self.buffer_offset.y],
             [self.unit_x.x, self.unit_x.y],
-            c.transform, g,
+            c.transform,
+            g,
         );
 
         piston_window::line_from_to(
@@ -189,7 +226,8 @@ impl Drawer {
             3.,
             [self.buffer_offset.x, self.buffer_offset.y],
             [self.unit_y.x, self.unit_y.y],
-            c.transform, g,
+            c.transform,
+            g,
         );
 
         piston_window::line_from_to(
@@ -197,17 +235,20 @@ impl Drawer {
             3.,
             [self.buffer_offset.x, self.buffer_offset.y],
             [self.unit_z.x, self.unit_z.y],
-            c.transform, g,
+            c.transform,
+            g,
         );
     }
 
     pub fn draw_barycenter(&mut self, simulator: &Simulator, c: &Context, g: &mut G2d) {
-        let mut barycenter = simulator.cluster.barycenter().state.position - simulator.origin().position;
+        let mut barycenter =
+            simulator.cluster.barycenter().state.position - simulator.origin().position;
         barycenter *= self.transform;
         piston_window::rectangle(
             RED,
             [barycenter.x - 4., barycenter.y - 4., 8., 8.],
-            c.transform, g,
+            c.transform,
+            g,
         );
     }
 
@@ -215,11 +256,7 @@ impl Drawer {
         let len = self.circles.len();
         for i in 0..len {
             self.circles[i].update_rect();
-            piston_window::ellipse(
-                self.circles[i].color,
-                self.circles[i].rect,
-                c.transform, g,
-            );
+            piston_window::ellipse(self.circles[i].color, self.circles[i].rect, c.transform, g);
         }
     }
 
@@ -236,7 +273,8 @@ impl Drawer {
                     2.5,
                     [from.x, from.y],
                     [to.x, to.y],
-                    c.transform, g,
+                    c.transform,
+                    g,
                 );
             }
         }
@@ -254,15 +292,19 @@ impl Drawer {
         for i in 0..self.circles.len() {
             angle = 0.;
             for _ in 0..TRAJECTORY_SIZE {
-                from = self.transform * (simulator.system[i].orbit.position_at(angle) - origin.position_at(angle));
-                to = self.transform * (simulator.system[i].orbit.position_at(angle + d_angle) - origin.position_at(angle + d_angle));
+                from = self.transform
+                    * (simulator.system[i].orbit.position_at(angle) - origin.position_at(angle));
+                to = self.transform
+                    * (simulator.system[i].orbit.position_at(angle + d_angle)
+                        - origin.position_at(angle + d_angle));
                 angle += d_angle;
                 piston_window::line_from_to(
                     self.circles[i].color,
                     2.5,
                     [from.x, from.y],
                     [to.x, to.y],
-                    c.transform, g,
+                    c.transform,
+                    g,
                 );
             }
         }
@@ -276,7 +318,9 @@ impl Drawer {
             2.5,
             [last_pos.x, last_pos.y],
             *cursor,
-            c.transform, g,
+            c.transform,
+            g,
         );
     }
 }
+

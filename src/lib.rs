@@ -18,8 +18,8 @@ use crate::log::Logger;
 pub mod common;
 pub mod core;
 pub mod draw;
-pub mod log;
 pub mod keys;
+pub mod log;
 
 pub struct App {
     pub simulator: Simulator,
@@ -54,7 +54,8 @@ impl App {
     pub fn on_key(&mut self, key: &Key) {
         self.config.update(key);
         self.logger.update(key);
-        self.simulator.update(&Some(*key), self.status.is_waiting_to_add());
+        self.simulator
+            .update(&Some(*key), self.status.is_waiting_to_add());
         self.status.update(&Some(*key), &Option::None);
     }
 
@@ -62,39 +63,44 @@ impl App {
         self.status.update(&Option::None, &Some(*button));
     }
 
-    pub fn render(&mut self, cursor: &[f64; 2], window: &mut PistonWindow, event: &Event, glyphs: &mut Glyphs) {
+    pub fn render(
+        &mut self,
+        cursor: &[f64; 2],
+        window: &mut PistonWindow,
+        event: &Event,
+        glyphs: &mut Glyphs,
+    ) {
         let scale = self.config.scale.distance;
         self.logger.print(true);
         self.logger.clear();
-        window.draw_2d(
-            event,
-            |c, g, device| {
-                piston_window::clear(BLACK, g);
-                if self.simulator.cluster.is_empty() {
-                    self.drawer.draw_barycenter(&self.simulator, &c, g);
-                    self.drawer.draw_scale(scale, &self.config.size, &c, g, glyphs);
-                    self.drawer.draw_basis(&self.config.size, &c, g);
-                    glyphs.factory.encoder.flush(device);
-                    return;
-                }
-                if self.config.trajectory {
-                    self.drawer.draw_trajectories(&c, g);
-                }
-
-                if self.config.orbits {
-                    self.drawer.draw_orbits(&self.simulator, &c, g);
-                }
-
-                if self.status.state == core::State::WaitSpeed {
-                    self.drawer.draw_speed(cursor, &c, g);
-                }
-                self.drawer.draw_points(&c, g);
+        window.draw_2d(event, |c, g, device| {
+            piston_window::clear(BLACK, g);
+            if self.simulator.cluster.is_empty() {
                 self.drawer.draw_barycenter(&self.simulator, &c, g);
-                self.drawer.draw_scale(scale, &self.config.size, &c, g, glyphs);
+                self.drawer
+                    .draw_scale(scale, &self.config.size, &c, g, glyphs);
                 self.drawer.draw_basis(&self.config.size, &c, g);
                 glyphs.factory.encoder.flush(device);
-            },
-        );
+                return;
+            }
+            if self.config.trajectory {
+                self.drawer.draw_trajectories(&c, g);
+            }
+
+            if self.config.orbits {
+                self.drawer.draw_orbits(&self.simulator, &c, g);
+            }
+
+            if self.status.state == core::State::WaitSpeed {
+                self.drawer.draw_speed(cursor, &c, g);
+            }
+            self.drawer.draw_points(&c, g);
+            self.drawer.draw_barycenter(&self.simulator, &c, g);
+            self.drawer
+                .draw_scale(scale, &self.config.size, &c, g, glyphs);
+            self.drawer.draw_basis(&self.config.size, &c, g);
+            glyphs.factory.encoder.flush(device);
+        });
     }
 
     pub fn update(&mut self, _window: &mut PistonWindow, args: &UpdateArgs, cursor: &[f64; 2]) {
@@ -112,11 +118,15 @@ impl App {
             Remove => self.do_remove(cursor),
             WaitDrop => self.do_wait_drop(cursor),
             WaitSpeed => self.do_wait_speed(cursor),
-            CancelDrop => self.do_cancel_drop()
+            CancelDrop => self.do_cancel_drop(),
         };
 
         if self.status.update_transform {
-            self.drawer.update_transform(&self.config.orientation, self.config.scale.distance, &self.config.size);
+            self.drawer.update_transform(
+                &self.config.orientation,
+                self.config.scale.distance,
+                &self.config.size,
+            );
         }
 
         if self.status.reset_circles {
@@ -128,7 +138,6 @@ impl App {
         self.status.clear();
     }
 
-    //noinspection RsTypeCheck
     pub fn log(&mut self, input: &common::Input) {
         self.logger.log(
             &self.simulator,
@@ -144,8 +153,11 @@ impl App {
             return;
         }
         let scale = TRANSLATION_SCALING_FACTOR / self.config.scale.distance;
-        let direction = self.config.orientation.inverse_rotation() * (self.status.direction.to_vector() * scale);
-        self.simulator.cluster.translate_at(self.simulator.current, &direction);
+        let direction = self.config.orientation.inverse_rotation()
+            * (self.status.direction.to_vector() * scale);
+        self.simulator
+            .cluster
+            .translate_at(self.simulator.current, &direction);
     }
 
     fn do_move(&mut self, dt: f64) {
@@ -155,9 +167,10 @@ impl App {
         }
         self.status.step.push(dt, self.config.scale.time);
         let dt = dt / self.config.oversampling as f64 * self.config.scale.time;
-        self.simulator.apply(dt, self.config.oversampling, |points, i| {
-            forces::gravity(&points[i], points)
-        });
+        self.simulator
+            .apply(dt, self.config.oversampling, |points, i| {
+                forces::newton_gravity(&points[i], points)
+            });
     }
 
     fn do_reset(&mut self) {
@@ -166,20 +179,23 @@ impl App {
         }
     }
 
-    //noinspection RsTypeCheck
     fn do_add(&mut self) {
         let body = Body::random();
-        self.drawer.circles.push(
-            Circle::new(Trajectory3::zeros(), body.kind.scaled_radius(body.radius), body.color)
-        );
-        self.simulator.push(Point3::new(point::Point3::zeros(), body.mass), body);
+        self.drawer.circles.push(Circle::new(
+            Trajectory3::zeros(),
+            body.kind.scaled_radius(body.radius),
+            body.color,
+        ));
+        self.simulator
+            .push(Point3::new(point::Point3::zeros(), body.mass), body);
     }
 
-    //noinspection RsTypeCheck
     fn do_remove(&mut self, cursor: &[f64; 2]) {
         let cursor = vec3(cursor[0], cursor[1], 0.);
         for i in 0..self.simulator.cluster.len() {
-            if cursor.distance(self.drawer.circles[i].trajectory.last()) < self.drawer.circles[i].radius {
+            if cursor.distance(self.drawer.circles[i].trajectory.last())
+                < self.drawer.circles[i].radius
+            {
                 self.simulator.cluster.remove(i);
                 self.drawer.circles.remove(i);
                 break;
@@ -192,10 +208,11 @@ impl App {
         let transformed_cursor = self.drawer.inverse_transform * cursor;
         let last_index = self.simulator.cluster.len() - 1;
         self.drawer.circles[last_index].trajectory.reset(&cursor);
-        self.simulator.cluster.reset_position_at(last_index, &transformed_cursor);
+        self.simulator
+            .cluster
+            .reset_position_at(last_index, &transformed_cursor);
     }
 
-    //noinspection RsTypeCheck
     fn do_wait_speed(&mut self, cursor: &[f64; 2]) {
         let cursor = self.drawer.inverse_transform * vec3(cursor[0], cursor[1], 0.);
         let last_index = self.simulator.cluster.len() - 1;
@@ -209,3 +226,4 @@ impl App {
         self.drawer.circles.pop();
     }
 }
+
